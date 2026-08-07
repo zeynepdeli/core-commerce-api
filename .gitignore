@@ -1,0 +1,28 @@
+# Bağımlılıklar — herkes kendi bilgisayarında `pnpm install` ile üretir
+node_modules/
+
+# Derlenmiş çıktı — kaynak koddan her zaman yeniden üretilebilir
+dist/
+
+# HASSAS: gerçek secret'lar, DB şifresi burada. Asla commit edilmemeli.
+.env
+.env.local
+.env.*.local
+
+# Prisma'nın otomatik ürettiği TypeScript client kodu — şema değiştikçe
+# yeniden üretilir, git'te takip etmeye gerek yok
+src/generated/
+
+# Test coverage raporları
+coverage/
+
+# Editör/OS'a özel dosyalar
+.DS_Store
+.vscode/*
+!.vscode/extensions.json
+
+# Log dosyaları
+*.log
+npm-debug.log*
+pnpm-debug.log*
+.history/
