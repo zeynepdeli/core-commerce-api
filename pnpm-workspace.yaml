@@ -1,0 +1,12 @@
+packages:
+  - "apps/*"
+
+# Kurulum script'i çalıştırmasına izin verilen paketler (supply-chain güvenliği)
+onlyBuiltDependencies:
+  - "@prisma/engines"
+  - argon2
+  - esbuild
+  - prisma
+
+ignoredBuiltDependencies:
+  - unrs-resolver
