@@ -97,6 +97,7 @@ export default async function UsersPage({
             locked: isLocked(u.lockedUntil),
             createdAt: fmt.format(new Date(u.createdAt)),
             isMe: u.id === me?.id,
+            twoFactor: u.twoFactorEnabledAt !== null,
           }))}
         />
 

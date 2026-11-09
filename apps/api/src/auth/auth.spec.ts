@@ -93,6 +93,7 @@ describe('AuthService', () => {
     mail as never,
     audit as never,
     config({ STOREFRONT_URL: 'https://magaza.com', ADMIN_URL: 'https://admin.magaza.com', GOOGLE_CLIENT_ID: 'id.apps.googleusercontent.com', MAX_FAILED_LOGIN_ATTEMPTS: 5, LOCKOUT_DURATION_MINUTES: 15 }),
+    { createChallenge: vi.fn() } as never,
   );
 
   const googleVerify = () =>
@@ -148,10 +149,18 @@ describe('Guard\'lar', () => {
   it('RolesGuard: hiyerarşi (SUPER_ADMIN ⊇ ADMIN), müşteri giremez', () => {
     const reflector = new Reflector();
     vi.spyOn(reflector, 'getAllAndOverride').mockReturnValue('ADMIN');
-    const guard = new RolesGuard(reflector);
+    const guard = new RolesGuard(reflector, { requiredFor: () => false } as never);
     expect(guard.canActivate(ctx({ user: { role: 'SUPER_ADMIN' } }))).toBe(true);
     expect(guard.canActivate(ctx({ user: { role: 'ADMIN' } }))).toBe(true);
     expect(() => guard.canActivate(ctx({ user: { role: 'CUSTOMER' } }))).toThrow(ForbiddenException);
+  });
+
+  it('RolesGuard: 2FA zorunluysa kurmamış yönetici yönetim uçlarına giremez', () => {
+    const reflector = new Reflector();
+    vi.spyOn(reflector, 'getAllAndOverride').mockReturnValue('ADMIN');
+    const guard = new RolesGuard(reflector, { requiredFor: (r: string) => r !== 'CUSTOMER' } as never);
+    expect(() => guard.canActivate(ctx({ user: { role: 'ADMIN', twoFactorEnabled: false } }))).toThrow(ForbiddenException);
+    expect(guard.canActivate(ctx({ user: { role: 'ADMIN', twoFactorEnabled: true } }))).toBe(true);
   });
 
   it('JwtAuthGuard: şifre değişiminden önce verilmiş token reddedilir', async () => {

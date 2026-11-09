@@ -78,6 +78,16 @@ model User {
   // Şifre değişince (sıfırlama dahil) bu andan ÖNCE verilmiş erişim
   // token'ları geçersiz sayılır — çalınan bir token 15 dk beklemeden ölür.
   passwordChangedAt DateTime?
+  // Bu andan önce verilmiş erişim token'ları geçersiz (ör. 2FA açılınca diğer oturumlar kapanır)
+  sessionsValidFrom DateTime?
+
+  // İki adımlı doğrulama (TOTP). Gizli anahtar AES-256-GCM ile ŞİFRELİ saklanır.
+  twoFactorSecret        String?
+  // Kurulum sırasında (henüz kodla doğrulanmamış) anahtar
+  twoFactorPendingSecret String?
+  twoFactorEnabledAt     DateTime?
+  // Son kabul edilen kodun zaman adımı: aynı kod ikinci kez kullanılamaz (replay)
+  twoFactorLastStep      Int?
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -89,6 +99,8 @@ model User {
   reviews   Review[]
 
   refreshTokens       RefreshToken[]
+  recoveryCodes       TwoFactorRecoveryCode[]
+  twoFactorChallenges TwoFactorChallenge[]
   passwordResetTokens PasswordResetToken[]
   emailVerifyTokens   EmailVerificationToken[]
   auditLogs           AuditLog[]
@@ -866,4 +878,35 @@ model ReturnItem {
 
   @@unique([returnId, orderItemId])
   @@index([orderItemId])
+}
+
+// ==========================================================
+// İKİ ADIMLI DOĞRULAMA
+// ==========================================================
+
+// Telefon kaybolursa: tek kullanımlık yedek kodlar (yalnızca SHA-256 özeti saklanır)
+model TwoFactorRecoveryCode {
+  id       String    @id @default(uuid())
+  userId   String
+  user     User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  codeHash String    @unique
+  usedAt   DateTime?
+  createdAt DateTime @default(now())
+
+  @@index([userId])
+}
+
+// Şifre doğru girildi, kod bekleniyor: kısa ömürlü, deneme sayısı sınırlı
+model TwoFactorChallenge {
+  id        String    @id @default(uuid())
+  userId    String
+  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  tokenHash String    @unique
+  attempts  Int       @default(0)
+  expiresAt DateTime
+  usedAt    DateTime?
+  createdAt DateTime  @default(now())
+
+  @@index([userId])
+  @@index([expiresAt])
 }

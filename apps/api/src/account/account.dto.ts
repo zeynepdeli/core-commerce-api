@@ -1,4 +1,4 @@
-import { IsString, MaxLength, MinLength, ValidateIf } from 'class-validator';
+import { IsString, Matches, MaxLength, MinLength, ValidateIf } from 'class-validator';
 
 import { NameField, NewPasswordField } from '../auth/dto/fields.js';
 
@@ -23,4 +23,23 @@ export class DeleteAccountDto {
   @IsString()
   @MaxLength(128)
   password?: string;
+}
+
+export class TwoFactorPasswordDto {
+  @IsString()
+  @MaxLength(128)
+  password!: string;
+}
+
+export class TwoFactorCodeDto {
+  @IsString()
+  @MaxLength(20)
+  @Matches(/^[0-9A-Za-z -]+$/, { message: 'Doğrulama kodu hatalı.' })
+  code!: string;
+}
+
+export class TwoFactorDisableDto extends TwoFactorCodeDto {
+  @IsString()
+  @MaxLength(128)
+  password!: string;
 }
