@@ -3,7 +3,7 @@
 Yeniden kullanılabilir **e-ticaret çekirdeği**. API ve admin paneli hazırdır;
 **mağaza frontend'i her müşteri için ayrı yazılır**. İlk müşteri: enfesGurme.
 
-> Durum: temel altyapı + kimlik doğrulama. Sıradaki adımlar: katalog → admin paneli →
+> Durum: temel altyapı + kimlik doğrulama + katalog/medya. Sıradaki adımlar: admin paneli →
 > sepet/sipariş → iyzico ödeme → yorum/beğeni → tema/içerik/SSS.
 
 | Klasör | İçerik |
@@ -57,6 +57,27 @@ E-postadaki bağlantılar `STOREFRONT_URL/eposta-dogrula#token=…` ve `STOREFRO
 biçimindedir: token adresin `#` kısmındadır, sunucu loglarına ve Referer başlığına düşmez.
 Mağaza sayfası token'ı `location.hash`'ten okuyup API'ye göndermelidir.
 
+## Katalog ve medya API'si
+
+| Uç | Kimler | Açıklama |
+|---|---|---|
+| `GET /shop/categories` · `/shop/categories/:slug` | Herkes | Yayındaki kategoriler (ürün sayısıyla) |
+| `GET /shop/products?category=&q=&sort=new\|price-asc\|price-desc\|name&featured=true&page=&limit=` | Herkes | Sayfalı liste (limit ≤ 48) |
+| `GET /shop/products/:slug` | Herkes | Ürün detayı: görseller, sekmeler, SEO |
+| `/admin/shop/categories` (GET, POST, `PATCH reorder`, `PATCH/DELETE :id`) | ADMIN | Kategori yönetimi |
+| `/admin/shop/products` (GET `?q=&category=&status=active\|inactive\|low-stock&page=`, POST, `GET/PATCH/DELETE :id`) | ADMIN | Ürün yönetimi |
+| `/admin/media` (GET `?page=`, `POST upload`, `PATCH/DELETE :id`) | ADMIN | Medya kütüphanesi |
+| `GET /media/:dosya` | Herkes | Yerel görseller (1 yıl önbellek) |
+
+- Fiyatlar `"249.90"` biçiminde metin döner (kuruş hatası olmasın). Kesin stok adedi ziyaretçiye
+  verilmez, yalnızca `inStock`. Para birimi mağaza genelinde tektir (`TRY`), dışarıdan değiştirilemez.
+- Silme **soft delete**'tir: geçmiş siparişler ürüne bağlı kalır, ürün mağazadan ve sepetlerden kalkar,
+  adres (slug) ve stok kodu yeni ürün için serbest kalır. İçinde ürün olan kategori silinemez.
+- Ürün detay sekmeleri (`tabs`) serbesttir; enfesGurme'deki Hikaye / Özellikler / Nasıl Servis Edilir?
+  alanları migration ile otomatik sekmeye çevrildi.
+- Yüklenen görseller yeniden kodlanır (gizli içerik ve EXIF/GPS silinir), en uzun kenar 2560 px'e
+  küçültülür. Kullanımdaki görsel silinemez.
+
 ## Güvenlik ilkeleri (OWASP)
 
 - **Yapılandırma (A05):** Ortam değişkenleri açılışta doğrulanır; zayıf/eksik değerle API başlamaz.
@@ -79,6 +100,9 @@ Mağaza sayfası token'ı `location.hash`'ten okuyup API'ye göndermelidir.
   hesabın şifresi silinir (hesabı önceden ele geçirme koruması).
 - **Kayıt (A09):** Güvenlik olayları `AuditLog`'a yazılır (giriş kilidi, token yeniden kullanımı,
   şifre sıfırlama, rol değişikliği…). Şifre ve token'lar hiçbir yere loglanmaz.
+- **Performans/veri minimizasyonu:** Her gece eski giriş denemeleri, süresi dolmuş oturumlar ve
+  e-posta bağlantıları silinir. Liste sorguları yalnızca gereken kolonları seçer ve indekslidir
+  (5000 ürünle mağaza listesi ~10 ms). Yavaş istemci saldırılarına karşı HTTP zaman aşımları.
 - **Sırlar:** `.env*` dosyaları commit edilmez.
 
 ## Kontroller

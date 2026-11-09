@@ -91,3 +91,24 @@ export const SLUG_MESSAGE =
 export function isUniqueViolation(error: unknown): error is { code: 'P2002'; meta?: { target?: unknown } } {
   return typeof error === 'object' && error !== null && 'code' in error && (error as { code: unknown }).code === 'P2002';
 }
+
+/**
+ * Benzersizlik hatasında hangi alan çakıştı? Prisma 7 driver adapter'ı
+ * kısıt adını meta.driverAdapterError.cause.constraint altında verir
+ * (ör. "Category_slug_key"); eski biçimde meta.target alan listesidir.
+ */
+export function uniqueViolationFields(error: { meta?: unknown }): string[] {
+  const meta = (error.meta ?? {}) as {
+    target?: unknown;
+    driverAdapterError?: { cause?: { constraint?: { index?: unknown; fields?: unknown } } };
+  };
+  if (Array.isArray(meta.target)) return meta.target.map(String);
+  const constraint = meta.driverAdapterError?.cause?.constraint;
+  if (Array.isArray(constraint?.fields)) return constraint.fields.map((f) => String(f).replace(/"/g, ''));
+  if (typeof constraint?.index === 'string') {
+    // "Model_alan_key" → ["alan"]
+    const match = /^[A-Za-z]+_(.+)_key$/.exec(constraint.index);
+    return match ? match[1].split('_') : [constraint.index];
+  }
+  return [];
+}

@@ -7,10 +7,13 @@ import { AccountModule } from './account/account.module.js';
 import { AdminUsersModule } from './admin-users/admin-users.module.js';
 import { AuditModule } from './audit/audit.module.js';
 import { AuthModule } from './auth/auth.module.js';
+import { CatalogModule } from './catalog/catalog.module.js';
 import { AppThrottlerGuard } from './common/app-throttler.guard.js';
 import { validateEnv } from './config/env.validation.js';
 import { HealthModule } from './health/health.module.js';
 import { MailModule } from './mail/mail.module.js';
+import { MaintenanceModule } from './maintenance/maintenance.module.js';
+import { MediaModule } from './media/media.module.js';
 import { PrismaModule } from './prisma/prisma.module.js';
 
 @Module({
@@ -31,6 +34,9 @@ import { PrismaModule } from './prisma/prisma.module.js';
     AuthModule,
     AccountModule,
     AdminUsersModule,
+    CatalogModule,
+    MediaModule,
+    MaintenanceModule,
   ],
   providers: [{ provide: APP_GUARD, useClass: AppThrottlerGuard }],
 })

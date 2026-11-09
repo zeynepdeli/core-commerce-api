@@ -44,3 +44,16 @@ describe('isImageUrl', () => {
     expect(isImageUrl(value)).toBe(false);
   });
 });
+
+describe('uniqueViolationFields', () => {
+  it('Prisma 7 driver adapter biçimi ve eski target biçimi', async () => {
+    const { uniqueViolationFields } = await import('./validators.js');
+    expect(
+      uniqueViolationFields({
+        meta: { modelName: 'Category', driverAdapterError: { name: 'DriverAdapterError', cause: { constraint: { index: 'Category_slug_key' } } } },
+      }),
+    ).toEqual(['slug']);
+    expect(uniqueViolationFields({ meta: { target: ['sku'] } })).toEqual(['sku']);
+    expect(uniqueViolationFields({})).toEqual([]);
+  });
+});
