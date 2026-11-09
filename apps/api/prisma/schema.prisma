@@ -318,6 +318,7 @@ model ProductVariant {
   orderItems OrderItem[]
 
   @@index([productId, deletedAt, order])
+  stockAlerts StockAlert[]
 }
 
 model ProductImage {
@@ -416,6 +417,9 @@ model Cart {
   // Uygulanan kupon (her hesaplamada yeniden doğrulanır)
   couponCode String?
 
+  // Son sepet hatırlatma e-postası (sepet yeniden değişmeden ikinci kez gönderilmez)
+  reminderSentAt DateTime?
+
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
@@ -460,6 +464,15 @@ model StoreSettings {
   paymentTimeoutMinutes Int      @default(30)
   // Cayma süresi (gün, teslimden itibaren). Yasal alt sınır 14.
   returnWindowDays      Int      @default(14)
+
+  // Pazarlama
+  // Sepette ürün bırakan, e-posta ticari ileti izni (İYS) OLAN üyelere hatırlatma
+  abandonedCartEnabled    Boolean @default(false)
+  abandonedCartDelayHours Int     @default(3)
+  // Google Merchant ürün akışı (/feeds/google.xml) yayında mı
+  productFeedEnabled      Boolean @default(false)
+  // Akıştaki marka adı (boşsa satıcı unvanı)
+  feedBrand               String?
 
   // Satıcı bilgileri (ön bilgilendirme formu ve sözleşmede zorunlu)
   sellerName     String?
@@ -909,4 +922,38 @@ model TwoFactorChallenge {
 
   @@index([userId])
   @@index([expiresAt])
+}
+
+// ==========================================================
+// PAZARLAMA
+// ==========================================================
+
+// "Stok gelince haber ver": müşterinin istediği tek seferlik bildirim (ticari ileti değil)
+model StockAlert {
+  id         String         @id @default(uuid())
+  variantId  String
+  variant    ProductVariant @relation(fields: [variantId], references: [id], onDelete: Cascade)
+  email      String
+  userId     String?
+  createdAt  DateTime       @default(now())
+  notifiedAt DateTime?
+
+  @@unique([variantId, email])
+  @@index([notifiedAt, variantId])
+  @@index([email])
+}
+
+// Gönderilen pazarlama/bildirim e-postalarının kaydı (İYS denetiminde kanıt, raporlama)
+model MarketingMessage {
+  id     String   @id @default(uuid())
+  // STOCK_ALERT | CART_REMINDER
+  type   String
+  email  String
+  userId String?
+  // İlgili kayıt (varyant / sepet)
+  refId  String?
+  sentAt DateTime @default(now())
+
+  @@index([type, sentAt])
+  @@index([userId, sentAt])
 }

@@ -1,4 +1,4 @@
-import { IsEmail, IsInt, IsNumber, IsOptional, IsString, Matches, Max, MaxLength, Min, ValidateIf } from 'class-validator';
+import { IsBoolean, IsEmail, IsInt, IsNumber, IsOptional, IsString, Matches, Max, MaxLength, Min, ValidateIf } from 'class-validator';
 
 import { SINGLE_LINE_REGEX } from '../common/validators.js';
 
@@ -38,6 +38,27 @@ export class UpdateStoreSettingsDto {
   @Min(14, { message: 'Cayma süresi yasal olarak en az 14 gündür.' })
   @Max(365)
   returnWindowDays?: number;
+
+  // ───── Pazarlama ─────
+  @IsOptional()
+  @IsBoolean()
+  abandonedCartEnabled?: boolean;
+
+  @IsOptional()
+  @IsInt()
+  @Min(1)
+  @Max(72)
+  abandonedCartDelayHours?: number;
+
+  @IsOptional()
+  @IsBoolean()
+  productFeedEnabled?: boolean;
+
+  @ValidateIf(nullable)
+  @IsString()
+  @MaxLength(70)
+  @Matches(SINGLE_LINE_REGEX)
+  feedBrand?: string | null;
 
   // ───── Satıcı bilgileri (yasal metinlerde kullanılır) ─────
   @ValidateIf(nullable)
