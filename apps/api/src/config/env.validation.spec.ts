@@ -2,19 +2,29 @@ import { validateEnv } from './env.validation.js';
 
 const base = {
   DATABASE_URL: 'postgresql://u:p@localhost:5432/db',
-  JWT_SECRET: 'x'.repeat(64),
-  CORS_ORIGINS: 'http://localhost:3000, http://localhost:3001',
+  JWT_ACCESS_SECRET: 'x'.repeat(64),
+  ALLOWED_ORIGINS: 'http://localhost:3000, http://localhost:3001',
 };
 
 describe('validateEnv', () => {
   it('geçerli yapılandırmayı kabul eder, CORS listesini ayırır', () => {
     const env = validateEnv(base);
-    expect(env.CORS_ORIGINS).toEqual(['http://localhost:3000', 'http://localhost:3001']);
+    expect(env.ALLOWED_ORIGINS).toEqual(['http://localhost:3000', 'http://localhost:3001']);
     expect(env.PORT).toBe(4000);
   });
 
-  it('kısa JWT_SECRET ile başlamaz', () => {
-    expect(() => validateEnv({ ...base, JWT_SECRET: 'kisa' })).toThrow(/JWT_SECRET/);
+  it('kısa veya eksik JWT_ACCESS_SECRET ile başlamaz; mesaj Türkçe ve değeri içermez', () => {
+    expect(() => validateEnv({ ...base, JWT_ACCESS_SECRET: 'gizli-kisa' })).toThrow(/en az 64 karakter/);
+    expect(() => validateEnv({ ...base, JWT_ACCESS_SECRET: 'gizli-kisa' })).not.toThrow(/gizli-kisa/);
+    const { JWT_ACCESS_SECRET: _omit, ...missing } = base;
+    expect(() => validateEnv(missing)).toThrow(/JWT_ACCESS_SECRET zorunludur/);
+  });
+
+  it('süreler ve argon2 alt sınırları', () => {
+    const env = validateEnv(base);
+    expect(env).toMatchObject({ JWT_ACCESS_TTL: '15m', JWT_REFRESH_TTL: '7d', ARGON2_MEMORY_COST: 19456, ARGON2_TIME_COST: 2 });
+    expect(() => validateEnv({ ...base, JWT_ACCESS_TTL: '15 dakika' })).toThrow(/JWT_ACCESS_TTL/);
+    expect(() => validateEnv({ ...base, ARGON2_MEMORY_COST: '1024' })).toThrow(/ARGON2_MEMORY_COST/);
   });
 
   it('PostgreSQL dışı veritabanı adresini reddeder', () => {
@@ -27,7 +37,7 @@ describe('validateEnv', () => {
       validateEnv({
         ...base,
         NODE_ENV: 'production',
-        CORS_ORIGINS: 'https://magaza.com,https://admin.magaza.com',
+        ALLOWED_ORIGINS: 'https://magaza.com,https://admin.magaza.com',
         WEB_API_SECRET: 's'.repeat(32),
       }),
     ).not.toThrow();

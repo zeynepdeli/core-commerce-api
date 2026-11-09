@@ -20,7 +20,7 @@ Gereken: Node 24 (`.nvmrc`), pnpm 10 (`corepack enable`), Docker.
 pnpm install
 docker compose -f infrastructure/compose.yaml up -d      # PostgreSQL (localhost:5434)
 
-cp apps/api/.env.example apps/api/.env                  # JWT_SECRET'ı doldurun: openssl rand -base64 64
+cp apps/api/.env.example apps/api/.env                  # JWT_ACCESS_SECRET'ı doldurun: openssl rand -base64 64
 pnpm --filter api db:migrate                            # tabloları oluştur
 pnpm dev:api                                            # http://localhost:4000/health
 ```
