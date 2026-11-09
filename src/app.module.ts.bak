@@ -1,0 +1,42 @@
+import { Module } from '@nestjs/common';
+import { ConfigModule, ConfigService } from '@nestjs/config';
+import { ThrottlerModule, ThrottlerGuard } from '@nestjs/throttler';
+import { APP_GUARD } from '@nestjs/core';
+import { validateEnv, EnvConfig } from './config/env.validation';
+import { PrismaModule } from './prisma/prisma.module';
+import { AuthModule } from './auth/auth.module';
+
+@Module({
+  imports: [
+    ConfigModule.forRoot({
+      isGlobal: true, // her modülde ayrıca import etmene gerek kalmasın diye
+      validate: validateEnv, // bootstrap sırasında env doğrulaması burada tetiklenir
+    }),
+
+    ThrottlerModule.forRootAsync({
+      inject: [ConfigService],
+      useFactory: (config: ConfigService<EnvConfig, true>) => ({
+        throttlers: [
+          {
+            ttl: 60_000, // 60 saniyelik pencere
+            limit:
+              config.get('NODE_ENV', { infer: true }) === 'production'
+                ? 100
+                : 1000,
+            // production'da IP başına 60 saniyede max 100 istek; dev'de gevşek
+          },
+        ],
+      }),
+    }),
+
+    PrismaModule,
+    // AuthModule,
+  ],
+  providers: [
+    {
+      provide: APP_GUARD,
+      useClass: ThrottlerGuard, // global olarak TÜM endpoint'lere rate limiting uygulanır
+    },
+  ],
+})
+export class AppModule {}
