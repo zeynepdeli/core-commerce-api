@@ -84,6 +84,7 @@ export class AdminOrdersService {
         events: { orderBy: { createdAt: 'asc' } },
         agreements: { select: { type: true, version: true, contentHash: true, acceptedAt: true, ipAddress: true, content: true } },
         user: { select: { id: true, name: true, email: true } },
+        payment: { select: { provider: true, status: true, providerPaymentId: true, providerRawResponse: true, errorMessage: true, paidAt: true, initiatedAt: true } },
       },
     });
     if (!o) throw new NotFoundException('Sipariş bulunamadı.');
@@ -136,6 +137,18 @@ export class AdminOrdersService {
         actor: e.actorId ? (actorName.get(e.actorId) ?? 'Yönetici') : null,
       })),
       agreements: o.agreements,
+      // Kart numarası tutulmaz; yalnızca son 4 hane, taksit ve sağlayıcı ödeme no
+      payment: o.payment
+        ? {
+            provider: o.payment.provider,
+            status: o.payment.status,
+            providerPaymentId: o.payment.providerPaymentId,
+            summary: o.payment.providerRawResponse as { paidPrice?: string; installment?: number; cardAssociation?: string | null; lastFourDigits?: string | null } | null,
+            errorMessage: o.payment.errorMessage,
+            paidAt: o.payment.paidAt,
+            initiatedAt: o.payment.initiatedAt,
+          }
+        : null,
     };
   }
 }

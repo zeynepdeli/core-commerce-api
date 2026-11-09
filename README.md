@@ -149,6 +149,24 @@ Mağaza sayfası token'ı `location.hash`'ten okuyup API'ye göndermelidir.
 - **Fatura:** Bireysel (isteğe bağlı TCKN, algoritmayla doğrulanır) veya kurumsal (unvan, vergi dairesi, VKN doğrulanır).
   TCKN/VKN müşteriye maskeli, admin'e tam gösterilir.
 
+## Ödeme (iyzico)
+
+| Uç | Açıklama |
+|---|---|
+| `POST /payments/iyzico/init` `{orderNumber, accessToken?}` | iyzico ödeme sayfası adresini döner (üye: oturum; misafir: sipariş erişim anahtarı). Mağaza müşteriyi bu adrese yönlendirir. |
+| `POST /payments/iyzico/callback` | iyzico'nun döndüğü adres. Sonucu işler, müşteriyi `STOREFRONT_URL/siparis/sonuc?siparis=…&durum=basarili\|basarisiz[&neden=…]` adresine yönlendirir. |
+
+- **Kart bilgisi bize hiç gelmez:** iyzico'nun barındırdığı ödeme formu kullanılır (PCI-DSS kapsamı dışı). Yalnızca ödeme no,
+  taksit, kart markası ve son 4 hane saklanır.
+- **Tarayıcıya güvenilmez:** Geri dönüşte gelen token ile sonuç iyzico'dan **sunucu-sunucu** sorgulanır; yanıt imzası (HMAC-SHA256),
+  sepet no = sipariş, oturum no, tutar ve para birimi doğrulanır. Tutar tutmazsa veya imza bozuksa sipariş ödenmiş sayılmaz.
+- **Tek sefer:** Aynı sonuç iki kez gelirse (yenileme, çift tık) ikinci kez işlenmez.
+- **Süre:** Ödeme sayfası açılınca sipariş en az 30 dk daha bekletilir (en fazla sipariş anından itibaren 2 saat — stok kilitleme
+  saldırısına karşı). Süre dolup iptal edilen siparişe sonradan ödeme gelirse stok varsa sipariş canlanır; yoksa yöneticiye
+  **"İADE GEREKLİ"** e-postası gider ve AuditLog'a yazılır.
+- **E-postalar:** Ödeme alındı (müşteri + yönetici), kargoya verildi (firma + takip no), iptal (yalnızca ödenmiş siparişte).
+- **Not:** Kartla ödenmiş siparişi iptal ederseniz ücret iadesini iyzico panelinden yapın (admin sipariş sayfası uyarır).
+
 ## Güvenlik ilkeleri (OWASP)
 
 - **Yapılandırma (A05):** Ortam değişkenleri açılışta doğrulanır; zayıf/eksik değerle API başlamaz.

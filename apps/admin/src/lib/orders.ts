@@ -83,6 +83,15 @@ export type OrderDetail = {
   total: string;
   timeline: { status: OrderStatus; label: string; note: string | null; at: string; actor: string | null }[];
   agreements: { type: string; version: number; contentHash: string; acceptedAt: string; ipAddress: string | null; content: string }[];
+  payment: {
+    provider: string;
+    status: "PENDING" | "SUCCEEDED" | "FAILED" | "REFUNDED";
+    providerPaymentId: string | null;
+    summary: { paidPrice?: string; installment?: number; cardAssociation?: string | null; lastFourDigits?: string | null } | null;
+    errorMessage: string | null;
+    paidAt: string | null;
+    initiatedAt: string | null;
+  } | null;
 };
 
 export async function getOrders(params: { q?: string; status?: string; page?: number }): Promise<OrderPage> {

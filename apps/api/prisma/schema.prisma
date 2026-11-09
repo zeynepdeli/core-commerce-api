@@ -701,7 +701,16 @@ model Payment {
 
   provider            String // "iyzico", "paytr", "stripe" vs.
   providerPaymentId   String? @unique // idempotency kontrolü için kritik
+  // Yalnızca gerekli özet (ödeme durumu, taksit, kartın son 4 hanesi vb.).
+  // Kart numarası/CVV ASLA saklanmaz; tam yanıt da saklanmaz (veri minimizasyonu).
   providerRawResponse Json?
+
+  // Sağlayıcıya gönderilen tekil oturum kimliği (yanıtın bize ait olduğunu doğrular)
+  conversationId String  @unique
+  // Ödeme sayfası token'ının SHA-256 özeti (geri dönüşte eşleştirmek için)
+  tokenHash      String? @unique
+  // Son ödeme denemesinin başlangıcı (ödeme sırasında sipariş zaman aşımına düşmesin)
+  initiatedAt    DateTime?
 
   errorMessage String?
   paidAt       DateTime?
