@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { BarChart3, Clock, FolderTree, Megaphone, MessageSquareText, RotateCcw, Images, LayoutDashboard, Package, PackageCheck, PackagePlus, Plus, Scale, ShoppingBag, Store, TicketPercent, Truck, UserCog, Users } from "lucide-react";
+import { BarChart3, CircleHelp, Clock, FileText, FolderTree, LayoutTemplate, Palette, Megaphone, MessageSquareText, RotateCcw, Images, LayoutDashboard, Package, PackageCheck, PackagePlus, Plus, Scale, ShoppingBag, Store, TicketPercent, Truck, UserCog, Users } from "lucide-react";
 
 import { AreaHeader } from "@/components/areas/AreaShell";
 import { getAdminUser } from "@/lib/auth";
@@ -68,6 +68,13 @@ export default async function DashboardPage() {
           description={`${openReturns} açık talep`}
           badge={(returns.counts.REQUESTED ?? 0) > 0 && <span className="rounded-full bg-amber-600 px-2 py-0.5 text-[11px] font-bold text-white">{returns.counts.REQUESTED} yeni</span>}
         />
+      </Group>
+
+      <Group eyebrow="Mağaza Sitesi" title="Site İçeriği">
+        <Tile href="/content/theme" icon={Palette} title="Görünüm" description="Renkler, yazı tipi, logo, duyuru, iletişim" />
+        <Tile href="/content/home" icon={LayoutTemplate} title="Ana Sayfa" description="Slayt, ürün listeleri, banner, bölümler" />
+        <Tile href="/content/pages" icon={FileText} title="Sayfalar" description="Hakkımızda, Teslimat, İletişim…" />
+        <Tile href="/content/faq" icon={CircleHelp} title="S.S.S." description="Sıkça sorulan sorular" />
       </Group>
 
       <Group eyebrow="Katalog" title="Mağaza">

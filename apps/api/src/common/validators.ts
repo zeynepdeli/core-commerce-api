@@ -15,6 +15,26 @@ export const INTERNAL_PATH_REGEX =
 export const INTERNAL_PATH_MESSAGE =
   'Bağlantı / ile başlayan site içi bir adres olmalıdır.';
 
+/** Bağlantı: site içi yol (/urunler) veya https adresi. javascript:, data:, http: reddedilir */
+export function isSafeLink(value: unknown): boolean {
+  if (typeof value !== 'string' || value.length > 2048) return false;
+  if (INTERNAL_PATH_REGEX.test(value)) return true;
+  return isURL(value, { protocols: ['https'], require_protocol: true, require_tld: true, disallow_auth: true });
+}
+
+export function IsSafeLink(validationOptions?: ValidationOptions) {
+  return ValidateBy(
+    {
+      name: 'isSafeLink',
+      validator: {
+        validate: (value: unknown) => isSafeLink(value),
+        defaultMessage: () => 'Bağlantı / ile başlayan site içi bir adres veya https:// ile başlayan bir adres olmalıdır.',
+      },
+    },
+    validationOptions,
+  );
+}
+
 /** Medya modülünün ürettiği yerel dosya yolu: /media/<uuid>.<uzantı> */
 const LOCAL_MEDIA_REGEX =
   /^\/media\/[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}\.(jpg|png|webp)$/;
