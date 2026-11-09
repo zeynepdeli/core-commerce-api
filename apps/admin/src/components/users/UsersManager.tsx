@@ -6,7 +6,7 @@ import { BadgeCheck, Lock, LockOpen, ShieldCheck, UserRound } from "lucide-react
 
 import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
-import { setUserActiveAction, setUserRoleAction, unlockUserAction } from "@/app/actions/users";
+import { resetUserTwoFactorAction, setUserActiveAction, setUserRoleAction, unlockUserAction } from "@/app/actions/users";
 
 export type UserListRow = {
   id: string;
@@ -20,6 +20,7 @@ export type UserListRow = {
   locked: boolean;
   createdAt: string;
   isMe: boolean;
+  twoFactor: boolean;
 };
 
 const ROLE_LABEL = { CUSTOMER: "Müşteri", ADMIN: "Yönetici", SUPER_ADMIN: "Süper Yönetici" } as const;
@@ -66,6 +67,7 @@ export function UsersList({ users, canChangeRoles }: { users: UserListRow[]; can
                   <span className="truncate">{u.name}</span>
                   {u.isMe && <Badge tone="accent">Siz</Badge>}
                   {staff && <Badge tone="primary">{ROLE_LABEL[u.role]}</Badge>}
+                  {staff && (u.twoFactor ? <Badge tone="accent">2FA açık</Badge> : <Badge tone="muted">2FA kapalı</Badge>)}
                   {u.locked && <Badge tone="danger">Kilitli</Badge>}
                   {u.deleted && <Badge tone="muted">Hesap kapatıldı</Badge>}
                 </p>
@@ -81,6 +83,21 @@ export function UsersList({ users, canChangeRoles }: { users: UserListRow[]; can
                 <Button type="button" variant="outline" disabled={pending} onClick={() => run(() => unlockUserAction(u.id))} className="h-9 gap-1.5 px-3 text-xs">
                   <LockOpen className="size-3.5" />
                   Kilidi aç
+                </Button>
+              )}
+
+              {canChangeRoles && !u.isMe && u.twoFactor && (
+                <Button
+                  type="button"
+                  variant="outline"
+                  disabled={pending}
+                  onClick={() =>
+                    confirm(`${u.email} kişisinin iki adımlı doğrulaması sıfırlansın mı? Yalnızca telefonunu ve yedek kodlarını kaybettiyse yapın; kimliğini başka bir kanaldan doğrulayın.`) &&
+                    run(() => resetUserTwoFactorAction(u.id))
+                  }
+                  className="h-9 px-3 text-xs"
+                >
+                  2FA sıfırla
                 </Button>
               )}
 

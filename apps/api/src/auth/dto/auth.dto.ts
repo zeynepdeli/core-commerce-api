@@ -1,6 +1,17 @@
-import { IsString, MaxLength, MinLength } from 'class-validator';
+import { IsString, Matches, MaxLength, MinLength } from 'class-validator';
 
 import { EmailField, NameField, NewPasswordField, OpaqueTokenField } from './fields.js';
+
+export class TwoFactorLoginDto {
+  @Matches(/^[A-Za-z0-9_-]{43}$/, { message: 'Doğrulama süresi doldu. Lütfen yeniden giriş yapın.' })
+  challengeToken!: string;
+
+  // 6 haneli kod veya "ABCDE-FGHJK" biçiminde yedek kod
+  @IsString()
+  @MaxLength(20)
+  @Matches(/^[0-9A-Za-z -]+$/, { message: 'Doğrulama kodu hatalı.' })
+  code!: string;
+}
 
 export class RegisterDto {
   @EmailField()

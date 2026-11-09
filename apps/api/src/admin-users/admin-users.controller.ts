@@ -5,6 +5,7 @@ import { CurrentUser, type RequestUser } from '../auth/decorators/current-user.d
 import { Roles } from '../auth/decorators/roles.decorator.js';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard.js';
 import { RolesGuard } from '../auth/guards/roles.guard.js';
+import { TwoFactorService } from '../auth/two-factor/two-factor.service.js';
 import { clientIp } from '../common/client-ip.js';
 
 import { ListUsersQueryDto, SetActiveDto, SetRoleDto } from './admin-users.dto.js';
@@ -14,7 +15,10 @@ import { AdminUsersService } from './admin-users.service.js';
 @UseGuards(JwtAuthGuard, RolesGuard)
 @Roles('ADMIN')
 export class AdminUsersController {
-  constructor(private readonly users: AdminUsersService) {}
+  constructor(
+    private readonly users: AdminUsersService,
+    private readonly twoFactor: TwoFactorService,
+  ) {}
 
   @Get()
   list(@Query() query: ListUsersQueryDto) {
@@ -30,6 +34,14 @@ export class AdminUsersController {
   @HttpCode(HttpStatus.OK)
   unlock(@CurrentUser() actor: RequestUser, @Param('id', ParseUUIDPipe) id: string, @Req() req: Request) {
     return this.users.unlock(actor, id, clientIp(req).ip);
+  }
+
+  /** Telefonunu ve yedek kodlarını kaybeden yöneticinin 2FA'sını sıfırlar */
+  @Post(':id/two-factor/reset')
+  @HttpCode(HttpStatus.OK)
+  @Roles('SUPER_ADMIN')
+  resetTwoFactor(@CurrentUser() actor: RequestUser, @Param('id', ParseUUIDPipe) id: string, @Req() req: Request) {
+    return this.twoFactor.adminReset(actor.id, id, clientIp(req).ip);
   }
 
   @Patch(':id/role')

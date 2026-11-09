@@ -19,6 +19,7 @@ import type { LoginDto, RegisterDto } from './dto/auth.dto.js';
 import { PasswordService } from './password.service.js';
 import { hashToken, newSecureToken } from './secure-token.js';
 import { type ClientMeta, type IssuedTokens, TokensService } from './tokens.service.js';
+import { TwoFactorService } from './two-factor/two-factor.service.js';
 
 const INVALID_CREDENTIALS = 'E-posta veya şifre hatalı.';
 const INVALID_LINK = 'Bağlantı geçersiz veya süresi dolmuş. Lütfen yeni bir bağlantı isteyin.';
@@ -32,6 +33,8 @@ const MAX_MAILS_PER_HOUR = 3;
 
 export type AuthUser = { id: string; email: string; name: string; role: Role; emailVerified: boolean };
 export type AuthResult = IssuedTokens & { user: AuthUser };
+/** Şifre doğru, iki adımlı doğrulama kodu bekleniyor (henüz oturum yok) */
+export type TwoFactorPending = { twoFactorRequired: true; challengeToken: string; expiresIn: number };
 
 const toAuthUser = (u: { id: string; email: string; name: string; role: Role; emailVerifiedAt: Date | null }): AuthUser => ({
   id: u.id,
@@ -55,6 +58,7 @@ export class AuthService {
     private readonly mail: MailService,
     private readonly audit: AuditService,
     private readonly config: ConfigService<Env, true>,
+    private readonly twoFactor: TwoFactorService,
   ) {
     this.storefrontUrl = config.get('STOREFRONT_URL', { infer: true }).replace(/\/$/, '');
     this.adminUrl = config.get('ADMIN_URL', { infer: true }).replace(/\/$/, '');
@@ -114,7 +118,7 @@ export class AuthService {
 
   // ───────────── Giriş ─────────────
 
-  async login(dto: LoginDto, meta: ClientMeta): Promise<AuthResult> {
+  async login(dto: LoginDto, meta: ClientMeta): Promise<AuthResult | TwoFactorPending> {
     const user = await this.prisma.user.findUnique({ where: { email: dto.email } });
 
     // A: kullanıcı yok — sahte doğrulama ile süre eşitlenir
@@ -150,6 +154,10 @@ export class AuthService {
       await this.recordLoginAttempt(dto.email, meta, false);
       throw new ForbiddenException('Hesabınız kullanıma kapatılmış. Destek ile iletişime geçin.');
     }
+
+    // İki adımlı doğrulama açıksa oturum ancak kodla açılır. Hatalı giriş sayacı
+    // burada SIFIRLANMAZ: şifreyi bilen biri kodu deneyerek kilidi atlatamasın.
+    if (user.twoFactorEnabledAt) return this.twoFactor.createChallenge(user.id);
 
     // E: başarılı giriş
     await this.prisma.user.update({ where: { id: user.id }, data: { failedLoginCount: 0, lockedUntil: null } });
@@ -278,7 +286,7 @@ export class AuthService {
    * İmza, süre ve hedef kitle (audience = GOOGLE_CLIENT_ID) Google
    * kütüphanesiyle doğrulanır; doğrulanmamış Google e-postası kabul edilmez.
    */
-  async googleLogin(idToken: string, meta: ClientMeta): Promise<AuthResult> {
+  async googleLogin(idToken: string, meta: ClientMeta): Promise<AuthResult | TwoFactorPending> {
     if (!this.googleClientId) throw new NotFoundException('Google ile giriş bu mağazada kapalı.');
 
     let payload: { sub?: string; email?: string; email_verified?: boolean; name?: string } | undefined;
@@ -333,7 +341,20 @@ export class AuthService {
     if (user.deletedAt) throw new UnauthorizedException('Bu hesap kapatılmış.');
     if (!user.isActive) throw new ForbiddenException('Hesabınız kullanıma kapatılmış. Destek ile iletişime geçin.');
 
+    if (user.twoFactorEnabledAt) return this.twoFactor.createChallenge(user.id);
     await this.recordLoginAttempt(email, meta, true);
+    const tokens = await this.tokens.issue(user, meta);
+    return { ...tokens, user: toAuthUser(user) };
+  }
+
+  /** Girişin 2. adımı: uygulamadaki 6 haneli kod veya yedek kod */
+  async verifyTwoFactor(challengeToken: string, code: string, meta: ClientMeta): Promise<AuthResult> {
+    const user = await this.twoFactor.verifyChallenge(challengeToken, code, async (userId, failed) => {
+      await this.handleFailedLogin(userId, failed, meta);
+      await this.audit.log({ action: 'auth.2fa_failed', entity: 'User', entityId: userId, userId, ipAddress: meta.ipAddress });
+    });
+    await this.prisma.user.update({ where: { id: user.id }, data: { failedLoginCount: 0, lockedUntil: null } });
+    await this.recordLoginAttempt(user.email, meta, true);
     const tokens = await this.tokens.issue(user, meta);
     return { ...tokens, user: toAuthUser(user) };
   }

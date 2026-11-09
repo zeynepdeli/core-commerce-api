@@ -188,6 +188,25 @@ Mağaza sayfası token'ı `location.hash`'ten okuyup API'ye göndermelidir.
 - **Kargodan önce iptal:** Admin ödenmiş siparişi iptal ederse ücret otomatik iade edilir (önce iyzico iptali, olmazsa kalem kalem iade).
   Başarısız olursa yöneticiye e-posta + sipariş sayfasında "İadeyi iyzico ile yap" düğmesi.
 
+## İki adımlı doğrulama (yöneticiler)
+
+| Uç | Açıklama |
+|---|---|
+| `POST /auth/login` | 2FA açıksa token yerine `{ twoFactorRequired: true, challengeToken, expiresIn }` döner |
+| `POST /auth/2fa` `{challengeToken, code}` | 6 haneli kod veya `ABCDE-FGHJK` yedek kod → oturum |
+| `GET /account/2fa` · `POST /account/2fa/setup` `{password}` · `/enable` `{code}` · `/disable` `{password, code}` · `/recovery-codes` `{code}` | Kurulum ve yönetim (yalnızca yöneticiler) |
+| `POST /admin/users/:id/two-factor/reset` | SUPER_ADMIN: telefonunu ve yedek kodlarını kaybedenin 2FA'sını sıfırlar |
+
+- **TOTP (RFC 6238):** Google/Microsoft Authenticator, 1Password vb. ile uyumlu; harici kütüphane yok, RFC test vektörleriyle test edildi.
+- **Gizli anahtar şifreli:** AES-256-GCM (`TWO_FACTOR_ENCRYPTION_KEY`), kullanıcı kimliğine bağlı; veritabanı sızsa bile kullanılamaz.
+- **Giriş:** Şifre doğruysa 5 dk geçerli, tek kullanımlık, en fazla 5 denemelik bir giriş anahtarı verilir (admin'de httpOnly çerezde).
+  Hatalı kodlar hesap kilitleme sayacına eklenir. Aynı kod ikinci kez kabul edilmez (replay).
+- **Yedek kodlar:** 10 adet, tek kullanımlık, yalnızca SHA-256 özeti saklanır; kullanılınca e-posta bildirimi.
+- **Açılınca** diğer tüm oturumlar kapanır (o andan önce verilmiş erişim token'ları milisaniye hassasiyetle reddedilir).
+- **Zorunluluk:** `ADMIN_2FA_REQUIRED` (boşsa production'da açık). Kurmamış yönetici yönetim uçlarından 403 `TWO_FACTOR_SETUP_REQUIRED` alır;
+  admin paneli kurulum ekranına yönlendirir.
+- Kurulum için şifre tekrar sorulur (açık unutulmuş bir oturumla başkası kendi telefonunu bağlayamaz). Açma/kapama/sıfırlama e-postayla bildirilir.
+
 ## Güvenlik ilkeleri (OWASP)
 
 - **Yapılandırma (A05):** Ortam değişkenleri açılışta doğrulanır; zayıf/eksik değerle API başlamaz.

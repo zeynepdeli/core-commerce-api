@@ -12,6 +12,10 @@ export default async function ProtectedLayout({
   if (!user) {
     redirect("/login");
   }
+  // İki adımlı doğrulama zorunluysa kurulmadan panel açılmaz
+  if (user.twoFactorRequired && !user.twoFactorEnabled) {
+    redirect("/two-factor-setup");
+  }
 
   return (
     <div className="min-h-screen bg-background text-foreground">

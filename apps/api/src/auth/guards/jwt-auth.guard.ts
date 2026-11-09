@@ -44,11 +44,17 @@ export class JwtAuthGuard implements CanActivate {
         deletedAt: true,
         emailVerifiedAt: true,
         passwordChangedAt: true,
+        sessionsValidFrom: true,
+        twoFactorEnabledAt: true,
       },
     });
     if (!user || !user.isActive || user.deletedAt) throw new UnauthorizedException(UNAUTHORIZED);
-    if (user.passwordChangedAt && payload.iat < Math.floor(user.passwordChangedAt.getTime() / 1000)) {
-      throw new UnauthorizedException(UNAUTHORIZED);
+    // Şifre değişikliği / 2FA açılması öncesinde verilmiş token'lar geçersiz
+    const issuedAt = typeof payload.ims === 'number' ? payload.ims : payload.iat * 1000;
+    for (const since of [user.passwordChangedAt, user.sessionsValidFrom]) {
+      if (since && issuedAt < (typeof payload.ims === 'number' ? since.getTime() : Math.floor(since.getTime() / 1000) * 1000)) {
+        throw new UnauthorizedException(UNAUTHORIZED);
+      }
     }
 
     request.user = {
@@ -57,6 +63,7 @@ export class JwtAuthGuard implements CanActivate {
       name: user.name,
       role: user.role,
       emailVerified: user.emailVerifiedAt !== null,
+      twoFactorEnabled: user.twoFactorEnabledAt !== null,
     };
     return true;
   }
