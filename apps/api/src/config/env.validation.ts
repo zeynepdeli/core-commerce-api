@@ -76,6 +76,19 @@ const envSchema = z
     // Yeni sipariş bildiriminin gideceği adres (boşsa mağaza bilgilerindeki e-posta)
     ORDER_NOTIFY_EMAIL: z.email('ORDER_NOTIFY_EMAIL geçerli bir e-posta olmalıdır').optional(),
 
+    // Raporlarda "gün" sınırı bu saat dilimine göre hesaplanır
+    STORE_TIMEZONE: z
+      .string()
+      .refine((tz) => {
+        try {
+          new Intl.DateTimeFormat('en', { timeZone: tz });
+          return true;
+        } catch {
+          return false;
+        }
+      }, 'STORE_TIMEZONE geçerli bir IANA saat dilimi olmalıdır (ör. Europe/Istanbul)')
+      .default('Europe/Istanbul'),
+
     // ───── İki adımlı doğrulama (yönetici) ─────
     // TOTP gizli anahtarlarını şifreleyen anahtar (32 bayt, base64). Üretmek için: openssl rand -base64 32
     // Kaybolursa/değişirse herkesin 2FA kurulumu geçersiz olur (yedek kodlar yine çalışır).

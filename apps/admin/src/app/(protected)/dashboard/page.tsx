@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { Clock, FolderTree, RotateCcw, Images, LayoutDashboard, Package, PackageCheck, PackagePlus, Plus, Scale, ShoppingBag, Store, TicketPercent, Truck, UserCog, Users } from "lucide-react";
+import { BarChart3, Clock, FolderTree, RotateCcw, Images, LayoutDashboard, Package, PackageCheck, PackagePlus, Plus, Scale, ShoppingBag, Store, TicketPercent, Truck, UserCog, Users } from "lucide-react";
 
 import { AreaHeader } from "@/components/areas/AreaShell";
 import { getAdminUser } from "@/lib/auth";
@@ -50,6 +50,7 @@ export default async function DashboardPage() {
         />
         <Tile href="/orders?durum=PENDING" icon={Clock} title="Ödeme Bekleyen" description={`${c.PENDING ?? 0} sipariş`} />
         <Tile href="/orders?durum=PAID" icon={PackageCheck} title="Hazırlanacaklar" description={`${toPrepare} sipariş (ödeme alındı / hazırlanıyor)`} />
+        <Tile href="/reports" icon={BarChart3} title="Satış Raporları" description="Ciro, en çok satanlar, kuponlar, CSV" />
         <Tile
           href="/returns"
           icon={RotateCcw}
