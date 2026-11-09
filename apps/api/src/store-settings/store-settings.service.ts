@@ -41,6 +41,28 @@ export class StoreSettingsService {
     };
   }
 
+  /** Admin: kargo + satıcı bilgileri + ödeme süresi */
+  async adminView() {
+    const s = await this.row();
+    return {
+      ...(await this.view()),
+      paymentTimeoutMinutes: s.paymentTimeoutMinutes,
+      sellerName: s.sellerName,
+      sellerAddress: s.sellerAddress,
+      sellerPhone: s.sellerPhone,
+      sellerEmail: s.sellerEmail,
+      sellerTaxOffice: s.sellerTaxOffice,
+      sellerTaxNumber: s.sellerTaxNumber,
+      sellerMersisNo: s.sellerMersisNo,
+    };
+  }
+
+  /** Yasal metinlerdeki satıcı bilgileri ve ödeme süresi */
+  async seller() {
+    const s = await this.row();
+    return s;
+  }
+
   async update(dto: UpdateStoreSettingsDto) {
     const fee: Kurus | undefined = dto.shippingFee === undefined ? undefined : Math.round(dto.shippingFee * 100);
     if (dto.freeShippingThreshold === 0) throw new BadRequestException('Ücretsiz kargo eşiği 0 olamaz; her zaman ücretsiz için kargo ücretini 0 yapın.');
@@ -51,8 +73,16 @@ export class StoreSettingsService {
         shippingFee: fee === undefined ? undefined : fromKurus(fee),
         freeShippingThreshold: dto.freeShippingThreshold === undefined ? undefined : dto.freeShippingThreshold === null ? null : dto.freeShippingThreshold.toFixed(2),
         minOrderAmount: dto.minOrderAmount === undefined ? undefined : dto.minOrderAmount === null ? null : dto.minOrderAmount.toFixed(2),
+        paymentTimeoutMinutes: dto.paymentTimeoutMinutes,
+        sellerName: dto.sellerName?.trim() || (dto.sellerName === undefined ? undefined : null),
+        sellerAddress: dto.sellerAddress?.trim() || (dto.sellerAddress === undefined ? undefined : null),
+        sellerPhone: dto.sellerPhone?.trim() || (dto.sellerPhone === undefined ? undefined : null),
+        sellerEmail: dto.sellerEmail?.trim() || (dto.sellerEmail === undefined ? undefined : null),
+        sellerTaxOffice: dto.sellerTaxOffice?.trim() || (dto.sellerTaxOffice === undefined ? undefined : null),
+        sellerTaxNumber: dto.sellerTaxNumber ?? (dto.sellerTaxNumber === undefined ? undefined : null),
+        sellerMersisNo: dto.sellerMersisNo ?? (dto.sellerMersisNo === undefined ? undefined : null),
       },
     });
-    return this.view();
+    return this.adminView();
   }
 }

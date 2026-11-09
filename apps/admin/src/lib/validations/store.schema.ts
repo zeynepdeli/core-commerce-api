@@ -59,3 +59,21 @@ export const couponDefaults: CouponFormValues = {
   perUserLimit: "",
   isActive: true,
 };
+
+const optionalLine = (max: number) => z.string().trim().max(max).regex(/^[^\u0000-\u001f\u007f]*$/, "Tek satır olmalı.");
+
+export const storeInfoSchema = z.object({
+  sellerName: optionalLine(200),
+  sellerEmail: z.union([z.email("Geçerli bir e-posta girin."), z.literal("")]),
+  sellerPhone: z.string().trim().max(30).regex(/^[0-9 +()-]*$/, "Yalnızca rakam ve + ( ) -"),
+  sellerTaxOffice: optionalLine(100),
+  sellerTaxNumber: z.string().trim().regex(/^(\d{10,11})?$/, "10 veya 11 haneli olmalı."),
+  sellerMersisNo: z.string().trim().regex(/^(\d{16})?$/, "16 haneli olmalı."),
+  sellerAddress: z.string().trim().max(500),
+  paymentTimeoutMinutes: z.string().trim().regex(/^\d{2,4}$/, "10–1440 arası dakika").refine((v) => Number(v) >= 10 && Number(v) <= 1440, "10–1440 arası dakika"),
+});
+
+export const legalSchema = z.object({
+  title: optionalLine(150).min(2),
+  content: z.string().min(20, "Metin çok kısa.").max(60000),
+});

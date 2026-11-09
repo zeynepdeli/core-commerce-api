@@ -1,19 +1,23 @@
 import Link from "next/link";
-import { FolderTree, Images, LayoutDashboard, Package, PackagePlus, Plus, TicketPercent, Truck, UserCog, Users } from "lucide-react";
+import { Clock, FolderTree, Images, LayoutDashboard, Package, PackageCheck, PackagePlus, Plus, Scale, ShoppingBag, Store, TicketPercent, Truck, UserCog, Users } from "lucide-react";
 
 import { AreaHeader } from "@/components/areas/AreaShell";
 import { getAdminUser } from "@/lib/auth";
+import { getOrders } from "@/lib/orders";
 import { getAdminProducts } from "@/lib/shop";
 
 type Icon = React.ComponentType<{ className?: string }>;
 
 /** Pano: mağazanın her parçası ayrı bir kutucuk; her biri kendi ekranında düzenlenir */
 export default async function DashboardPage() {
-  const [user, products, lowStock] = await Promise.all([
+  const [user, products, lowStock, orders] = await Promise.all([
     getAdminUser(),
     getAdminProducts({}),
     getAdminProducts({ status: "low-stock" }),
+    getOrders({}),
   ]);
+  const c = orders.statusCounts;
+  const toPrepare = (c.PAID ?? 0) + (c.PROCESSING ?? 0);
 
   return (
     <div className="mx-auto w-full min-w-0 max-w-[1800px] space-y-7 pb-12">
@@ -32,6 +36,18 @@ export default async function DashboardPage() {
           </Link>
         }
       />
+
+      <Group eyebrow="Satışlar" title="Siparişler">
+        <Tile
+          href="/orders"
+          icon={ShoppingBag}
+          title="Sipariş Yönetimi"
+          description={`${orders.total} sipariş`}
+          badge={toPrepare > 0 && <span className="rounded-full bg-sky-600 px-2 py-0.5 text-[11px] font-bold text-white">{toPrepare} hazırlanacak</span>}
+        />
+        <Tile href="/orders?durum=PENDING" icon={Clock} title="Ödeme Bekleyen" description={`${c.PENDING ?? 0} sipariş`} />
+        <Tile href="/orders?durum=PAID" icon={PackageCheck} title="Hazırlanacaklar" description={`${toPrepare} sipariş (ödeme alındı / hazırlanıyor)`} />
+      </Group>
 
       <Group eyebrow="Katalog" title="Mağaza">
         <Tile
@@ -53,6 +69,8 @@ export default async function DashboardPage() {
       <Group eyebrow="Satış" title="Satış Ayarları">
         <Tile href="/shop/coupons" icon={TicketPercent} title="Kupon Yönetimi" description="İndirim kodları ve kullanım sınırları" />
         <Tile href="/shop/shipping" icon={Truck} title="Kargo Ayarları" description="Kargo ücreti, ücretsiz kargo eşiği, en düşük sipariş" />
+        <Tile href="/shop/store-info" icon={Store} title="Mağaza Bilgileri" description="Satıcı unvanı, vergi bilgileri, ödeme süresi" />
+        <Tile href="/shop/legal" icon={Scale} title="Yasal Metinler" description="Ön bilgilendirme, mesafeli satış, KVKK" />
       </Group>
 
       <Group eyebrow="Hesaplar" title="Kullanıcılar">

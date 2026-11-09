@@ -3,8 +3,8 @@
 Yeniden kullanılabilir **e-ticaret çekirdeği**. API ve admin paneli hazırdır;
 **mağaza frontend'i her müşteri için ayrı yazılır**. İlk müşteri: enfesGurme.
 
-> Durum: temel altyapı + kimlik doğrulama + katalog (varyant, KDV) + medya + admin paneli + sepet/kupon/kargo/adres.
-> Sıradaki adımlar: sipariş (misafir siparişi, sözleşme onayları, fatura bilgileri) → iyzico + sipariş e-postaları + iade →
+> Durum: temel altyapı + kimlik doğrulama + katalog (varyant, KDV) + medya + admin paneli + sepet/kupon/kargo/adres + sipariş.
+> Sıradaki adımlar: iyzico + sipariş e-postaları + iade →
 > admin 2FA → satış raporları → pazarlama (stok bildirimi, sepet hatırlatma, Google Merchant) →
 > yorum/beğeni → tema/içerik/SSS.
 
@@ -126,6 +126,28 @@ Mağaza sayfası token'ı `location.hash`'ten okuyup API'ye göndermelidir.
 - **Kupon:** Kod büyük harfe çevrilir (Türkçe i/ı farkı yok). Var olmayan ve pasif kupon için aynı mesaj döner
   (kod tahmini zorlaşır). Yüzde kuponda üst sınır; ücretsiz kargo eşiği indirim sonrası tutara bakar.
 - **KDV:** İndirim satırlara tutarlarıyla orantılı dağıtılır; her satırın KDV'si kendi oranıyla, kargonunki %20 ile hesaplanır.
+
+## Sipariş API'si
+
+| Uç | Açıklama |
+|---|---|
+| `POST /checkout/preview` | Güncel tutar + doldurulmuş Ön Bilgilendirme Formu / Mesafeli Satış Sözleşmesi / KVKK metni |
+| `POST /checkout` | Siparişi oluşturur (üye veya misafir). Gövde: `idempotencyKey`, `email` (misafir), `shippingAddressId` veya `shippingAddress`, `billing`, `acceptPreInformation: true`, `acceptDistanceSales: true`, `marketingEmail?`, `marketingSms?`, `note?` |
+| `GET /account/orders` · `GET /account/orders/:no` · `POST /account/orders/:no/cancel` | Üyenin siparişleri; ödenmemiş sipariş iptali |
+| `POST /orders/lookup` `{orderNumber, accessToken}` | Misafir sipariş takibi (anahtar siparişte bir kez döner) |
+| `GET /shop/legal/:type` | KVKK aydınlatma metni vb. (satıcı bilgileri doldurulmuş) |
+| `/admin/orders` (liste, detay, `PATCH :id/status`) · `/admin/legal` | Sipariş ve yasal metin yönetimi (ADMIN) |
+
+- **Tek işlem (transaction):** Fiyat ve stok yeniden okunur, stok **koşullu** düşülür (son ürünü aynı anda iki kişi alamaz),
+  tutar sunucuda hesaplanır, kupon kullanımı koşullu ayrılır, sipariş + adres/fatura kopyası + onaylanan sözleşmelerin
+  doldurulmuş hali (SHA-256 özetiyle, IP ve tarayıcı bilgisiyle) + ticari ileti izinleri (İYS) kaydedilir.
+- **Çift sipariş yok:** Aynı `idempotencyKey` tekrar gelirse aynı sipariş döner. Aynı sepetten yeni sipariş verilirse
+  önceki ödenmemiş sipariş iptal edilip stok serbest bırakılır.
+- **Ödeme süresi:** Ödenmeyen sipariş (varsayılan 30 dk) dolunca otomatik iptal edilir, stok ve kupon hakkı geri döner.
+- **Durumlar:** Ödeme bekleniyor → Ödeme alındı → Hazırlanıyor → Kargoda (firma + takip no zorunlu) → Teslim edildi;
+  iptal ve iade. Geçersiz geçiş reddedilir; her değişiklik zaman çizelgesine ve AuditLog'a yazılır.
+- **Fatura:** Bireysel (isteğe bağlı TCKN, algoritmayla doğrulanır) veya kurumsal (unvan, vergi dairesi, VKN doğrulanır).
+  TCKN/VKN müşteriye maskeli, admin'e tam gösterilir.
 
 ## Güvenlik ilkeleri (OWASP)
 

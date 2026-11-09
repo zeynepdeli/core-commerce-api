@@ -441,6 +441,17 @@ model StoreSettings {
   freeShippingThreshold Decimal? @db.Decimal(10, 2)
   // Bu tutarın altındaki sepetle sipariş verilemez; boş = sınır yok
   minOrderAmount        Decimal? @db.Decimal(10, 2)
+  // Ödenmeyen siparişin stoğu bu kadar dakika sonra serbest kalır
+  paymentTimeoutMinutes Int      @default(30)
+
+  // Satıcı bilgileri (ön bilgilendirme formu ve sözleşmede zorunlu)
+  sellerName     String?
+  sellerAddress  String?
+  sellerPhone    String?
+  sellerEmail    String?
+  sellerTaxOffice String?
+  sellerTaxNumber String?
+  sellerMersisNo String?
 
   updatedAt DateTime @updatedAt
 }
@@ -477,6 +488,8 @@ model Coupon {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
+  redemptions CouponRedemption[]
+
   @@index([isActive, endsAt])
 }
 
@@ -486,32 +499,168 @@ model Coupon {
 
 model Order {
   id          String @id @default(uuid())
-  orderNumber String @unique // Örn: "ORD-2026-8921". Sıralı sayı KULLANMA
-  // (rakiplerin günlük sipariş sayısını tahmin etmesini önler); yıl +
-  // rastgele/nanoid parçası ile üret.
+  orderNumber String @unique // Örn: "2026-7K3M9Q2X". Sıralı sayı KULLANILMAZ
+  // (rakiplerin günlük sipariş sayısını tahmin etmesini önler); yıl + rastgele.
 
-  userId String
-  user   User   @relation(fields: [userId], references: [id], onDelete: Restrict)
+  // Üye siparişinde dolu; misafir siparişinde boş (iletişim e-postası yeterli)
+  userId String?
+  user   User?   @relation(fields: [userId], references: [id], onDelete: Restrict)
 
-  addressId String
-  address   Address @relation(fields: [addressId], references: [id], onDelete: Restrict)
+  // Seçilen adres defteri kaydı (bilgi amaçlı). Asıl adres aşağıdaki
+  // snapshot'tadır: müşteri adresini değiştirse/silse de sipariş bozulmaz.
+  addressId String?
+  address   Address? @relation(fields: [addressId], references: [id], onDelete: SetNull)
 
-  status   OrderStatus @default(PENDING)
-  total    Decimal     @db.Decimal(10, 2)
-  currency String      @default("TRY") @db.Char(3)
+  email String
+  phone String
 
-  paidAt DateTime?
+  // Sipariş anı kopyaları: { fullName, phone, city, district, addressLine, zipCode }
+  shippingAddress Json
+  // { type: INDIVIDUAL|CORPORATE, fullName, identityNumber?, companyName?, taxOffice?, taxNumber?, city, district, addressLine }
+  billingInfo     Json
+
+  status OrderStatus @default(PENDING)
+
+  subtotal    Decimal @db.Decimal(10, 2)
+  discount    Decimal @default(0) @db.Decimal(10, 2)
+  shippingFee Decimal @default(0) @db.Decimal(10, 2)
+  vatTotal    Decimal @default(0) @db.Decimal(10, 2)
+  total       Decimal @db.Decimal(10, 2)
+  currency    String  @default("TRY") @db.Char(3)
+  couponCode  String?
+
+  customerNote String?
+
+  // Aynı "Siparişi Tamamla" isteği iki kez gelirse ikinci sipariş oluşmaz
+  idempotencyKey String @unique
+  // Misafirin sipariş durumunu görmesi için (düz hali yalnızca bir kez döner)
+  guestAccessTokenHash String? @unique
+
+  // Ödeme bekleyen sipariş bu zamana kadar ödenmezse iptal edilir, stok geri döner
+  paymentDueAt DateTime?
+  // Siparişin oluşturulduğu sepet: aynı sepetten yeni sipariş verilirse önceki
+  // ÖDENMEMİŞ sipariş iptal edilir (stok boşuna kilitli kalmasın)
+  sourceCartId String?
+
+  shippingCarrier String?
+  trackingNumber  String?
+
+  paidAt      DateTime?
+  shippedAt   DateTime?
+  deliveredAt DateTime?
+  cancelledAt DateTime?
+  cancelReason String?
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  items   OrderItem[]
-  payment Payment?
+  items       OrderItem[]
+  payment     Payment?
+  events      OrderEvent[]
+  agreements  AgreementAcceptance[]
+  redemption  CouponRedemption?
 
+  @@index([userId, createdAt])
+  @@index([status, createdAt])
+  @@index([email])
+  @@index([status, paymentDueAt])
+  @@index([sourceCartId, status])
+}
+
+// Sipariş zaman çizelgesi (durum değişiklikleri, notlar)
+model OrderEvent {
+  id      String @id @default(uuid())
+  orderId String
+  order   Order  @relation(fields: [orderId], references: [id], onDelete: Cascade)
+
+  status OrderStatus
+  note   String?
+  // İşlemi yapan yönetici (sistem/müşteri ise boş)
+  actorId String?
+
+  createdAt DateTime @default(now())
+
+  @@index([orderId, createdAt])
+}
+
+// ==========================================================
+// YASAL METİNLER & ONAY KAYITLARI (6502 s. Kanun, Mesafeli Sözleşmeler Yönetmeliği, KVKK, İYS)
+// ==========================================================
+
+enum LegalDocumentType {
+  PRE_INFORMATION // Ön Bilgilendirme Formu
+  DISTANCE_SALES  // Mesafeli Satış Sözleşmesi
+  KVKK_NOTICE     // KVKK Aydınlatma Metni
+}
+
+// Admin'de düzenlenen şablonlar ({{ALICI_ADI}} gibi yer tutucularla)
+model LegalDocument {
+  id      String            @id @default(uuid())
+  type    LegalDocumentType @unique
+  title   String
+  content String            @db.Text
+  // Her kaydedişte artar; onay kaydı hangi sürümün onaylandığını tutar
+  version Int               @default(1)
+
+  updatedAt DateTime @updatedAt
+}
+
+// Siparişte onaylanan metnin O ANKİ doldurulmuş hali (sonradan şablon değişse de kanıt kalır)
+model AgreementAcceptance {
+  id      String @id @default(uuid())
+  orderId String
+  order   Order  @relation(fields: [orderId], references: [id], onDelete: Cascade)
+
+  type        LegalDocumentType
+  version     Int
+  content     String @db.Text
+  // İçeriğin SHA-256 özeti (sonradan değiştirilmediğinin kanıtı)
+  contentHash String
+
+  ipAddress String?
+  userAgent String?
+  acceptedAt DateTime @default(now())
+
+  @@unique([orderId, type])
+}
+
+enum ConsentChannel {
+  EMAIL
+  SMS
+}
+
+// Ticari ileti izinleri (İYS). Her değişiklik yeni satır: geçmiş silinmez.
+model ConsentRecord {
+  id      String         @id @default(uuid())
+  userId  String?
+  email   String
+  phone   String?
+  channel ConsentChannel
+  granted Boolean
+  // Nereden: "checkout", "account", "admin"
+  source  String
+
+  ipAddress String?
+  createdAt DateTime @default(now())
+
+  @@index([email, channel, createdAt])
   @@index([userId])
-  @@index([addressId])
-  @@index([status])
-  @@index([orderNumber])
+}
+
+// Kupon kullanımı: kişi başı sınır buradan sayılır; iptal edilen siparişin kaydı silinir
+model CouponRedemption {
+  id       String @id @default(uuid())
+  couponId String
+  coupon   Coupon @relation(fields: [couponId], references: [id], onDelete: Restrict)
+  orderId  String @unique
+  order    Order  @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  userId   String?
+  email    String
+
+  createdAt DateTime @default(now())
+
+  @@index([couponId, userId])
+  @@index([couponId, email])
 }
 
 model OrderItem {

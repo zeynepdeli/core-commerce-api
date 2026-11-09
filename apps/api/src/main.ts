@@ -6,6 +6,7 @@ import type { NextFunction, Request, Response } from 'express';
 import helmet from 'helmet';
 
 import { AppModule } from './app.module.js';
+import { validationExceptionFactory } from './common/validation-messages.js';
 import type { Env } from './config/env.validation.js';
 
 async function bootstrap() {
@@ -65,6 +66,7 @@ async function bootstrap() {
       forbidNonWhitelisted: true,
       transform: true,
       transformOptions: { enableImplicitConversion: false },
+      exceptionFactory: validationExceptionFactory,
     }),
   );
 

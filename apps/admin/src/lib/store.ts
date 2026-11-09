@@ -2,7 +2,27 @@ import "server-only";
 
 import { adminFetch } from "@/lib/api";
 
-export type StoreSettings = { shippingFee: string; freeShippingThreshold: string | null; minOrderAmount: string | null };
+export type StoreSettings = {
+  shippingFee: string;
+  freeShippingThreshold: string | null;
+  minOrderAmount: string | null;
+  paymentTimeoutMinutes: number;
+  sellerName: string | null;
+  sellerAddress: string | null;
+  sellerPhone: string | null;
+  sellerEmail: string | null;
+  sellerTaxOffice: string | null;
+  sellerTaxNumber: string | null;
+  sellerMersisNo: string | null;
+};
+
+export type LegalDoc = { type: "PRE_INFORMATION" | "DISTANCE_SALES" | "KVKK_NOTICE"; title: string; content: string; version: number };
+
+export async function getLegalDocs(): Promise<{ documents: LegalDoc[]; placeholders: string[] }> {
+  const response = await adminFetch("/admin/legal");
+  if (!response.ok) throw new Error(`Metinler yüklenemedi (HTTP ${response.status}).`);
+  return (await response.json()) as { documents: LegalDoc[]; placeholders: string[] };
+}
 
 export async function getStoreSettings(): Promise<StoreSettings> {
   const response = await adminFetch("/admin/store-settings");

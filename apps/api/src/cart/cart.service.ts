@@ -151,6 +151,17 @@ export class CartService {
     return this.view({ userId });
   }
 
+  /** Sipariş adımı için ham sepet (satırlar ve kupon kodu) */
+  findForCheckout(owner: CartOwner) {
+    return this.find(owner);
+  }
+
+  /** Ödeme tamamlanınca sepet boşaltılır */
+  async clear(cartId: string) {
+    await this.prisma.cartItem.deleteMany({ where: { cartId } });
+    await this.prisma.cart.updateMany({ where: { id: cartId }, data: { couponCode: null } });
+  }
+
   // ───────────── Yardımcılar ─────────────
 
   private async find(owner: CartOwner, newToken?: string | null) {
