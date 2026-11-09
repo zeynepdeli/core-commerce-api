@@ -15,6 +15,7 @@ import {
   LogOut,
   Menu,
   Package,
+  ShoppingBag,
   UserCog,
   Users,
   X,
@@ -25,6 +26,7 @@ import { logoutAdmin } from "@/app/actions";
 // Üst menü: en sık kullanılan ekranlar (hepsi Dashboard'da da var)
 const navigation = [
   { label: "Dashboard", href: "/dashboard", icon: LayoutDashboard },
+  { label: "Siparişler", href: "/orders", icon: ShoppingBag },
   { label: "Ürünler", href: "/shop/products", icon: Package },
   { label: "Kategoriler", href: "/shop/categories", icon: FolderTree },
   { label: "Medya", href: "/media", icon: Images },

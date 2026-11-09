@@ -26,7 +26,7 @@ export class AdminStoreSettingsController {
 
   @Get()
   get() {
-    return this.settings.view();
+    return this.settings.adminView();
   }
 
   @Put()
