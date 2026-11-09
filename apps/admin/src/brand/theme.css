@@ -1,0 +1,33 @@
+/* ==========================================================
+   ✏️ MÜŞTERİYE ÖZEL: Admin panelinin görünümü
+   Yeni müşteride yalnızca bu dosyayı ve brand.ts'i değiştirin.
+   ========================================================== */
+
+:root {
+  --brand-primary: #183350; /* başlıklar, ana butonlar, seçili öğeler */
+  --brand-accent: #346872; /* bağlantılar, vurgular, odak halkası */
+  --brand-background: #f5f8fb; /* sayfa zemini */
+  --brand-surface: #ffffff; /* kartlar ve paneller */
+  --brand-surface-muted: #eef3f7; /* soluk alanlar, hover */
+  --brand-border: #dce5ec; /* çizgiler */
+  --brand-text: #183350; /* gövde metni */
+  --brand-text-muted: #64748b; /* açıklamalar */
+  --brand-font-heading: var(--font-geist-sans), ui-sans-serif, system-ui, sans-serif;
+}
+
+/* ----------------------------------------------------------
+   Örnek tema — enfesGurme gibi sıcak, krem tonlu ve serif başlıklı.
+   Kullanmak için yukarıdaki :root bloğunun yerine bunu açın:
+
+:root {
+  --brand-primary: #3b2a1a;
+  --brand-accent: #8a5a2b;
+  --brand-background: #f6efe1;
+  --brand-surface: #efe6d2;
+  --brand-surface-muted: #e7dcc4;
+  --brand-border: #d6c7a6;
+  --brand-text: #2b2015;
+  --brand-text-muted: #7a6a55;
+  --brand-font-heading: Georgia, "Times New Roman", serif;
+}
+   ---------------------------------------------------------- */

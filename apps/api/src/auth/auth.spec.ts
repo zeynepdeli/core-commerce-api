@@ -92,7 +92,7 @@ describe('AuthService', () => {
     tokens as never,
     mail as never,
     audit as never,
-    config({ STOREFRONT_URL: 'https://magaza.com', GOOGLE_CLIENT_ID: 'id.apps.googleusercontent.com', MAX_FAILED_LOGIN_ATTEMPTS: 5, LOCKOUT_DURATION_MINUTES: 15 }),
+    config({ STOREFRONT_URL: 'https://magaza.com', ADMIN_URL: 'https://admin.magaza.com', GOOGLE_CLIENT_ID: 'id.apps.googleusercontent.com', MAX_FAILED_LOGIN_ATTEMPTS: 5, LOCKOUT_DURATION_MINUTES: 15 }),
   );
 
   const googleVerify = () =>

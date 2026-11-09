@@ -45,6 +45,8 @@ const envSchema = z
 
     // E-postadaki bağlantıların açılacağı mağaza adresi (doğrulama, şifre sıfırlama)
     STOREFRONT_URL: z.url('STOREFRONT_URL geçerli bir URL olmalıdır').default('http://localhost:3000'),
+    // Yöneticilerin şifre sıfırlama bağlantısı admin paneline gider
+    ADMIN_URL: z.url('ADMIN_URL geçerli bir URL olmalıdır').default('http://localhost:3001'),
 
     // ───── E-posta (SMTP). Boşsa: geliştirmede e-posta konsola yazılır,
     // production'da API açılmaz (doğrulama/şifre sıfırlama çalışmaz).
@@ -100,6 +102,9 @@ const envSchema = z
         path: ['SMTP_HOST'],
         message: 'Production ortamında SMTP_HOST zorunludur (e-posta doğrulama ve şifre sıfırlama için)',
       });
+    }
+    if (!env.ADMIN_URL.startsWith('https://')) {
+      ctx.addIssue({ code: 'custom', path: ['ADMIN_URL'], message: 'Production ortamında ADMIN_URL HTTPS olmalıdır' });
     }
     if (!env.STOREFRONT_URL.startsWith('https://')) {
       ctx.addIssue({ code: 'custom', path: ['STOREFRONT_URL'], message: 'Production ortamında STOREFRONT_URL HTTPS olmalıdır' });

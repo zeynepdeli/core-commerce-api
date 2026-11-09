@@ -42,6 +42,7 @@ describe('validateEnv', () => {
         SMTP_HOST: 'smtp.example.com',
         SMTP_FROM: 'magaza@example.com',
         STOREFRONT_URL: 'https://magaza.com',
+        ADMIN_URL: 'https://admin.magaza.com',
       }),
     ).not.toThrow();
   });
