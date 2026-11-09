@@ -20,8 +20,10 @@ const envSchema = z
 
     DATABASE_URL: z
       .string({ error: 'DATABASE_URL zorunludur' })
-      .min(1, 'DATABASE_URL zorunludur')
-      .startsWith('postgresql://', { message: 'DATABASE_URL PostgreSQL bağlantısı olmalıdır' }),
+      .refine((url) => url.startsWith('postgresql://') || url.startsWith('postgres://'), {
+        message: 'DATABASE_URL postgresql:// veya postgres:// ile başlamalı',
+      }),
+    DB_POOL_MAX: z.coerce.number().int().min(1).max(100).default(10),
 
     // Kısa ömürlü erişim token'ını (JWT) imzalar. Refresh token JWT değildir:
     // rastgele üretilir, veritabanında yalnızca SHA-256 özeti tutulur.
@@ -35,6 +37,29 @@ const envSchema = z
     // (argon2id, en az 19 MiB bellek, 2 tur); düşürülemez.
     ARGON2_MEMORY_COST: z.coerce.number().int().min(19_456, 'ARGON2_MEMORY_COST en az 19456 olmalıdır').max(1_048_576).default(19_456),
     ARGON2_TIME_COST: z.coerce.number().int().min(2, 'ARGON2_TIME_COST en az 2 olmalıdır').max(10).default(2),
+    ARGON2_PARALLELISM: z.coerce.number().int().min(1).max(16).default(1),
+
+    // Hesap kilitleme: art arda bu kadar hatalı şifreden sonra hesap kilitlenir
+    MAX_FAILED_LOGIN_ATTEMPTS: z.coerce.number().int().min(3).max(10).default(5),
+    LOCKOUT_DURATION_MINUTES: z.coerce.number().int().min(5).max(60).default(15),
+
+    // E-postadaki bağlantıların açılacağı mağaza adresi (doğrulama, şifre sıfırlama)
+    STOREFRONT_URL: z.url('STOREFRONT_URL geçerli bir URL olmalıdır').default('http://localhost:3000'),
+
+    // ───── E-posta (SMTP). Boşsa: geliştirmede e-posta konsola yazılır,
+    // production'da API açılmaz (doğrulama/şifre sıfırlama çalışmaz).
+    SMTP_HOST: z.string().min(1).optional(),
+    SMTP_PORT: z.coerce.number().int().min(1).max(65535).default(587),
+    SMTP_SECURE: z.enum(['true', 'false']).default('false'),
+    SMTP_USER: z.string().optional(),
+    SMTP_PASSWORD: z.string().optional(),
+    SMTP_FROM: z.email('SMTP_FROM geçerli bir e-posta olmalıdır').optional(),
+
+    // Google ile giriş (isteğe bağlı). Google Cloud Console → OAuth istemci kimliği.
+    GOOGLE_CLIENT_ID: z
+      .string()
+      .regex(/^[\w-]+\.apps\.googleusercontent\.com$/, 'GOOGLE_CLIENT_ID geçersiz')
+      .optional(),
 
     // Tarayıcıdan doğrudan API'ye istek atmasına izin verilen adresler
     // (virgülle ayrılır). Mağaza ve admin, API'yi sunucu tarafından çağırdığı
@@ -50,7 +75,20 @@ const envSchema = z
     WEB_API_SECRET: z.string().min(32, 'WEB_API_SECRET en az 32 karakter olmalıdır').optional(),
   })
   .superRefine((env, ctx) => {
+    if (env.SMTP_HOST && !env.SMTP_FROM) {
+      ctx.addIssue({ code: 'custom', path: ['SMTP_FROM'], message: 'SMTP_HOST tanımlıysa SMTP_FROM zorunludur' });
+    }
     if (env.NODE_ENV !== 'production') return;
+    if (!env.SMTP_HOST) {
+      ctx.addIssue({
+        code: 'custom',
+        path: ['SMTP_HOST'],
+        message: 'Production ortamında SMTP_HOST zorunludur (e-posta doğrulama ve şifre sıfırlama için)',
+      });
+    }
+    if (!env.STOREFRONT_URL.startsWith('https://')) {
+      ctx.addIssue({ code: 'custom', path: ['STOREFRONT_URL'], message: 'Production ortamında STOREFRONT_URL HTTPS olmalıdır' });
+    }
     env.ALLOWED_ORIGINS.forEach((origin, index) => {
       if (!origin.startsWith('https://')) {
         ctx.addIssue({

@@ -1,4 +1,9 @@
+// ==========================================================
 // ENFES GURME / REUSABLE E-COMMERCE CORE - Prisma Schema
+// Prisma 7 uyumlu — datasource url artık burada değil,
+// prisma.config.ts (CLI için) ve PrismaService içindeki
+// PrismaPg adapter'ında (uygulama runtime'ı için) tanımlı.
+// ==========================================================
 
 generator client {
   provider = "prisma-client"
@@ -9,46 +14,87 @@ datasource db {
   provider = "postgresql"
 }
 
+// ==========================================================
+// ENUMS
+// ==========================================================
+
 enum Role {
   CUSTOMER
   ADMIN
   SUPER_ADMIN
 }
 
-enum AuthProvider {
+// Sadece kayıt anındaki YÖNTEMİ gösterir (analytics/audit amaçlı).
+// Immutable — kayıt sonrası değişmez. Auth kararlarında ASLA bu alana
+// bakılmaz; bunun yerine passwordHash / googleId alanlarının doluluğuna
+// bakılır (bir kullanıcı LOCAL kayıt olup sonradan Google bağlayabilir).
+enum SignupMethod {
   LOCAL
   GOOGLE
 }
 
+enum OrderStatus {
+  PENDING
+  PAID
+  PROCESSING
+  SHIPPED
+  DELIVERED
+  CANCELLED
+  REFUNDED
+}
+
+enum PaymentStatus {
+  PENDING
+  SUCCEEDED
+  FAILED
+  REFUNDED
+}
+
+// ==========================================================
+// USER & AUTH
+// ==========================================================
+
 model User {
   id    String @id @default(uuid())
-  email String @unique
+  email String @unique // UYGULAMA KATMANINDA her zaman toLowerCase().trim()
+  // ile normalize edilip öyle kaydedilmeli/sorgulanmalı.
   name  String
 
-  authProvider AuthProvider @default(LOCAL)
   passwordHash String?
   googleId     String?      @unique
-  role         Role         @default(CUSTOMER)
+  signupMethod SignupMethod @default(LOCAL)
 
-  emailVerifiedAt  DateTime?
-  isActive         Boolean   @default(true)
+  role Role @default(CUSTOMER)
+  // role alanı hiçbir DTO'da client'tan doğrudan kabul edilmemeli.
+  // Rol değişikliği sadece SUPER_ADMIN'e açık ayrı bir endpoint'ten yapılmalı.
+
+  emailVerifiedAt DateTime?
+  isActive        Boolean   @default(true) // geri döndürülebilir askıya alma
+  deletedAt       DateTime? // kalıcı silme talebi (KVKK/GDPR)
+
   failedLoginCount Int       @default(0)
   lockedUntil      DateTime?
+
+  // Şifre değişince (sıfırlama dahil) bu andan ÖNCE verilmiş erişim
+  // token'ları geçersiz sayılır — çalınan bir token 15 dk beklemeden ölür.
+  passwordChangedAt DateTime?
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  addresses           Address[]
-  cart                Cart?
-  likes               Like[]
-  orders              Order[]
+  addresses Address[]
+  cart      Cart?
+  likes     Like[]
+  orders    Order[]
+  reviews   Review[]
+
   refreshTokens       RefreshToken[]
-  reviews             Review[]
   passwordResetTokens PasswordResetToken[]
   emailVerifyTokens   EmailVerificationToken[]
   auditLogs           AuditLog[]
 
   @@index([role])
+  @@index([deletedAt])
 }
 
 model RefreshToken {
@@ -57,16 +103,20 @@ model RefreshToken {
   userId    String
   user      User   @relation(fields: [userId], references: [id], onDelete: Cascade)
 
-  issuedAt            DateTime @default(now())
+  // Rotation zinciri boyunca aynı kalır — token reuse detection için.
+  familyId String
+
+  issuedAt            DateTime  @default(now())
   expiresAt           DateTime
-  revokedAt           DateTime?
+  revokedAt           DateTime? // NULL = aktif
   replacedByTokenHash String?
 
   ipAddress String?
   userAgent String?
 
-  @@index([userId])
+  @@index([userId, revokedAt])
   @@index([expiresAt])
+  @@index([familyId])
 }
 
 model PasswordResetToken {
@@ -93,6 +143,7 @@ model EmailVerificationToken {
   @@index([userId])
 }
 
+// userId kasıtlı olarak relation değil — user enumeration riskini önler.
 model LoginAttempt {
   id        String   @id @default(uuid())
   email     String
@@ -120,6 +171,10 @@ model AuditLog {
   @@index([createdAt])
 }
 
+// ==========================================================
+// ADDRESS
+// ==========================================================
+
 model Address {
   id     String @id @default(uuid())
   userId String
@@ -142,13 +197,18 @@ model Address {
   @@index([userId])
 }
 
+// ==========================================================
+// CATALOG
+// ==========================================================
+
 model Category {
-  id          String  @id @default(uuid())
-  name        String  @unique
-  slug        String  @unique
+  id          String    @id @default(uuid())
+  name        String    @unique
+  slug        String    @unique
   description String?
   image       String?
-  isActive    Boolean @default(true)
+  isActive    Boolean   @default(true)
+  deletedAt   DateTime?
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -156,6 +216,7 @@ model Category {
   products Product[]
 
   @@index([isActive])
+  @@index([deletedAt])
 }
 
 model Product {
@@ -164,8 +225,14 @@ model Product {
   slug        String  @unique
   description String  @db.Text
   price       Decimal @db.Decimal(10, 2)
+  currency    String  @default("TRY") @db.Char(3)
   stock       Int     @default(0)
-  isActive    Boolean @default(true)
+  sku         String? @unique
+  // Not: gerçek varyant yönetimi gerekirse (500gr/1kg vs.) SKU/stok/fiyat
+  // ayrı bir ProductVariant modeline taşınmalı.
+
+  isActive  Boolean   @default(true)
+  deletedAt DateTime?
 
   story             String? @db.Text
   features          String? @db.Text
@@ -186,6 +253,7 @@ model Product {
   @@index([categoryId])
   @@index([isActive])
   @@index([isActive, categoryId])
+  @@index([deletedAt])
 }
 
 model ProductImage {
@@ -234,6 +302,10 @@ model Like {
   @@index([productId])
 }
 
+// ==========================================================
+// CART
+// ==========================================================
+
 model Cart {
   id     String @id @default(uuid())
   userId String @unique
@@ -262,26 +334,25 @@ model CartItem {
   @@index([productId])
 }
 
-enum OrderStatus {
-  PENDING
-  PAID
-  PROCESSING
-  SHIPPED
-  DELIVERED
-  CANCELLED
-  REFUNDED
-}
+// ==========================================================
+// ORDER & PAYMENT
+// ==========================================================
 
 model Order {
-  id     String @id @default(uuid())
+  id          String @id @default(uuid())
+  orderNumber String @unique // Örn: "ORD-2026-8921". Sıralı sayı KULLANMA
+  // (rakiplerin günlük sipariş sayısını tahmin etmesini önler); yıl +
+  // rastgele/nanoid parçası ile üret.
+
   userId String
   user   User   @relation(fields: [userId], references: [id], onDelete: Restrict)
 
   addressId String
   address   Address @relation(fields: [addressId], references: [id], onDelete: Restrict)
 
-  status OrderStatus @default(PENDING)
-  total  Decimal     @db.Decimal(10, 2)
+  status   OrderStatus @default(PENDING)
+  total    Decimal     @db.Decimal(10, 2)
+  currency String      @default("TRY") @db.Char(3)
 
   paidAt DateTime?
 
@@ -294,6 +365,7 @@ model Order {
   @@index([userId])
   @@index([addressId])
   @@index([status])
+  @@index([orderNumber])
 }
 
 model OrderItem {
@@ -304,6 +376,11 @@ model OrderItem {
   productId String
   product   Product @relation(fields: [productId], references: [id], onDelete: Restrict)
 
+  // Sipariş anı snapshot'ı — admin ürün adını sonradan değiştirse bile
+  // geçmiş siparişte müşterinin gördüğü isim/SKU bozulmaz.
+  productName String
+  productSku  String?
+
   quantity Int
   price    Decimal @db.Decimal(10, 2)
 
@@ -311,20 +388,33 @@ model OrderItem {
   @@index([productId])
 }
 
-enum PaymentStatus {
-  PENDING
-  SUCCEEDED
-  FAILED
-  REFUNDED
-}
-
 model Payment {
   id      String @id @default(uuid())
   orderId String @unique
   order   Order  @relation(fields: [orderId], references: [id], onDelete: Cascade)
+
+  status   PaymentStatus @default(PENDING)
+  amount   Decimal       @db.Decimal(10, 2)
+  currency String        @default("TRY") @db.Char(3)
+
+  provider            String // "iyzico", "paytr", "stripe" vs.
+  providerPaymentId   String? @unique // idempotency kontrolü için kritik
+  providerRawResponse Json?
+
+  errorMessage String?
+  paidAt       DateTime?
+  refundedAt   DateTime?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([status])
+  @@index([providerPaymentId])
 }
 
-// SİTE TEMASI
+// ==========================================================
+// SİTE TEMASI / CMS
+// ==========================================================
 
 model SiteTheme {
   id Int @id @default(1)
@@ -336,15 +426,9 @@ model SiteTheme {
   backgroundColor String @default("#F6EFDD")
   textColor       String @default("#1A1A1A")
 
-  // Arka plan bir renk YA DA bir görsel (texture, desen, fotoğraf) olabilir.
-  // İkisi birlikte de kullanılabilir: backgroundImageUrl varsa görsel üstte
-  // gösterilir, backgroundColor onun altında/yüklenene kadar fallback olarak
-  // kalır (frontend'de CSS ile: background-color + background-image).
   backgroundImageUrl String?
-  backgroundImageFit String  @default("cover") // "cover" | "contain" | "repeat"
+  backgroundImageFit String  @default("cover")
 
-  // Kart/bölüm dokuları için ayrı bir görsel (eski şemanızdaki cardDuvar.png
-  // gibi) — tüm sayfa arka planından farklı, belirli bileşenlerde kullanılır.
   cardTextureUrl String?
 
   fontHeading String @default("Playfair Display")

@@ -2,25 +2,26 @@
 CREATE TYPE "Role" AS ENUM ('CUSTOMER', 'ADMIN', 'SUPER_ADMIN');
 
 -- CreateEnum
-CREATE TYPE "AuthProvider" AS ENUM ('LOCAL', 'GOOGLE');
+CREATE TYPE "SignupMethod" AS ENUM ('LOCAL', 'GOOGLE');
 
 -- CreateEnum
-CREATE TYPE "OrderStatus" AS ENUM ('PENDING', 'PAID', 'PROCESSING', 'SHIPPED', 'DELIVERED', 'CANCALLED', 'REFUNDED');
+CREATE TYPE "OrderStatus" AS ENUM ('PENDING', 'PAID', 'PROCESSING', 'SHIPPED', 'DELIVERED', 'CANCELLED', 'REFUNDED');
 
 -- CreateEnum
-CREATE TYPE "PaymentStatus" AS ENUM ('PENDING', 'SUCCEEDED', 'FAILED', 'REFUNED');
+CREATE TYPE "PaymentStatus" AS ENUM ('PENDING', 'SUCCEEDED', 'FAILED', 'REFUNDED');
 
 -- CreateTable
 CREATE TABLE "User" (
     "id" TEXT NOT NULL,
     "email" TEXT NOT NULL,
     "name" TEXT NOT NULL,
-    "authProvider" "AuthProvider" NOT NULL DEFAULT 'LOCAL',
     "passwordHash" TEXT,
     "googleId" TEXT,
+    "signupMethod" "SignupMethod" NOT NULL DEFAULT 'LOCAL',
     "role" "Role" NOT NULL DEFAULT 'CUSTOMER',
     "emailVerifiedAt" TIMESTAMP(3),
     "isActive" BOOLEAN NOT NULL DEFAULT true,
+    "deletedAt" TIMESTAMP(3),
     "failedLoginCount" INTEGER NOT NULL DEFAULT 0,
     "lockedUntil" TIMESTAMP(3),
     "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
@@ -34,9 +35,10 @@ CREATE TABLE "RefreshToken" (
     "id" TEXT NOT NULL,
     "tokenHash" TEXT NOT NULL,
     "userId" TEXT NOT NULL,
+    "familyId" TEXT NOT NULL,
     "issuedAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "expiresAt" TIMESTAMP(3) NOT NULL,
-    "revokedAt" TIMESTAMP(3) NOT NULL,
+    "revokedAt" TIMESTAMP(3),
     "replacedByTokenHash" TEXT,
     "ipAddress" TEXT,
     "userAgent" TEXT,
@@ -119,6 +121,7 @@ CREATE TABLE "Category" (
     "description" TEXT,
     "image" TEXT,
     "isActive" BOOLEAN NOT NULL DEFAULT true,
+    "deletedAt" TIMESTAMP(3),
     "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "updatedAt" TIMESTAMP(3) NOT NULL,
 
@@ -132,8 +135,11 @@ CREATE TABLE "Product" (
     "slug" TEXT NOT NULL,
     "description" TEXT NOT NULL,
     "price" DECIMAL(10,2) NOT NULL,
+    "currency" CHAR(3) NOT NULL DEFAULT 'TRY',
     "stock" INTEGER NOT NULL DEFAULT 0,
+    "sku" TEXT,
     "isActive" BOOLEAN NOT NULL DEFAULT true,
+    "deletedAt" TIMESTAMP(3),
     "story" TEXT,
     "features" TEXT,
     "servingSuggestion" TEXT,
@@ -205,10 +211,12 @@ CREATE TABLE "CartItem" (
 -- CreateTable
 CREATE TABLE "Order" (
     "id" TEXT NOT NULL,
+    "orderNumber" TEXT NOT NULL,
     "userId" TEXT NOT NULL,
     "addressId" TEXT NOT NULL,
     "status" "OrderStatus" NOT NULL DEFAULT 'PENDING',
     "total" DECIMAL(10,2) NOT NULL,
+    "currency" CHAR(3) NOT NULL DEFAULT 'TRY',
     "paidAt" TIMESTAMP(3),
     "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "updatedAt" TIMESTAMP(3) NOT NULL,
@@ -221,6 +229,8 @@ CREATE TABLE "OrderItem" (
     "id" TEXT NOT NULL,
     "orderId" TEXT NOT NULL,
     "productId" TEXT NOT NULL,
+    "productName" TEXT NOT NULL,
+    "productSku" TEXT,
     "quantity" INTEGER NOT NULL,
     "price" DECIMAL(10,2) NOT NULL,
 
@@ -231,6 +241,17 @@ CREATE TABLE "OrderItem" (
 CREATE TABLE "Payment" (
     "id" TEXT NOT NULL,
     "orderId" TEXT NOT NULL,
+    "status" "PaymentStatus" NOT NULL DEFAULT 'PENDING',
+    "amount" DECIMAL(10,2) NOT NULL,
+    "currency" CHAR(3) NOT NULL DEFAULT 'TRY',
+    "provider" TEXT NOT NULL,
+    "providerPaymentId" TEXT,
+    "providerRawResponse" JSONB,
+    "errorMessage" TEXT,
+    "paidAt" TIMESTAMP(3),
+    "refundedAt" TIMESTAMP(3),
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updatedAt" TIMESTAMP(3) NOT NULL,
 
     CONSTRAINT "Payment_pkey" PRIMARY KEY ("id")
 );
@@ -293,13 +314,19 @@ CREATE UNIQUE INDEX "User_googleId_key" ON "User"("googleId");
 CREATE INDEX "User_role_idx" ON "User"("role");
 
 -- CreateIndex
+CREATE INDEX "User_deletedAt_idx" ON "User"("deletedAt");
+
+-- CreateIndex
 CREATE UNIQUE INDEX "RefreshToken_tokenHash_key" ON "RefreshToken"("tokenHash");
 
 -- CreateIndex
-CREATE INDEX "RefreshToken_userId_idx" ON "RefreshToken"("userId");
+CREATE INDEX "RefreshToken_userId_revokedAt_idx" ON "RefreshToken"("userId", "revokedAt");
 
 -- CreateIndex
 CREATE INDEX "RefreshToken_expiresAt_idx" ON "RefreshToken"("expiresAt");
+
+-- CreateIndex
+CREATE INDEX "RefreshToken_familyId_idx" ON "RefreshToken"("familyId");
 
 -- CreateIndex
 CREATE UNIQUE INDEX "PasswordResetToken_tokenHash_key" ON "PasswordResetToken"("tokenHash");
@@ -341,7 +368,13 @@ CREATE UNIQUE INDEX "Category_slug_key" ON "Category"("slug");
 CREATE INDEX "Category_isActive_idx" ON "Category"("isActive");
 
 -- CreateIndex
+CREATE INDEX "Category_deletedAt_idx" ON "Category"("deletedAt");
+
+-- CreateIndex
 CREATE UNIQUE INDEX "Product_slug_key" ON "Product"("slug");
+
+-- CreateIndex
+CREATE UNIQUE INDEX "Product_sku_key" ON "Product"("sku");
 
 -- CreateIndex
 CREATE INDEX "Product_categoryId_idx" ON "Product"("categoryId");
@@ -351,6 +384,9 @@ CREATE INDEX "Product_isActive_idx" ON "Product"("isActive");
 
 -- CreateIndex
 CREATE INDEX "Product_isActive_categoryId_idx" ON "Product"("isActive", "categoryId");
+
+-- CreateIndex
+CREATE INDEX "Product_deletedAt_idx" ON "Product"("deletedAt");
 
 -- CreateIndex
 CREATE INDEX "ProductImage_productId_idx" ON "ProductImage"("productId");
@@ -377,6 +413,9 @@ CREATE INDEX "CartItem_productId_idx" ON "CartItem"("productId");
 CREATE UNIQUE INDEX "CartItem_cartId_productId_key" ON "CartItem"("cartId", "productId");
 
 -- CreateIndex
+CREATE UNIQUE INDEX "Order_orderNumber_key" ON "Order"("orderNumber");
+
+-- CreateIndex
 CREATE INDEX "Order_userId_idx" ON "Order"("userId");
 
 -- CreateIndex
@@ -386,6 +425,9 @@ CREATE INDEX "Order_addressId_idx" ON "Order"("addressId");
 CREATE INDEX "Order_status_idx" ON "Order"("status");
 
 -- CreateIndex
+CREATE INDEX "Order_orderNumber_idx" ON "Order"("orderNumber");
+
+-- CreateIndex
 CREATE INDEX "OrderItem_orderId_idx" ON "OrderItem"("orderId");
 
 -- CreateIndex
@@ -393,6 +435,15 @@ CREATE INDEX "OrderItem_productId_idx" ON "OrderItem"("productId");
 
 -- CreateIndex
 CREATE UNIQUE INDEX "Payment_orderId_key" ON "Payment"("orderId");
+
+-- CreateIndex
+CREATE UNIQUE INDEX "Payment_providerPaymentId_key" ON "Payment"("providerPaymentId");
+
+-- CreateIndex
+CREATE INDEX "Payment_status_idx" ON "Payment"("status");
+
+-- CreateIndex
+CREATE INDEX "Payment_providerPaymentId_idx" ON "Payment"("providerPaymentId");
 
 -- CreateIndex
 CREATE INDEX "ContentBlock_page_isActive_idx" ON "ContentBlock"("page", "isActive");

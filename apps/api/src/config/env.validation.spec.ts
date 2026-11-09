@@ -39,7 +39,22 @@ describe('validateEnv', () => {
         NODE_ENV: 'production',
         ALLOWED_ORIGINS: 'https://magaza.com,https://admin.magaza.com',
         WEB_API_SECRET: 's'.repeat(32),
+        SMTP_HOST: 'smtp.example.com',
+        SMTP_FROM: 'magaza@example.com',
+        STOREFRONT_URL: 'https://magaza.com',
       }),
     ).not.toThrow();
+  });
+
+  it('production: SMTP ve https mağaza adresi zorunlu; SMTP_HOST varsa SMTP_FROM zorunlu', () => {
+    expect(() => validateEnv({ ...base, SMTP_HOST: 'smtp.example.com' })).toThrow(/SMTP_FROM/);
+    expect(() =>
+      validateEnv({
+        ...base,
+        NODE_ENV: 'production',
+        ALLOWED_ORIGINS: 'https://magaza.com',
+        WEB_API_SECRET: 's'.repeat(32),
+      }),
+    ).toThrow(/SMTP_HOST[\s\S]*STOREFRONT_URL/);
   });
 });
