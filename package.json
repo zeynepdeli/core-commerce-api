@@ -4,7 +4,9 @@
   "private": true,
   "description": "Yeniden kullanılabilir e-ticaret çekirdeği: API + admin hazır, mağaza frontend'i müşteriye özel.",
   "scripts": {
+    "dev": "pnpm --parallel --filter api --filter admin run dev",
     "dev:api": "pnpm --filter api start:dev",
+    "dev:admin": "pnpm --filter admin dev",
     "build": "pnpm -r build",
     "lint": "pnpm -r lint",
     "test": "pnpm -r test",

@@ -1,0 +1,239 @@
+
+@import "tailwindcss";
+@import "tw-animate-css";
+@import "shadcn/tailwind.css";
+@import "../brand/theme.css";
+
+@custom-variant dark (&:is(.dark *));
+
+/* ==========================================
+   COMMAND CENTER — LIGHT THEME
+   ========================================== */
+
+:root {
+  color-scheme: light;
+
+  /* Command Center */
+  --background: var(--brand-background);
+  --foreground: var(--brand-text);
+
+  --surface: var(--brand-surface);
+  --surface-muted: var(--brand-surface-muted);
+
+  --border: var(--brand-border);
+
+  --primary: var(--brand-primary);
+  --primary-foreground: #ffffff;
+
+  --accent: var(--brand-accent);
+  --accent-foreground: #ffffff;
+
+  --radius: 0.625rem;
+
+  /* shadcn/ui */
+  --card: var(--brand-surface);
+  --card-foreground: var(--brand-text);
+
+  --popover: var(--brand-surface);
+  --popover-foreground: var(--brand-text);
+
+  --secondary: var(--brand-surface-muted);
+  --secondary-foreground: var(--brand-text);
+
+  --muted: var(--brand-surface-muted);
+  --muted-foreground: var(--brand-text-muted);
+
+  --destructive: #dc2626;
+
+  --input: var(--brand-border);
+  --ring: var(--brand-accent);
+
+  /* Charts */
+  --chart-1: #183350;
+  --chart-2: #346872;
+  --chart-3: #75c2d0;
+  --chart-4: #94a3b8;
+  --chart-5: #cbd5e1;
+
+  /* Sidebar tokens — shadcn compatibility */
+  --sidebar: #ffffff;
+  --sidebar-foreground: #183350;
+  --sidebar-primary: #183350;
+  --sidebar-primary-foreground: #ffffff;
+  --sidebar-accent: #eef3f7;
+  --sidebar-accent-foreground: #183350;
+  --sidebar-border: #dce5ec;
+  --sidebar-ring: #346872;
+}
+
+/* ==========================================
+   COMMAND CENTER — DARK THEME
+   ========================================== */
+
+.dark {
+  color-scheme: dark;
+
+  --background: #101827;
+  --foreground: #eaf0f6;
+
+  --surface: #192436;
+  --surface-muted: #223249;
+
+  --border: #334155;
+
+  --primary: #75c2d0;
+  --primary-foreground: #101827;
+
+  --accent: #75c2d0;
+  --accent-foreground: #101827;
+
+  --card: #192436;
+  --card-foreground: #eaf0f6;
+
+  --popover: #192436;
+  --popover-foreground: #eaf0f6;
+
+  --secondary: #223249;
+  --secondary-foreground: #eaf0f6;
+
+  --muted: #223249;
+  --muted-foreground: #a4b2c4;
+
+  --destructive: #f87171;
+
+  --input: #334155;
+  --ring: #75c2d0;
+
+  --chart-1: #75c2d0;
+  --chart-2: #346872;
+  --chart-3: #94a3b8;
+  --chart-4: #cbd5e1;
+  --chart-5: #64748b;
+
+  --sidebar: #192436;
+  --sidebar-foreground: #eaf0f6;
+  --sidebar-primary: #75c2d0;
+  --sidebar-primary-foreground: #101827;
+  --sidebar-accent: #223249;
+  --sidebar-accent-foreground: #eaf0f6;
+  --sidebar-border: #334155;
+  --sidebar-ring: #75c2d0;
+}
+
+/* ==========================================
+   TAILWIND CSS 4 THEME
+   ========================================== */
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+
+  --color-surface: var(--surface);
+  --color-surface-muted: var(--surface-muted);
+
+  --color-border: var(--border);
+
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
+
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+
+  --color-destructive: var(--destructive);
+
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+
+  --color-chart-1: var(--chart-1);
+  --color-chart-2: var(--chart-2);
+  --color-chart-3: var(--chart-3);
+  --color-chart-4: var(--chart-4);
+  --color-chart-5: var(--chart-5);
+
+  --color-sidebar: var(--sidebar);
+  --color-sidebar-foreground: var(--sidebar-foreground);
+  --color-sidebar-primary: var(--sidebar-primary);
+  --color-sidebar-primary-foreground: var(
+    --sidebar-primary-foreground
+  );
+  --color-sidebar-accent: var(--sidebar-accent);
+  --color-sidebar-accent-foreground: var(
+    --sidebar-accent-foreground
+  );
+  --color-sidebar-border: var(--sidebar-border);
+  --color-sidebar-ring: var(--sidebar-ring);
+
+  /* Legacy Command Center text utility */
+  --color-command-muted: var(--muted-foreground);
+
+  /* Fonts */
+  --font-sans: var(--font-geist-sans), Arial, Helvetica, sans-serif;
+  --font-mono: var(--font-geist-mono), monospace;
+  --font-heading: var(--font-geist-sans), Arial, Helvetica, sans-serif;
+
+  /* Radius */
+  --radius-sm: calc(var(--radius) * 0.6);
+  --radius-md: calc(var(--radius) * 0.8);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) * 1.4);
+  --radius-2xl: calc(var(--radius) * 1.8);
+  --radius-3xl: calc(var(--radius) * 2.2);
+  --radius-4xl: calc(var(--radius) * 2.6);
+}
+
+/* ==========================================
+   GLOBAL STYLES
+   ========================================== */
+
+@layer base {
+  * {
+    box-sizing: border-box;
+    @apply border-border outline-ring/50;
+  }
+
+  html {
+    @apply font-sans;
+  }
+
+  body {
+    min-height: 100vh;
+    @apply bg-background text-foreground;
+  }
+}
+
+button,
+input,
+textarea,
+select {
+  font: inherit;
+}
+
+button {
+  cursor: pointer;
+}
+
+button:disabled {
+  cursor: not-allowed;
+}
+
+::selection {
+  background: #346872;
+  color: #ffffff;
+}
+
+/* Marka başlık yazı tipi (brand/theme.css → --brand-font-heading) */
+.brand-heading {
+  font-family: var(--brand-font-heading);
+}

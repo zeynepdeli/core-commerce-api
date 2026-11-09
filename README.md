@@ -3,7 +3,7 @@
 Yeniden kullanılabilir **e-ticaret çekirdeği**. API ve admin paneli hazırdır;
 **mağaza frontend'i her müşteri için ayrı yazılır**. İlk müşteri: enfesGurme.
 
-> Durum: temel altyapı + kimlik doğrulama + katalog (varyant, KDV) + medya. Sıradaki adımlar: admin paneli →
+> Durum: temel altyapı + kimlik doğrulama + katalog (varyant, KDV) + medya + admin paneli. Sıradaki adımlar:
 > sepet/sipariş/kargo/kupon/misafir siparişi/sözleşme onayları → iyzico + sipariş e-postaları + iade →
 > admin 2FA → satış raporları → pazarlama (stok bildirimi, sepet hatırlatma, Google Merchant) →
 > yorum/beğeni → tema/içerik/SSS.
@@ -11,7 +11,7 @@ Yeniden kullanılabilir **e-ticaret çekirdeği**. API ve admin paneli hazırdı
 | Klasör | İçerik |
 |---|---|
 | `apps/api` | NestJS 12 · Prisma 7 · PostgreSQL |
-| `apps/admin` | (yakında) Next.js yönetim paneli |
+| `apps/admin` | Next.js 16 yönetim paneli (port 3001) |
 | `infrastructure/` | Yerel geliştirme veritabanı (Docker Compose) |
 
 ## Yerel geliştirme
@@ -23,12 +23,31 @@ pnpm install
 docker compose -f infrastructure/compose.yaml up -d      # PostgreSQL (localhost:5434)
 
 cp apps/api/.env.example apps/api/.env                  # JWT_ACCESS_SECRET'ı doldurun: openssl rand -base64 64
+cp apps/admin/.env.example apps/admin/.env.local        # WEB_API_SECRET, API'dekiyle AYNI olmalı
 pnpm --filter api db:migrate                            # tabloları oluştur
 ADMIN_EMAIL=... ADMIN_PASSWORD=... pnpm --filter api create-admin   # ilk süper yönetici
-pnpm dev:api                                            # http://localhost:4000/health
+pnpm dev                                                # API :4000 + admin :3001 birlikte
 ```
 
 Şemayı değiştirince: `pnpm --filter api db:migrate:dev --name <degisiklik-adi>`.
+
+## Admin paneli
+
+http://localhost:3001 — yalnızca `ADMIN` / `SUPER_ADMIN` rolündeki hesaplar girebilir
+(müşteri hesabıyla giriş denenirse açılan oturum hemen kapatılır).
+
+- **Dashboard:** Mağaza (Ürün / Kategori Yönetimi, Medya) ve Kullanıcılar kutucukları; stoğu azalan ürün sayısı.
+- **Ürün Yönetimi:** arama (ad, açıklama, SKU), kategori ve durum filtresi, sayfalama. Ürün formu başlıklı
+  panellerden oluşur (Temel Bilgiler, Fiyat ve Stok, Görseller, Detay Sekmeleri, Yayın, SEO), altta tek
+  kaydet butonu. Tek seçenekli üründe sade fiyat/stok alanları; "Seçenekli Ürün Yap" ile seçenek tablosu.
+- **Kategori Yönetimi**, **Medya Kütüphanesi**, **Kullanıcı Yönetimi** (askıya alma, kilit açma, rol —
+  rolü yalnızca süper yönetici değiştirir), **Hesabım** (şifre değiştirme).
+- Marka: `apps/admin/src/brand/brand.ts` (ad, logo) ve `theme.css` (renkler).
+
+Güvenlik: token'lar yalnızca admin sunucusunda, `httpOnly` + `SameSite=Strict` çerezde; tarayıcı kodu
+görmez. Erişim token'ı dolunca `proxy.ts` oturumu sessizce yeniler. Her sayfada rol API'den doğrulanır.
+Yöneticinin şifre sıfırlama bağlantısı admin paneline (`ADMIN_URL`) gider; token adresin `#` kısmındadır
+ve okunur okunmaz adresten silinir. Panel arama motorlarına kapalıdır (`noindex`).
 
 ## Kimlik doğrulama API'si
 

@@ -44,6 +44,7 @@ const toAuthUser = (u: { id: string; email: string; name: string; role: Role; em
 @Injectable()
 export class AuthService {
   private readonly storefrontUrl: string;
+  private readonly adminUrl: string;
   private readonly googleClientId: string | undefined;
   private readonly google = new OAuth2Client();
 
@@ -56,6 +57,7 @@ export class AuthService {
     private readonly config: ConfigService<Env, true>,
   ) {
     this.storefrontUrl = config.get('STOREFRONT_URL', { infer: true }).replace(/\/$/, '');
+    this.adminUrl = config.get('ADMIN_URL', { infer: true }).replace(/\/$/, '');
     this.googleClientId = config.get('GOOGLE_CLIENT_ID', { infer: true });
   }
 
@@ -196,9 +198,11 @@ export class AuthService {
   async forgotPassword(email: string, meta: ClientMeta) {
     const user = await this.prisma.user.findUnique({
       where: { email },
-      select: { id: true, email: true, isActive: true, deletedAt: true },
+      select: { id: true, email: true, role: true, isActive: true, deletedAt: true },
     });
     if (!user || !user.isActive || user.deletedAt) return { message: GENERIC_SENT };
+    // Yöneticinin bağlantısı admin paneline, müşterininki mağazaya gider
+    const resetBase = user.role === 'CUSTOMER' ? this.storefrontUrl : this.adminUrl;
 
     const since = new Date(Date.now() - 60 * 60 * 1000);
     const recent = await this.prisma.passwordResetToken.count({ where: { userId: user.id, createdAt: { gte: since } } });
@@ -221,7 +225,7 @@ export class AuthService {
         '',
         'Şifrenizi sıfırlamak için aşağıdaki bağlantıyı açın (30 dakika geçerlidir):',
         // Token adresin # kısmında: sunucu loglarına ve Referer başlığına düşmez
-        `${this.storefrontUrl}/sifre-sifirla#token=${token}`,
+        user.role === 'CUSTOMER' ? `${resetBase}/sifre-sifirla#token=${token}` : `${resetBase}/reset-password#token=${token}`,
         '',
         'Bu isteği siz yapmadıysanız bu e-postayı dikkate almayın; şifreniz değişmez.',
       ].join('\n'),
