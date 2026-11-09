@@ -8,5 +8,7 @@ export default defineConfig({
     globals: true,
     root: './',
     include: ['**/*.spec.ts'],
+    // Nest/class-transformer dekoratörleri için (main.ts'teki gibi)
+    setupFiles: ['reflect-metadata'],
   },
 });

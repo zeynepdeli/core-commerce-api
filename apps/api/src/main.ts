@@ -26,7 +26,7 @@ async function bootstrap() {
   app.enableCors({
     origin: config.get('ALLOWED_ORIGINS', { infer: true }),
     methods: ['GET', 'POST', 'PATCH', 'PUT', 'DELETE', 'OPTIONS'],
-    allowedHeaders: ['Content-Type', 'Authorization'],
+    allowedHeaders: ['Content-Type', 'Authorization', 'X-Cart-Token'],
     credentials: false,
   });
 

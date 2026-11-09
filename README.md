@@ -3,8 +3,8 @@
 Yeniden kullanılabilir **e-ticaret çekirdeği**. API ve admin paneli hazırdır;
 **mağaza frontend'i her müşteri için ayrı yazılır**. İlk müşteri: enfesGurme.
 
-> Durum: temel altyapı + kimlik doğrulama + katalog (varyant, KDV) + medya + admin paneli. Sıradaki adımlar:
-> sepet/sipariş/kargo/kupon/misafir siparişi/sözleşme onayları → iyzico + sipariş e-postaları + iade →
+> Durum: temel altyapı + kimlik doğrulama + katalog (varyant, KDV) + medya + admin paneli + sepet/kupon/kargo/adres.
+> Sıradaki adımlar: sipariş (misafir siparişi, sözleşme onayları, fatura bilgileri) → iyzico + sipariş e-postaları + iade →
 > admin 2FA → satış raporları → pazarlama (stok bildirimi, sepet hatırlatma, Google Merchant) →
 > yorum/beğeni → tema/içerik/SSS.
 
@@ -103,6 +103,29 @@ Mağaza sayfası token'ı `location.hash`'ten okuyup API'ye göndermelidir.
   alanları migration ile otomatik sekmeye çevrildi.
 - Yüklenen görseller yeniden kodlanır (gizli içerik ve EXIF/GPS silinir), en uzun kenar 2560 px'e
   küçültülür. Kullanımdaki görsel silinemez.
+
+## Sepet, kupon, kargo, adres API'si
+
+| Uç | Açıklama |
+|---|---|
+| `GET /cart` | Sepet: güncel fiyat/stokla satırlar, ara toplam, indirim, kargo, KDV, toplam, `canCheckout` |
+| `PUT /cart/items` `{variantId, quantity}` | Adet ayarla (0 = kaldır); stoktan fazlası eklenemez |
+| `DELETE /cart/items/:variantId` | Satırı kaldır |
+| `POST /cart/coupon` `{code}` · `DELETE /cart/coupon` | Kupon uygula / kaldır (IP başına 10/dk) |
+| `POST /cart/merge` `{cartToken}` | Girişten sonra misafir sepetini üye sepetine aktar |
+| `GET /shop/settings` | Kargo ücreti, ücretsiz kargo eşiği, en düşük sipariş tutarı |
+| `GET/POST/PUT/DELETE /account/addresses` | Müşterinin adres defteri (en fazla 20) |
+| `GET/PUT /admin/store-settings` · `/admin/coupons` | Kargo ayarları ve kupon yönetimi (ADMIN) |
+
+- **Misafir sepeti:** Üye için `Authorization: Bearer …`, misafir için `X-Cart-Token` başlığı kullanılır.
+  Misafir sepeti ilk ürün eklendiğinde oluşur ve token yanıtta **bir kez** (`cartToken`) döner; mağaza sunucusu bunu
+  httpOnly çerezde saklar. Veritabanında yalnızca SHA-256 özeti tutulur; misafir sepeti 30 gün sonra silinir.
+- **Tutar hesabı:** Tutarlar yalnızca sunucuda ve kuruş cinsinden tam sayıyla hesaplanır; istemciden fiyat kabul edilmez.
+  Sepet ekranı ve sipariş aynı hesap fonksiyonunu (`commerce/pricing.ts`) kullanır. Satışta olmayan, tükenen veya
+  stoktan fazla adetli satır tutara katılmaz ve `canCheckout` false olur.
+- **Kupon:** Kod büyük harfe çevrilir (Türkçe i/ı farkı yok). Var olmayan ve pasif kupon için aynı mesaj döner
+  (kod tahmini zorlaşır). Yüzde kuponda üst sınır; ücretsiz kargo eşiği indirim sonrası tutara bakar.
+- **KDV:** İndirim satırlara tutarlarıyla orantılı dağıtılır; her satırın KDV'si kendi oranıyla, kargonunki %20 ile hesaplanır.
 
 ## Güvenlik ilkeleri (OWASP)
 

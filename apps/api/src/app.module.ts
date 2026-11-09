@@ -4,6 +4,10 @@ import { APP_GUARD } from '@nestjs/core';
 import { ThrottlerModule } from '@nestjs/throttler';
 
 import { AccountModule } from './account/account.module.js';
+import { AddressesModule } from './addresses/addresses.module.js';
+import { CartModule } from './cart/cart.module.js';
+import { CouponsModule } from './coupons/coupons.module.js';
+import { StoreSettingsModule } from './store-settings/store-settings.module.js';
 import { AdminUsersModule } from './admin-users/admin-users.module.js';
 import { AuditModule } from './audit/audit.module.js';
 import { AuthModule } from './auth/auth.module.js';
@@ -37,6 +41,10 @@ import { PrismaModule } from './prisma/prisma.module.js';
     CatalogModule,
     MediaModule,
     MaintenanceModule,
+    StoreSettingsModule,
+    CouponsModule,
+    CartModule,
+    AddressesModule,
   ],
   providers: [{ provide: APP_GUARD, useClass: AppThrottlerGuard }],
 })
