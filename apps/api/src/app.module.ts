@@ -3,9 +3,14 @@ import { ConfigModule } from '@nestjs/config';
 import { APP_GUARD } from '@nestjs/core';
 import { ThrottlerModule } from '@nestjs/throttler';
 
+import { AccountModule } from './account/account.module.js';
+import { AdminUsersModule } from './admin-users/admin-users.module.js';
+import { AuditModule } from './audit/audit.module.js';
+import { AuthModule } from './auth/auth.module.js';
 import { AppThrottlerGuard } from './common/app-throttler.guard.js';
 import { validateEnv } from './config/env.validation.js';
 import { HealthModule } from './health/health.module.js';
+import { MailModule } from './mail/mail.module.js';
 import { PrismaModule } from './prisma/prisma.module.js';
 
 @Module({
@@ -20,7 +25,12 @@ import { PrismaModule } from './prisma/prisma.module.js';
     ]),
 
     PrismaModule,
+    MailModule,
+    AuditModule,
     HealthModule,
+    AuthModule,
+    AccountModule,
+    AdminUsersModule,
   ],
   providers: [{ provide: APP_GUARD, useClass: AppThrottlerGuard }],
 })

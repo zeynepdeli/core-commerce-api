@@ -78,5 +78,16 @@ export const VIDEO_URL_REGEX =
   /^https:\/\/(?:(?:www\.|m\.)?youtube\.com\/(?:watch\?v=|shorts\/|embed\/)[A-Za-z0-9_-]{11}(?:[&?][A-Za-z0-9_=&%.-]*)?|youtu\.be\/[A-Za-z0-9_-]{11}(?:\?[A-Za-z0-9_=&%.-]*)?|(?:www\.|player\.)?vimeo\.com\/(?:video\/)?\d{6,12})$/;
 export const VIDEO_URL_MESSAGE = 'Yalnızca YouTube veya Vimeo video adresi girilebilir.';
 
-// Tek satır, kontrol karakteri yok
+// Tek satır, kontrol karakteri yok (kontrol karakterlerini yakalamak kasıtlı)
+// oxlint-disable-next-line no-control-regex
 export const SINGLE_LINE_REGEX = /^[^\u0000-\u001f\u007f]*$/;
+
+/** URL parçası (slug): küçük harf, rakam ve kelimeler arasında tire (ör. "tulum-peyniri") */
+export const SLUG_REGEX = /^[a-z0-9]+(?:-[a-z0-9]+)*$/;
+export const SLUG_MESSAGE =
+  'Adres yalnızca küçük harf, rakam ve kelimeler arasında tire içerebilir (ör. tulum-peyniri).';
+
+/** Prisma benzersizlik hatası (P2002) mı? */
+export function isUniqueViolation(error: unknown): error is { code: 'P2002'; meta?: { target?: unknown } } {
+  return typeof error === 'object' && error !== null && 'code' in error && (error as { code: unknown }).code === 'P2002';
+}
