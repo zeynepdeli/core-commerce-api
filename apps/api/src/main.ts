@@ -24,7 +24,7 @@ async function bootstrap() {
   // CORS: yalnızca izin verilen adresler. Kimlik çerezleri API'ye değil,
   // mağaza/admin sunucusuna aittir; bu yüzden credentials kapalı.
   app.enableCors({
-    origin: config.get('CORS_ORIGINS', { infer: true }),
+    origin: config.get('ALLOWED_ORIGINS', { infer: true }),
     methods: ['GET', 'POST', 'PATCH', 'PUT', 'DELETE', 'OPTIONS'],
     allowedHeaders: ['Content-Type', 'Authorization'],
     credentials: false,
