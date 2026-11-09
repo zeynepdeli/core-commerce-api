@@ -1,6 +1,8 @@
 import { Type } from 'class-transformer';
 import {
   ArrayMaxSize,
+  ArrayMinSize,
+  IsIn,
   IsArray,
   IsBoolean,
   IsInt,
@@ -58,6 +60,56 @@ export class ProductTabDto {
   body!: string;
 }
 
+export const MAX_PRODUCT_VARIANTS = 30;
+export const VAT_RATES = [0, 1, 10, 20] as const;
+
+/**
+ * Varyant: satılan seçenek (ör. "500 g"). Güncellemede id gönderilen varyant
+ * güncellenir, id'siz olan eklenir, listede olmayan mevcut varyant silinir.
+ */
+export class ProductVariantDto {
+  @IsOptional()
+  @IsUUID()
+  id?: string;
+
+  @IsString()
+  @MaxLength(60)
+  @Matches(/\S/, { message: 'Varyant adı boş olamaz.' })
+  @Matches(SINGLE_LINE_REGEX, ONE_LINE)
+  name!: string;
+
+  @ValidateIf(nullable)
+  @IsString()
+  @MaxLength(64)
+  @Matches(/^[A-Za-z0-9._-]+$/, { message: 'Stok kodu yalnızca harf, rakam, nokta, tire ve alt çizgi içerebilir.' })
+  sku?: string | null;
+
+  @IsNumber(PRICE, PRICE_MESSAGE)
+  @Min(0)
+  @Max(MAX_PRICE)
+  price!: number;
+
+  @ValidateIf(nullable)
+  @IsNumber(PRICE, PRICE_MESSAGE)
+  @Min(0)
+  @Max(MAX_PRICE)
+  compareAtPrice?: number | null;
+
+  @IsOptional()
+  @IsInt()
+  @Min(0)
+  @Max(1_000_000)
+  stock?: number;
+
+  @IsOptional()
+  @IsBoolean()
+  trackStock?: boolean;
+
+  @IsOptional()
+  @IsBoolean()
+  isActive?: boolean;
+}
+
 /**
  * Ürün oluşturma. Güncellemede aynı alanlar isteğe bağlıdır (UpdateProductDto).
  * images/tabs gönderilirse ürünün mevcut görsel/sekme listesinin YERİNE geçer.
@@ -76,12 +128,6 @@ export class CreateProductDto {
 
   @ValidateIf(nullable)
   @IsString()
-  @MaxLength(64)
-  @Matches(/^[A-Za-z0-9._-]+$/, { message: 'Stok kodu yalnızca harf, rakam, nokta, tire ve alt çizgi içerebilir.' })
-  sku?: string | null;
-
-  @ValidateIf(nullable)
-  @IsString()
   @MaxLength(500)
   summary?: string | null;
 
@@ -90,32 +136,16 @@ export class CreateProductDto {
   @MaxLength(20000)
   description?: string | null;
 
-  @IsNumber(PRICE, PRICE_MESSAGE)
-  @Min(0)
-  @Max(MAX_PRICE)
-  price!: number;
-
-  @ValidateIf(nullable)
-  @IsNumber(PRICE, PRICE_MESSAGE)
-  @Min(0)
-  @Max(MAX_PRICE)
-  compareAtPrice?: number | null;
-
-  @ValidateIf(nullable)
-  @IsString()
-  @MaxLength(40)
-  @Matches(SINGLE_LINE_REGEX, ONE_LINE)
-  unit?: string | null;
-
   @IsOptional()
-  @IsInt()
-  @Min(0)
-  @Max(1_000_000)
-  stock?: number;
+  @IsIn(VAT_RATES, { message: 'KDV oranı 0, 1, 10 veya 20 olmalıdır.' })
+  vatRate?: number;
 
-  @IsOptional()
-  @IsBoolean()
-  trackStock?: boolean;
+  @IsArray()
+  @ArrayMinSize(1, { message: 'En az bir varyant (fiyat/stok) girilmelidir.' })
+  @ArrayMaxSize(MAX_PRODUCT_VARIANTS, { message: `En fazla ${MAX_PRODUCT_VARIANTS} varyant eklenebilir.` })
+  @ValidateNested({ each: true })
+  @Type(() => ProductVariantDto)
+  variants!: ProductVariantDto[];
 
   @IsOptional()
   @IsBoolean()
@@ -170,12 +200,6 @@ export class UpdateProductDto {
 
   @ValidateIf(nullable)
   @IsString()
-  @MaxLength(64)
-  @Matches(/^[A-Za-z0-9._-]+$/, { message: 'Stok kodu yalnızca harf, rakam, nokta, tire ve alt çizgi içerebilir.' })
-  sku?: string | null;
-
-  @ValidateIf(nullable)
-  @IsString()
   @MaxLength(500)
   summary?: string | null;
 
@@ -185,32 +209,16 @@ export class UpdateProductDto {
   description?: string | null;
 
   @IsOptional()
-  @IsNumber(PRICE, PRICE_MESSAGE)
-  @Min(0)
-  @Max(MAX_PRICE)
-  price?: number;
-
-  @ValidateIf(nullable)
-  @IsNumber(PRICE, PRICE_MESSAGE)
-  @Min(0)
-  @Max(MAX_PRICE)
-  compareAtPrice?: number | null;
-
-  @ValidateIf(nullable)
-  @IsString()
-  @MaxLength(40)
-  @Matches(SINGLE_LINE_REGEX, ONE_LINE)
-  unit?: string | null;
+  @IsIn(VAT_RATES, { message: 'KDV oranı 0, 1, 10 veya 20 olmalıdır.' })
+  vatRate?: number;
 
   @IsOptional()
-  @IsInt()
-  @Min(0)
-  @Max(1_000_000)
-  stock?: number;
-
-  @IsOptional()
-  @IsBoolean()
-  trackStock?: boolean;
+  @IsArray()
+  @ArrayMinSize(1, { message: 'En az bir varyant (fiyat/stok) girilmelidir.' })
+  @ArrayMaxSize(MAX_PRODUCT_VARIANTS, { message: `En fazla ${MAX_PRODUCT_VARIANTS} varyant eklenebilir.` })
+  @ValidateNested({ each: true })
+  @Type(() => ProductVariantDto)
+  variants?: ProductVariantDto[];
 
   @IsOptional()
   @IsBoolean()

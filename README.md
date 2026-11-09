@@ -3,8 +3,10 @@
 Yeniden kullanılabilir **e-ticaret çekirdeği**. API ve admin paneli hazırdır;
 **mağaza frontend'i her müşteri için ayrı yazılır**. İlk müşteri: enfesGurme.
 
-> Durum: temel altyapı + kimlik doğrulama + katalog/medya. Sıradaki adımlar: admin paneli →
-> sepet/sipariş → iyzico ödeme → yorum/beğeni → tema/içerik/SSS.
+> Durum: temel altyapı + kimlik doğrulama + katalog (varyant, KDV) + medya. Sıradaki adımlar: admin paneli →
+> sepet/sipariş/kargo/kupon/misafir siparişi/sözleşme onayları → iyzico + sipariş e-postaları + iade →
+> admin 2FA → satış raporları → pazarlama (stok bildirimi, sepet hatırlatma, Google Merchant) →
+> yorum/beğeni → tema/içerik/SSS.
 
 | Klasör | İçerik |
 |---|---|
@@ -69,6 +71,11 @@ Mağaza sayfası token'ı `location.hash`'ten okuyup API'ye göndermelidir.
 | `/admin/media` (GET `?page=`, `POST upload`, `PATCH/DELETE :id`) | ADMIN | Medya kütüphanesi |
 | `GET /media/:dosya` | Herkes | Yerel görseller (1 yıl önbellek) |
 
+- **Varyantlar:** satılan şey varyanttır (ör. 250 g / 500 g / 1 kg); fiyat, eski fiyat, stok ve SKU
+  varyanttadır. Her ürünün en az bir varyantı olur. Ürünün `price` alanı satıştaki en ucuz varyantın
+  fiyatıdır ("…'den başlayan"), otomatik hesaplanır. Güncellemede `id`'li varyant güncellenir, `id`'siz
+  olan eklenir, listede olmayan soft delete edilir (geçmiş siparişler bozulmaz).
+- **KDV:** ürün başına `vatRate` (0, 1, 10, 20). Fiyatlar KDV dahildir.
 - Fiyatlar `"249.90"` biçiminde metin döner (kuruş hatası olmasın). Kesin stok adedi ziyaretçiye
   verilmez, yalnızca `inStock`. Para birimi mağaza genelinde tektir (`TRY`), dışarıdan değiştirilemez.
 - Silme **soft delete**'tir: geçmiş siparişler ürüne bağlı kalır, ürün mağazadan ve sepetlerden kalkar,
