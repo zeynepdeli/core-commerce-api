@@ -233,20 +233,16 @@ model Product {
   // Kartlarda görünen kısa açıklama
   summary     String?
   description String? @db.Text
-  price       Decimal @db.Decimal(10, 2)
-  // Üstü çizili eski fiyat (indirim gösterimi). Doluysa price'tan büyük olmalı.
+  // "…'den başlayan fiyat": yayındaki varyantların EN DÜŞÜK fiyatı ve onun
+  // eski fiyatı. Varyantlardan otomatik hesaplanır (elle yazılmaz); mağaza
+  // listesinde sıralama/filtre için ürün tablosunda tutulur (performans).
+  price          Decimal  @db.Decimal(10, 2)
   compareAtPrice Decimal? @db.Decimal(10, 2)
   // Not: mağaza tek para birimiyle çalışır; sepette karışık para birimi olmasın
   // diye API bu alanı dışarıdan kabul etmez.
   currency    String  @default("TRY") @db.Char(3)
-  // Satış birimi etiketi (ör. "500 g", "1 kg", "Adet")
-  unit        String?
-  stock       Int     @default(0)
-  // Kapalıysa stok düşülmez/kontrol edilmez
-  trackStock  Boolean @default(true)
-  sku         String? @unique
-  // Not: gerçek varyant yönetimi gerekirse (500gr/1kg vs.) SKU/stok/fiyat
-  // ayrı bir ProductVariant modeline taşınmalı.
+  // KDV oranı (%): 0, 1, 10 veya 20. Fiyatlar KDV DAHİL girilir.
+  vatRate     Int     @default(20)
 
   isActive  Boolean   @default(true)
   featured  Boolean   @default(false)
@@ -263,11 +259,12 @@ model Product {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
+  // Her ürünün en az bir varyantı vardır (tek seçenekli üründe admin bunu görmez)
+  variants   ProductVariant[]
   images     ProductImage[]
   // Ürün detay sekmeleri (ör. enfesGurme: Hikaye, Özellikler, Nasıl Servis Edilir?)
   // Her mağaza kendi sekmelerini tanımlar; sabit kolon yok.
   tabs       ProductTab[]
-  cartItems  CartItem[]
   orderItems OrderItem[]
   reviews    Review[]
   likes      Like[]
@@ -278,6 +275,34 @@ model Product {
   @@index([isActive, deletedAt, featured])
   @@index([createdAt])
   @@index([price])
+}
+
+// Satılan şey: fiyat, stok ve SKU varyanttadır (ör. 250 g / 500 g / 1 kg).
+model ProductVariant {
+  id        String  @id @default(uuid())
+  productId String
+  product   Product @relation(fields: [productId], references: [id], onDelete: Cascade)
+
+  // Müşterinin seçtiği etiket (ör. "500 g"). Tek varyantlı üründe satış birimi.
+  name           String
+  sku            String?  @unique
+  price          Decimal  @db.Decimal(10, 2)
+  compareAtPrice Decimal? @db.Decimal(10, 2)
+  stock          Int      @default(0)
+  // Kapalıysa stok düşülmez/kontrol edilmez
+  trackStock     Boolean  @default(true)
+  isActive       Boolean  @default(true)
+  order          Int      @default(0)
+  // Soft delete: geçmiş siparişler varyanta bağlı kalır
+  deletedAt      DateTime?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  cartItems  CartItem[]
+  orderItems OrderItem[]
+
+  @@index([productId, deletedAt, order])
 }
 
 model ProductImage {
@@ -378,16 +403,17 @@ model CartItem {
   cartId String
   cart   Cart   @relation(fields: [cartId], references: [id], onDelete: Cascade)
 
-  productId String
-  product   Product @relation(fields: [productId], references: [id], onDelete: Cascade)
+  // Sepete ürün değil varyant girer (500 g ve 1 kg ayrı satırlardır)
+  variantId String
+  variant   ProductVariant @relation(fields: [variantId], references: [id], onDelete: Cascade)
 
   quantity Int @default(1)
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  @@unique([cartId, productId])
-  @@index([productId])
+  @@unique([cartId, variantId])
+  @@index([variantId])
 }
 
 // ==========================================================
@@ -434,14 +460,21 @@ model OrderItem {
 
   // Sipariş anı snapshot'ı — admin ürün adını sonradan değiştirse bile
   // geçmiş siparişte müşterinin gördüğü isim/SKU bozulmaz.
+  variantId String
+  variant   ProductVariant @relation(fields: [variantId], references: [id], onDelete: Restrict)
+
   productName String
+  variantName String
   productSku  String?
+  // Sipariş anındaki KDV oranı (fatura için)
+  vatRate     Int
 
   quantity Int
   price    Decimal @db.Decimal(10, 2)
 
   @@index([orderId])
   @@index([productId])
+  @@index([variantId])
 }
 
 model Payment {
