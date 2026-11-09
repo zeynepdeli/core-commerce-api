@@ -5,6 +5,7 @@ import { PasswordService } from '../auth/password.service.js';
 import { type ClientMeta, TokensService } from '../auth/tokens.service.js';
 import { TwoFactorService } from '../auth/two-factor/two-factor.service.js';
 import { PrismaService } from '../prisma/prisma.service.js';
+import { recomputeRatings } from '../reviews/ratings.js';
 
 const PROFILE_SELECT = {
   id: true,
@@ -88,7 +89,14 @@ export class AccountService {
     if (user.passwordHash && !(password && (await this.password.verify(user.passwordHash, password)))) {
       throw new UnauthorizedException('Şifre hatalı.');
     }
-    await this.prisma.user.update({ where: { id: userId }, data: { deletedAt: new Date(), isActive: false } });
+    // Yorumlar (ad içerir) ve favoriler silinir; ürün puanları yeniden hesaplanır
+    const reviewed = await this.prisma.review.findMany({ where: { userId }, select: { productId: true } });
+    await this.prisma.$transaction(async (tx) => {
+      await tx.user.update({ where: { id: userId }, data: { deletedAt: new Date(), isActive: false } });
+      await tx.review.deleteMany({ where: { userId } });
+      await tx.like.deleteMany({ where: { userId } });
+      await recomputeRatings(tx, reviewed.map((r) => r.productId));
+    });
     await this.tokens.revokeAllForUser(userId);
     await this.audit.log({ action: 'account.deleted', entity: 'User', entityId: userId, userId, ipAddress: meta.ipAddress });
     return { success: true };

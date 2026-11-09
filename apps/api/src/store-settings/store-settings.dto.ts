@@ -60,6 +60,10 @@ export class UpdateStoreSettingsDto {
   @Matches(SINGLE_LINE_REGEX)
   feedBrand?: string | null;
 
+  @IsOptional()
+  @IsBoolean()
+  reviewAutoApprove?: boolean;
+
   // ───── Satıcı bilgileri (yasal metinlerde kullanılır) ─────
   @ValidateIf(nullable)
   @IsString()

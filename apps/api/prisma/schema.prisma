@@ -261,6 +261,9 @@ model Product {
   // Cayma hakkı: çabuk bozulan gıda, hijyen ambalajı açılmış ürün vb. için
   // kapatılır (Mesafeli Sözleşmeler Yönetmeliği md. 15). Kapalıysa iade talep edilemez.
   isReturnable Boolean  @default(true)
+  // Onaylı yorumların özeti (liste/sıralama için ürün tablosunda; yorum onaylanınca güncellenir)
+  ratingAvg    Decimal  @default(0) @db.Decimal(3, 2)
+  ratingCount  Int      @default(0)
   // Soft delete: geçmiş siparişler ürüne bağlı kalır (OrderItem → Restrict).
   // Silinince slug/sku serbest bırakılır.
   deletedAt DateTime?
@@ -367,6 +370,12 @@ model Media {
   @@index([createdAt])
 }
 
+enum ReviewStatus {
+  PENDING  // onay bekliyor (yeni veya düzenlenmiş)
+  APPROVED // mağazada görünür
+  REJECTED // yayınlanmadı (gerekçe yazara gösterilir)
+}
+
 model Review {
   id String @id @default(uuid())
 
@@ -374,17 +383,25 @@ model Review {
   productId String
   user      User    @relation(fields: [userId], references: [id], onDelete: Cascade)
   product   Product @relation(fields: [productId], references: [id], onDelete: Cascade)
+  // Ürünü satın aldığı (kargolanmış/teslim edilmiş) sipariş: "Doğrulanmış alıcı"
+  orderId   String?
 
   rating  Int
-  comment String @db.Text
+  title   String?
+  comment String  @db.Text
 
-  isApproved Boolean @default(false)
+  status       ReviewStatus @default(PENDING)
+  rejectReason String?
+  // Mağazanın herkese açık yanıtı
+  adminReply   String?
+  adminReplyAt DateTime?
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
   @@unique([userId, productId])
-  @@index([productId, isApproved])
+  @@index([productId, status, createdAt])
+  @@index([status, createdAt])
 }
 
 model Like {
@@ -473,6 +490,8 @@ model StoreSettings {
   productFeedEnabled      Boolean @default(false)
   // Akıştaki marka adı (boşsa satıcı unvanı)
   feedBrand               String?
+  // Doğrulanmış alıcı yorumları onay beklemeden yayınlansın mı
+  reviewAutoApprove       Boolean @default(false)
 
   // Satıcı bilgileri (ön bilgilendirme formu ve sözleşmede zorunlu)
   sellerName     String?

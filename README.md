@@ -188,6 +188,20 @@ Mağaza sayfası token'ı `location.hash`'ten okuyup API'ye göndermelidir.
 - **Kargodan önce iptal:** Admin ödenmiş siparişi iptal ederse ücret otomatik iade edilir (önce iyzico iptali, olmazsa kalem kalem iade).
   Başarısız olursa yöneticiye e-posta + sipariş sayfasında "İadeyi iyzico ile yap" düğmesi.
 
+## Yorumlar ve favoriler
+
+| Uç | Açıklama |
+|---|---|
+| `GET /shop/products/:slug/reviews?sort=new\|rating-high\|rating-low&rating=1-5&page` | Yayındaki yorumlar + özet (ortalama, sayı, 1–5 dağılımı) |
+| `GET /account/reviews` · `GET /account/reviews/eligible` · `POST /account/reviews` · `PATCH/DELETE /account/reviews/:id` | Üyenin yorumları, "değerlendirin" listesi |
+| `GET /account/favorites` · `GET /account/favorites/ids` · `PUT/DELETE /account/favorites/:productId` | Favoriler |
+| `/admin/reviews` (liste, `PATCH :id` onay/ret, `PUT :id/reply`, `DELETE :id`, `GET favorites`) | Yönetim |
+
+- **Yalnızca satın alanlar:** Ürünü içeren siparişi kargolanmış/teslim edilmiş üye yorum yapabilir ("Doğrulanmış alıcı"). Ürün başına bir yorum.
+- **Onay:** Varsayılan olarak onaydan sonra yayınlanır (ayar: `reviewAutoApprove`); düzenlenen yorum yeniden onaya düşer. Ret gerekçesi yazara e-postayla gider.
+- **Kişisel veri:** Mağazada ad maskelenir ("Ayşe Y."), e-posta/kimlik dönmez. Hesap kapatılınca yorumlar ve favoriler silinir, puanlar yeniden hesaplanır.
+- **Puan özeti** ürün tablosunda tutulur (`ratingAvg`, `ratingCount`; liste ve `sort=rating` için hızlı). Yorum metni düz metindir.
+
 ## Pazarlama
 
 | Uç | Açıklama |

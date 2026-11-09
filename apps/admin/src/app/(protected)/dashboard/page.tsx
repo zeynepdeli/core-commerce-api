@@ -1,22 +1,24 @@
 import Link from "next/link";
-import { BarChart3, Clock, FolderTree, Megaphone, RotateCcw, Images, LayoutDashboard, Package, PackageCheck, PackagePlus, Plus, Scale, ShoppingBag, Store, TicketPercent, Truck, UserCog, Users } from "lucide-react";
+import { BarChart3, Clock, FolderTree, Megaphone, MessageSquareText, RotateCcw, Images, LayoutDashboard, Package, PackageCheck, PackagePlus, Plus, Scale, ShoppingBag, Store, TicketPercent, Truck, UserCog, Users } from "lucide-react";
 
 import { AreaHeader } from "@/components/areas/AreaShell";
 import { getAdminUser } from "@/lib/auth";
 import { getOrders } from "@/lib/orders";
 import { getReturns } from "@/lib/returns";
+import { getReviews } from "@/lib/reviews";
 import { getAdminProducts } from "@/lib/shop";
 
 type Icon = React.ComponentType<{ className?: string }>;
 
 /** Pano: mağazanın her parçası ayrı bir kutucuk; her biri kendi ekranında düzenlenir */
 export default async function DashboardPage() {
-  const [user, products, lowStock, orders, returns] = await Promise.all([
+  const [user, products, lowStock, orders, returns, reviews] = await Promise.all([
     getAdminUser(),
     getAdminProducts({}),
     getAdminProducts({ status: "low-stock" }),
     getOrders({}),
     getReturns({}),
+    getReviews({ status: "PENDING" }),
   ]);
   const openReturns = (returns.counts.REQUESTED ?? 0) + (returns.counts.APPROVED ?? 0) + (returns.counts.RECEIVED ?? 0);
   const c = orders.statusCounts;
@@ -51,6 +53,13 @@ export default async function DashboardPage() {
         <Tile href="/orders?durum=PENDING" icon={Clock} title="Ödeme Bekleyen" description={`${c.PENDING ?? 0} sipariş`} />
         <Tile href="/orders?durum=PAID" icon={PackageCheck} title="Hazırlanacaklar" description={`${toPrepare} sipariş (ödeme alındı / hazırlanıyor)`} />
         <Tile href="/reports" icon={BarChart3} title="Satış Raporları" description="Ciro, en çok satanlar, kuponlar, CSV" />
+        <Tile
+          href="/reviews"
+          icon={MessageSquareText}
+          title="Yorumlar ve Favoriler"
+          description="Onay, yanıt, en çok favorilenen"
+          badge={reviews.total > 0 && <span className="rounded-full bg-amber-600 px-2 py-0.5 text-[11px] font-bold text-white">{reviews.total} onay bekliyor</span>}
+        />
         <Tile href="/marketing" icon={Megaphone} title="Pazarlama" description="Stok bildirimi, sepet hatırlatma, Google akışı" />
         <Tile
           href="/returns"

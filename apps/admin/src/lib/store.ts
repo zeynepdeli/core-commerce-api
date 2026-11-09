@@ -12,6 +12,7 @@ export type StoreSettings = {
   abandonedCartDelayHours: number;
   productFeedEnabled: boolean;
   feedBrand: string | null;
+  reviewAutoApprove: boolean;
   sellerName: string | null;
   sellerAddress: string | null;
   sellerPhone: string | null;
