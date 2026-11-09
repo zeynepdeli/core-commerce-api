@@ -1,0 +1,19 @@
+# Yerel geliştirme veritabanı:
+#   docker compose -f infrastructure/compose.yaml up -d
+# Şifre yalnızca yerel geliştirme içindir; production'da kullanmayın.
+services:
+  postgres:
+    image: postgres:17
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: commerce
+      POSTGRES_PASSWORD: commerce_dev_password
+      POSTGRES_DB: core_commerce
+    ports:
+      # Yalnızca bu bilgisayardan erişilebilir
+      - "127.0.0.1:5434:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+
+volumes:
+  postgres_data:

@@ -59,7 +59,7 @@ model RefreshToken {
 
   issuedAt            DateTime @default(now())
   expiresAt           DateTime
-  revokedAt           DateTime
+  revokedAt           DateTime?
   replacedByTokenHash String?
 
   ipAddress String?
@@ -178,7 +178,7 @@ model Product {
   updatedAt DateTime @updatedAt
 
   images     ProductImage[]
-  cardItems  CartItem[]
+  cartItems  CartItem[]
   orderItems OrderItem[]
   reviews    Review[]
   likes      Like[]
@@ -268,7 +268,7 @@ enum OrderStatus {
   PROCESSING
   SHIPPED
   DELIVERED
-  CANCALLED
+  CANCELLED
   REFUNDED
 }
 
@@ -315,7 +315,7 @@ enum PaymentStatus {
   PENDING
   SUCCEEDED
   FAILED
-  REFUNED
+  REFUNDED
 }
 
 model Payment {
