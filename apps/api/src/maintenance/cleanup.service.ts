@@ -23,7 +23,7 @@ export class CleanupService {
   async run() {
     const now = Date.now();
     try {
-      const [attempts, refresh, resets, verifies] = await this.prisma.$transaction([
+      const [attempts, refresh, resets, verifies, carts] = await this.prisma.$transaction([
         this.prisma.loginAttempt.deleteMany({ where: { createdAt: { lt: new Date(now - 90 * DAY) } } }),
         // Süresi dolmuş veya 30 günden eski iptal edilmiş oturumlar
         // (yeniden kullanım tespiti için iptal kayıtları bir süre tutulur)
@@ -32,9 +32,11 @@ export class CleanupService {
         }),
         this.prisma.passwordResetToken.deleteMany({ where: { expiresAt: { lt: new Date(now - 7 * DAY) } } }),
         this.prisma.emailVerificationToken.deleteMany({ where: { expiresAt: { lt: new Date(now - 7 * DAY) } } }),
+        // Süresi dolmuş misafir sepetleri (üye sepetinde expiresAt boştur)
+        this.prisma.cart.deleteMany({ where: { userId: null, expiresAt: { lt: new Date(now) } } }),
       ]);
       this.logger.log(
-        `Temizlik: ${attempts.count} giriş denemesi, ${refresh.count} oturum, ${resets.count + verifies.count} e-posta bağlantısı silindi.`,
+        `Temizlik: ${attempts.count} giriş denemesi, ${refresh.count} oturum, ${resets.count + verifies.count} e-posta bağlantısı, ${carts.count} misafir sepeti silindi.`,
       );
     } catch (error) {
       this.logger.error(`Temizlik başarısız: ${(error as Error).message}`);

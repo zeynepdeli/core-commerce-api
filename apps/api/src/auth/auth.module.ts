@@ -7,6 +7,7 @@ import type { Env } from '../config/env.validation.js';
 import { AuthController } from './auth.controller.js';
 import { AuthService } from './auth.service.js';
 import { JwtAuthGuard } from './guards/jwt-auth.guard.js';
+import { OptionalJwtAuthGuard } from './guards/optional-jwt-auth.guard.js';
 import { RolesGuard } from './guards/roles.guard.js';
 import { PasswordService } from './password.service.js';
 import { TokensService } from './tokens.service.js';
@@ -23,7 +24,7 @@ import { TokensService } from './tokens.service.js';
     }),
   ],
   controllers: [AuthController],
-  providers: [AuthService, PasswordService, TokensService, JwtAuthGuard, RolesGuard],
-  exports: [PasswordService, TokensService, JwtAuthGuard, RolesGuard],
+  providers: [AuthService, PasswordService, TokensService, JwtAuthGuard, OptionalJwtAuthGuard, RolesGuard],
+  exports: [PasswordService, TokensService, JwtAuthGuard, OptionalJwtAuthGuard, RolesGuard],
 })
 export class AuthModule {}

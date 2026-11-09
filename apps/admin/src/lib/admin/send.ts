@@ -13,7 +13,7 @@ export type ActionResult = { success: true } | { success: false; error: string }
  */
 export async function sendToApi(
   path: string,
-  method: "POST" | "PATCH" | "DELETE",
+  method: "POST" | "PUT" | "PATCH" | "DELETE",
   body: unknown,
   fallback: string,
   revalidate: string,

@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { FolderTree, Images, LayoutDashboard, Package, PackagePlus, Plus, UserCog, Users } from "lucide-react";
+import { FolderTree, Images, LayoutDashboard, Package, PackagePlus, Plus, TicketPercent, Truck, UserCog, Users } from "lucide-react";
 
 import { AreaHeader } from "@/components/areas/AreaShell";
 import { getAdminUser } from "@/lib/auth";
@@ -48,6 +48,11 @@ export default async function DashboardPage() {
         <Tile href="/shop/products/new" icon={PackagePlus} title="Yeni Ürün" description="Mağazaya ürün ekle" />
         <Tile href="/shop/categories" icon={FolderTree} title="Kategori Yönetimi" description="Kategoriler ve sıralaması" />
         <Tile href="/media" icon={Images} title="Medya Kütüphanesi" description="Yüklenen tüm görseller" />
+      </Group>
+
+      <Group eyebrow="Satış" title="Satış Ayarları">
+        <Tile href="/shop/coupons" icon={TicketPercent} title="Kupon Yönetimi" description="İndirim kodları ve kullanım sınırları" />
+        <Tile href="/shop/shipping" icon={Truck} title="Kargo Ayarları" description="Kargo ücreti, ücretsiz kargo eşiği, en düşük sipariş" />
       </Group>
 
       <Group eyebrow="Hesaplar" title="Kullanıcılar">

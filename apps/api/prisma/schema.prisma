@@ -388,14 +388,25 @@ model Like {
 // ==========================================================
 
 model Cart {
-  id     String @id @default(uuid())
-  userId String @unique
-  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  id String @id @default(uuid())
+
+  // Üye sepeti: userId dolu. Misafir sepeti: userId boş, guestTokenHash dolu
+  // (token yalnızca mağaza sunucusundaki httpOnly çerezde; DB'de SHA-256 özeti).
+  userId         String? @unique
+  user           User?   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  guestTokenHash String? @unique
+  // Misafir sepeti bu tarihten sonra silinir (her güncellemede uzar)
+  expiresAt      DateTime?
+
+  // Uygulanan kupon (her hesaplamada yeniden doğrulanır)
+  couponCode String?
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
   items CartItem[]
+
+  @@index([expiresAt])
 }
 
 model CartItem {
@@ -414,6 +425,59 @@ model CartItem {
 
   @@unique([cartId, variantId])
   @@index([variantId])
+}
+
+// ==========================================================
+// MAĞAZA AYARLARI & KUPON
+// ==========================================================
+
+// Tek satır (id = 1): kargo ücreti, ücretsiz kargo eşiği, en düşük sipariş tutarı
+model StoreSettings {
+  id Int @id @default(1)
+
+  // KDV dahil sabit kargo ücreti
+  shippingFee           Decimal  @default(0) @db.Decimal(10, 2)
+  // Sepet (indirim sonrası) bu tutara ulaşınca kargo ücretsiz; boş = her zaman ücretli
+  freeShippingThreshold Decimal? @db.Decimal(10, 2)
+  // Bu tutarın altındaki sepetle sipariş verilemez; boş = sınır yok
+  minOrderAmount        Decimal? @db.Decimal(10, 2)
+
+  updatedAt DateTime @updatedAt
+}
+
+enum CouponType {
+  PERCENT       // yüzde indirim (value = 10 → %10)
+  FIXED         // sabit tutar indirim (value = 50 → 50 ₺)
+  FREE_SHIPPING // kargo bedava
+}
+
+model Coupon {
+  id   String @id @default(uuid())
+  // Her zaman BÜYÜK harf saklanır; müşteri küçük yazsa da eşleşir
+  code String @unique
+
+  type  CouponType
+  value Decimal    @default(0) @db.Decimal(10, 2)
+  // Yüzde indirimde en fazla indirim tutarı (ör. %20, en fazla 200 ₺)
+  maxDiscount Decimal? @db.Decimal(10, 2)
+  // Bu tutarın altındaki sepette geçmez
+  minSubtotal Decimal? @db.Decimal(10, 2)
+
+  startsAt DateTime?
+  endsAt   DateTime?
+
+  // Toplam kullanım sınırı (boş = sınırsız) ve kişi başı sınır
+  usageLimit   Int?
+  perUserLimit Int?
+  // Ödemesi tamamlanan siparişlerde artar (sipariş adımında)
+  usedCount    Int  @default(0)
+
+  isActive Boolean @default(true)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([isActive, endsAt])
 }
 
 // ==========================================================
