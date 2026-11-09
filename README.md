@@ -165,7 +165,28 @@ Mağaza sayfası token'ı `location.hash`'ten okuyup API'ye göndermelidir.
   saldırısına karşı). Süre dolup iptal edilen siparişe sonradan ödeme gelirse stok varsa sipariş canlanır; yoksa yöneticiye
   **"İADE GEREKLİ"** e-postası gider ve AuditLog'a yazılır.
 - **E-postalar:** Ödeme alındı (müşteri + yönetici), kargoya verildi (firma + takip no), iptal (yalnızca ödenmiş siparişte).
-- **Not:** Kartla ödenmiş siparişi iptal ederseniz ücret iadesini iyzico panelinden yapın (admin sipariş sayfası uyarır).
+
+## İade (cayma hakkı)
+
+| Uç | Açıklama |
+|---|---|
+| `POST /account/orders/:no/returns` · `POST /account/orders/:no/returns/:id/cancel` | Üye iade talebi / vazgeçme. Gövde: `items: [{orderItemId, quantity}]`, `reason` (`DAMAGED`, `WRONG_ITEM`, `NOT_AS_DESCRIBED`, `CHANGED_MIND`, `OTHER`), `note?` |
+| `POST /orders/returns` · `POST /orders/returns/:id/cancel` | Misafir: aynısı + `orderNumber`, `accessToken` |
+| `/admin/returns` (liste, detay, `PATCH :id/decision`, `POST :id/receive`, `POST :id/refund`) | Yönetim (ADMIN) |
+| `POST /admin/orders/:id/refund` | İptal edilmiş, kartla ödenmiş siparişin iadesini yeniden dener |
+
+- **Süre:** Teslimden itibaren `returnWindowDays` gün (mağaza ayarı; yasal alt sınır 14). Kargodaki siparişte süre henüz başlamamıştır.
+  Süre sözleşmelere `{{CAYMA_SURESI}}` ile otomatik yazılır.
+- **İade edilemeyen ürünler:** Üründe "İade edilebilir" kapatılırsa (çabuk bozulan gıda vb., yönetmelik md. 15) sözleşmede belirtilir ve talep edilemez.
+  Sipariş anındaki değer saklanır.
+- **Tutar sunucuda hesaplanır:** Kupon indirimi satırlara dağıtılmış, ödenen tutar üzerinden (iyzico'daki kalem tutarıyla birebir).
+  Siparişin tamamı iade edilirse ilk kargo ücreti de iade edilir (md. 13). Eş zamanlı talepler adetleri aşamaz (satır kilidi).
+- **Akış:** Talep → Onay (müşteriye not, iade adresi e-postada) veya Ret (gerekçe zorunlu) → Ürün geldi (isteğe bağlı stoğa ekle)
+  → Ücret iadesi. Her adımda müşteriye e-posta.
+- **iyzico iadesi:** Kalem bazında; çift tıklamada iki kez iade yapılmaz (kilit), yarıda kalırsa yalnızca kalan kalemler denenir.
+  Kartla ödenmemiş (havale) siparişte "Elle iade edildi" işaretlenir. Tamamı iade edilen sipariş "İade edildi" olur.
+- **Kargodan önce iptal:** Admin ödenmiş siparişi iptal ederse ücret otomatik iade edilir (önce iyzico iptali, olmazsa kalem kalem iade).
+  Başarısız olursa yöneticiye e-posta + sipariş sayfasında "İadeyi iyzico ile yap" düğmesi.
 
 ## Güvenlik ilkeleri (OWASP)
 

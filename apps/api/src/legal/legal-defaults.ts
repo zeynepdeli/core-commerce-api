@@ -34,7 +34,7 @@ Toplam (KDV dahil): {{TOPLAM}} (içindeki KDV: {{KDV}})
 Ürünler, ödemenin onaylanmasından itibaren en geç 30 gün içinde yukarıdaki adrese teslim edilir.
 
 5. CAYMA HAKKI
-Alıcı, ürünü teslim aldığı tarihten itibaren 14 gün içinde herhangi bir gerekçe göstermeksizin cayma hakkına sahiptir. Çabuk bozulabilen veya son kullanma tarihi geçebilecek ürünlerde ve ambalajı açılmış hijyen ürünlerinde cayma hakkı kullanılamaz (Mesafeli Sözleşmeler Yönetmeliği m.15).
+Alıcı, ürünü teslim aldığı tarihten itibaren {{CAYMA_SURESI}} gün içinde herhangi bir gerekçe göstermeksizin cayma hakkına sahiptir. Çabuk bozulabilen veya son kullanma tarihi geçebilecek ürünlerde ve ambalajı açılmış hijyen ürünlerinde cayma hakkı kullanılamaz (Mesafeli Sözleşmeler Yönetmeliği m.15).
 
 6. ŞİKÂYET
 Alıcı, şikâyetlerini satıcıya yukarıdaki iletişim bilgilerinden iletebilir; parasal sınırlar dahilinde Tüketici Hakem Heyeti veya Tüketici Mahkemesi'ne başvurabilir.
@@ -61,7 +61,7 @@ Madde 4 – Genel Hükümler
 ALICI, ön bilgilendirme formunu okuyup bilgi sahibi olduğunu ve elektronik ortamda gerekli onayı verdiğini kabul eder. SATICI, ürünü sağlam, eksiksiz ve siparişte belirtilen niteliklere uygun teslim etmekle yükümlüdür.
 
 Madde 5 – Cayma Hakkı
-ALICI, teslimattan itibaren 14 gün içinde cayma hakkını kullanabilir. Cayma bildiriminin SATICI'ya ulaşmasından itibaren 14 gün içinde bedel iade edilir.
+ALICI, teslimattan itibaren {{CAYMA_SURESI}} gün içinde cayma hakkını kullanabilir. Cayma bildiriminin SATICI'ya ulaşmasından itibaren 14 gün içinde bedel iade edilir.
 
 Madde 6 – Yetkili Mahkeme
 Uyuşmazlıklarda Tüketici Hakem Heyetleri ve Tüketici Mahkemeleri yetkilidir.

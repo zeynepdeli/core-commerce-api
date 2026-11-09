@@ -32,6 +32,13 @@ export class UpdateStoreSettingsDto {
   @Max(1440)
   paymentTimeoutMinutes?: number;
 
+  // Yasal alt sınır 14 gün; mağaza daha uzun süre tanıyabilir
+  @IsOptional()
+  @IsInt()
+  @Min(14, { message: 'Cayma süresi yasal olarak en az 14 gündür.' })
+  @Max(365)
+  returnWindowDays?: number;
+
   // ───── Satıcı bilgileri (yasal metinlerde kullanılır) ─────
   @ValidateIf(nullable)
   @IsString()

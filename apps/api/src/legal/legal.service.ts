@@ -27,6 +27,7 @@ export const PLACEHOLDERS = [
   'TOPLAM',
   'KDV',
   'TARIH',
+  'CAYMA_SURESI',
 ] as const;
 export type Placeholder = (typeof PLACEHOLDERS)[number];
 

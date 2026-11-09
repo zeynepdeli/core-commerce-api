@@ -59,6 +59,11 @@ export function StoreInfoForm({ initial }: { initial: Values }) {
           <FormField name="paymentTimeoutMinutes" label="Süre (dakika)" type="number" register={register} error={errors.paymentTimeoutMinutes} />
         </div>
       </AreaCard>
+      <AreaCard title="Cayma (İade) Süresi" hint="Müşteri teslimden itibaren bu kadar gün içinde iade talep edebilir. Yasal alt sınır 14 gündür; sözleşmelere otomatik yazılır. İade adresi olarak yukarıdaki adres kullanılır.">
+        <div className="max-w-xs">
+          <FormField name="returnWindowDays" label="Süre (gün)" type="number" register={register} error={errors.returnWindowDays} />
+        </div>
+      </AreaCard>
       {error && (
         <div role="alert" className="rounded-xl border border-destructive/30 bg-destructive/10 p-4 text-sm text-destructive">
           {error}

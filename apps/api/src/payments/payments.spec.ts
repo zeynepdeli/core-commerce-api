@@ -1,8 +1,8 @@
 import { createHmac } from 'node:crypto';
 import { describe, expect, it } from 'vitest';
 
-import { buildBasket, splitName } from './basket.js';
-import { IyzicoClient, stripZeros } from './iyzico.client.js';
+import { buildBasket, netLineTotals, splitName } from './basket.js';
+import { IyzicoClient, stripZeros } from '../iyzico/iyzico.client.js';
 
 const config = (env: Record<string, string | undefined>) => ({ get: (k: string) => env[k] }) as never;
 const client = new IyzicoClient(config({ IYZICO_API_KEY: 'sandbox-apikey123', IYZICO_SECRET_KEY: 'sandbox-secret123', IYZICO_BASE_URL: 'https://sandbox-api.iyzipay.com' }));
@@ -40,6 +40,21 @@ describe('buildBasket', () => {
 
   it('toplam satırlardan büyükse hata verir (fiyat manipülasyonu / tutarsızlık)', () => {
     expect(() => buildBasket([{ id: 'a', name: 'A', category: 'X', lineTotal: 100 }], 500, 0)).toThrow();
+  });
+});
+
+describe('netLineTotals (iade tutarı = ödeme kalemi)', () => {
+  it('indirimi satırlara dağıtır, toplam korunur', () => {
+    const net = netLineTotals([{ lineTotal: 30_000 }, { lineTotal: 5_000 }], 31_500 + 4_990, 4_990);
+    expect(net).toEqual([27_000, 4_500]);
+  });
+  it('sepet ile aynı sonucu verir', () => {
+    const lines = [
+      { id: 'a', name: 'A', category: 'X', lineTotal: 9_999 },
+      { id: 'b', name: 'B', category: 'X', lineTotal: 333 },
+    ];
+    const net = netLineTotals(lines, 9_000, 0);
+    expect(buildBasket(lines, 9_000, 0).map((i) => Math.round(Number(i.price) * 100))).toEqual(net);
   });
 });
 

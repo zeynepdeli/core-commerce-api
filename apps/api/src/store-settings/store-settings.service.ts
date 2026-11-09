@@ -47,6 +47,7 @@ export class StoreSettingsService {
     return {
       ...(await this.view()),
       paymentTimeoutMinutes: s.paymentTimeoutMinutes,
+      returnWindowDays: s.returnWindowDays,
       sellerName: s.sellerName,
       sellerAddress: s.sellerAddress,
       sellerPhone: s.sellerPhone,
@@ -74,6 +75,7 @@ export class StoreSettingsService {
         freeShippingThreshold: dto.freeShippingThreshold === undefined ? undefined : dto.freeShippingThreshold === null ? null : dto.freeShippingThreshold.toFixed(2),
         minOrderAmount: dto.minOrderAmount === undefined ? undefined : dto.minOrderAmount === null ? null : dto.minOrderAmount.toFixed(2),
         paymentTimeoutMinutes: dto.paymentTimeoutMinutes,
+        returnWindowDays: dto.returnWindowDays,
         sellerName: dto.sellerName?.trim() || (dto.sellerName === undefined ? undefined : null),
         sellerAddress: dto.sellerAddress?.trim() || (dto.sellerAddress === undefined ? undefined : null),
         sellerPhone: dto.sellerPhone?.trim() || (dto.sellerPhone === undefined ? undefined : null),

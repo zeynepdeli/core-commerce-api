@@ -72,6 +72,7 @@ export async function updateStoreInfoAction(values: z.input<typeof storeInfoSche
       sellerMersisNo: blank(v.sellerMersisNo),
       sellerAddress: blank(v.sellerAddress),
       paymentTimeoutMinutes: Number(v.paymentTimeoutMinutes),
+      returnWindowDays: Number(v.returnWindowDays),
     },
     "Bilgiler kaydedilemedi.",
     "/shop/store-info",

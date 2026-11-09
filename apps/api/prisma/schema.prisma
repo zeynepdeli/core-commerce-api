@@ -246,6 +246,9 @@ model Product {
 
   isActive  Boolean   @default(true)
   featured  Boolean   @default(false)
+  // Cayma hakkı: çabuk bozulan gıda, hijyen ambalajı açılmış ürün vb. için
+  // kapatılır (Mesafeli Sözleşmeler Yönetmeliği md. 15). Kapalıysa iade talep edilemez.
+  isReturnable Boolean  @default(true)
   // Soft delete: geçmiş siparişler ürüne bağlı kalır (OrderItem → Restrict).
   // Silinince slug/sku serbest bırakılır.
   deletedAt DateTime?
@@ -443,6 +446,8 @@ model StoreSettings {
   minOrderAmount        Decimal? @db.Decimal(10, 2)
   // Ödenmeyen siparişin stoğu bu kadar dakika sonra serbest kalır
   paymentTimeoutMinutes Int      @default(30)
+  // Cayma süresi (gün, teslimden itibaren). Yasal alt sınır 14.
+  returnWindowDays      Int      @default(14)
 
   // Satıcı bilgileri (ön bilgilendirme formu ve sözleşmede zorunlu)
   sellerName     String?
@@ -559,6 +564,7 @@ model Order {
   events      OrderEvent[]
   agreements  AgreementAcceptance[]
   redemption  CouponRedemption?
+  returns     ReturnRequest[]
 
   @@index([userId, createdAt])
   @@index([status, createdAt])
@@ -681,9 +687,13 @@ model OrderItem {
   productSku  String?
   // Sipariş anındaki KDV oranı (fatura için)
   vatRate     Int
+  // Sipariş anında iade edilebilir miydi (sonradan değişse de sipariş bozulmaz)
+  returnable  Boolean @default(true)
 
   quantity Int
   price    Decimal @db.Decimal(10, 2)
+
+  returnItems ReturnItem[]
 
   @@index([orderId])
   @@index([productId])
@@ -781,4 +791,79 @@ model FaqItem {
   updatedAt DateTime @updatedAt
 
   @@index([isActive, order])
+}
+
+// ==========================================================
+// İADE (CAYMA HAKKI)
+// ==========================================================
+
+enum ReturnStatus {
+  REQUESTED // müşteri talep etti
+  APPROVED  // onaylandı, müşteri ürünü gönderecek
+  REJECTED  // reddedildi (gerekçe zorunlu)
+  RECEIVED  // ürün mağazaya ulaştı
+  REFUNDED  // ücret iade edildi
+  CANCELLED // müşteri vazgeçti
+}
+
+enum ReturnReason {
+  DAMAGED          // hasarlı / bozuk geldi
+  WRONG_ITEM       // yanlış ürün
+  NOT_AS_DESCRIBED // açıklamadaki gibi değil
+  CHANGED_MIND     // vazgeçtim (cayma)
+  OTHER
+}
+
+model ReturnRequest {
+  id           String @id @default(uuid())
+  // "IA-2026-7K3M9Q2X": tahmin edilemez
+  returnNumber String @unique
+  orderId      String
+  order        Order  @relation(fields: [orderId], references: [id], onDelete: Restrict)
+
+  status       ReturnStatus @default(REQUESTED)
+  reason       ReturnReason
+  customerNote String?
+  // Müşteriye görünür not (iade adresi/kargo kodu ya da ret gerekçesi)
+  adminNote    String?
+
+  // Talep anında hesaplanan iade tutarı (indirim payı düşülmüş; tüm ürünler iade
+  // ediliyorsa ilk kargo ücreti dahil — yönetmelik md. 13)
+  refundAmount   Decimal @db.Decimal(10, 2)
+  refundShipping Decimal @default(0) @db.Decimal(10, 2)
+  // Çift tıklamada iki kez iade yapılmasın: iade başlarken doldurulur
+  refundStartedAt DateTime?
+  // "iyzico" (otomatik) veya "manual" (havale vb. elle)
+  refundMethod    String?
+  refundError     String?
+  // Kargo kalemi iyzico'da iade edildi mi (yarıda kalan iadeyi tamamlarken)
+  shippingRefundedAt DateTime?
+  restocked Boolean @default(false)
+
+  createdAt  DateTime  @default(now())
+  updatedAt  DateTime  @updatedAt
+  decidedAt  DateTime?
+  receivedAt DateTime?
+  refundedAt DateTime?
+
+  items ReturnItem[]
+
+  @@index([status, createdAt])
+  @@index([orderId])
+}
+
+model ReturnItem {
+  id          String        @id @default(uuid())
+  returnId    String
+  returnRequest ReturnRequest @relation(fields: [returnId], references: [id], onDelete: Cascade)
+  orderItemId String
+  orderItem   OrderItem     @relation(fields: [orderItemId], references: [id], onDelete: Restrict)
+  quantity    Int
+  // Bu kalem için iade edilecek tutar (indirim payı düşülmüş)
+  amount      Decimal       @db.Decimal(10, 2)
+  // iyzico'da bu kalemin iadesi yapıldı mı (yarıda kalan iadeyi tamamlarken)
+  refundedAt  DateTime?
+
+  @@unique([returnId, orderItemId])
+  @@index([orderItemId])
 }
