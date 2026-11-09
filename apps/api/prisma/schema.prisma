@@ -207,36 +207,55 @@ model Category {
   slug        String    @unique
   description String?
   image       String?
+  // Mağazadaki sıralama (admin'de yukarı/aşağı ile değişir)
+  order       Int       @default(0)
   isActive    Boolean   @default(true)
+  // Soft delete. Silinince slug/name sonuna "--silindi-…" eklenir ki aynı
+  // ad/adres yeni bir kategoride tekrar kullanılabilsin.
   deletedAt   DateTime?
+
+  metaTitle       String?
+  metaDescription String?
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
   products Product[]
 
-  @@index([isActive])
-  @@index([deletedAt])
+  // Mağaza listesi: WHERE isActive AND deletedAt IS NULL ORDER BY order
+  @@index([isActive, deletedAt, order])
 }
 
 model Product {
   id          String  @id @default(uuid())
   name        String
   slug        String  @unique
-  description String  @db.Text
+  // Kartlarda görünen kısa açıklama
+  summary     String?
+  description String? @db.Text
   price       Decimal @db.Decimal(10, 2)
+  // Üstü çizili eski fiyat (indirim gösterimi). Doluysa price'tan büyük olmalı.
+  compareAtPrice Decimal? @db.Decimal(10, 2)
+  // Not: mağaza tek para birimiyle çalışır; sepette karışık para birimi olmasın
+  // diye API bu alanı dışarıdan kabul etmez.
   currency    String  @default("TRY") @db.Char(3)
+  // Satış birimi etiketi (ör. "500 g", "1 kg", "Adet")
+  unit        String?
   stock       Int     @default(0)
+  // Kapalıysa stok düşülmez/kontrol edilmez
+  trackStock  Boolean @default(true)
   sku         String? @unique
   // Not: gerçek varyant yönetimi gerekirse (500gr/1kg vs.) SKU/stok/fiyat
   // ayrı bir ProductVariant modeline taşınmalı.
 
   isActive  Boolean   @default(true)
+  featured  Boolean   @default(false)
+  // Soft delete: geçmiş siparişler ürüne bağlı kalır (OrderItem → Restrict).
+  // Silinince slug/sku serbest bırakılır.
   deletedAt DateTime?
 
-  story             String? @db.Text
-  features          String? @db.Text
-  servingSuggestion String? @db.Text
+  metaTitle       String?
+  metaDescription String?
 
   categoryId String
   category   Category @relation(fields: [categoryId], references: [id])
@@ -245,15 +264,20 @@ model Product {
   updatedAt DateTime @updatedAt
 
   images     ProductImage[]
+  // Ürün detay sekmeleri (ör. enfesGurme: Hikaye, Özellikler, Nasıl Servis Edilir?)
+  // Her mağaza kendi sekmelerini tanımlar; sabit kolon yok.
+  tabs       ProductTab[]
   cartItems  CartItem[]
   orderItems OrderItem[]
   reviews    Review[]
   likes      Like[]
 
   @@index([categoryId])
-  @@index([isActive])
-  @@index([isActive, categoryId])
-  @@index([deletedAt])
+  // Mağaza listesi filtreleri ve sıralamaları
+  @@index([isActive, deletedAt, categoryId])
+  @@index([isActive, deletedAt, featured])
+  @@index([createdAt])
+  @@index([price])
 }
 
 model ProductImage {
@@ -267,7 +291,39 @@ model ProductImage {
 
   createdAt DateTime @default(now())
 
-  @@index([productId])
+  @@index([productId, order])
+}
+
+model ProductTab {
+  id        String  @id @default(uuid())
+  productId String
+  product   Product @relation(fields: [productId], references: [id], onDelete: Cascade)
+
+  title String
+  body  String @db.Text
+  order Int    @default(0)
+
+  @@index([productId, order])
+}
+
+// Yüklenen görseller (admin → medya kütüphanesi)
+model Media {
+  id String @id @default(uuid())
+
+  originalName String
+  storageKey   String @unique
+  mimeType     String
+  size         Int
+  width        Int
+  height       Int
+
+  url String @unique
+  // Erişilebilirlik ve SEO için <img alt>
+  alt String?
+
+  createdAt DateTime @default(now())
+
+  @@index([createdAt])
 }
 
 model Review {

@@ -70,6 +70,13 @@ async function bootstrap() {
 
   app.enableShutdownHooks();
   await app.listen(config.get('PORT', { infer: true }));
+
+  // Yavaş istemci saldırılarına (slowloris) karşı zaman aşımları.
+  // Node varsayılanı 5 dakikadır; 5 MB görsel yüklemesi için 60 sn fazlasıyla yeterli.
+  const server = app.getHttpServer();
+  server.headersTimeout = 20_000;
+  server.requestTimeout = 60_000;
+  server.keepAliveTimeout = 5_000;
 }
 
 void bootstrap();

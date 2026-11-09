@@ -55,6 +55,16 @@ const envSchema = z
     SMTP_PASSWORD: z.string().optional(),
     SMTP_FROM: z.email('SMTP_FROM geçerli bir e-posta olmalıdır').optional(),
 
+    // Görsellerin saklandığı yer: local (sunucu diski) | cloudinary (önerilen)
+    MEDIA_STORAGE: z.enum(['local', 'cloudinary']).default('local'),
+    CLOUDINARY_CLOUD_NAME: z.string().regex(/^[a-z0-9_-]{1,64}$/i, 'CLOUDINARY_CLOUD_NAME geçersiz').optional(),
+    CLOUDINARY_API_KEY: z.string().regex(/^\d{6,20}$/, 'CLOUDINARY_API_KEY geçersiz').optional(),
+    CLOUDINARY_API_SECRET: z.string().min(10).optional(),
+    CLOUDINARY_FOLDER: z
+      .string()
+      .regex(/^[a-z0-9_-]{1,64}$/i, 'CLOUDINARY_FOLDER yalnızca harf, rakam, - ve _ içerebilir')
+      .default('core-commerce'),
+
     // Google ile giriş (isteğe bağlı). Google Cloud Console → OAuth istemci kimliği.
     GOOGLE_CLIENT_ID: z
       .string()
@@ -75,6 +85,11 @@ const envSchema = z
     WEB_API_SECRET: z.string().min(32, 'WEB_API_SECRET en az 32 karakter olmalıdır').optional(),
   })
   .superRefine((env, ctx) => {
+    if (env.MEDIA_STORAGE === 'cloudinary') {
+      for (const key of ['CLOUDINARY_CLOUD_NAME', 'CLOUDINARY_API_KEY', 'CLOUDINARY_API_SECRET'] as const) {
+        if (!env[key]) ctx.addIssue({ code: 'custom', path: [key], message: `MEDIA_STORAGE=cloudinary için ${key} zorunludur` });
+      }
+    }
     if (env.SMTP_HOST && !env.SMTP_FROM) {
       ctx.addIssue({ code: 'custom', path: ['SMTP_FROM'], message: 'SMTP_HOST tanımlıysa SMTP_FROM zorunludur' });
     }
