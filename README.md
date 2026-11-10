@@ -188,6 +188,19 @@ Mağaza sayfası token'ı `location.hash`'ten okuyup API'ye göndermelidir.
 - **Kargodan önce iptal:** Admin ödenmiş siparişi iptal ederse ücret otomatik iade edilir (önce iyzico iptali, olmazsa kalem kalem iade).
   Başarısız olursa yöneticiye e-posta + sipariş sayfasında "İadeyi iyzico ile yap" düğmesi.
 
+## Satış raporları
+
+| Uç | Açıklama |
+|---|---|
+| `GET /admin/reports/sales?from=YYYY-AA-GG&to=YYYY-AA-GG&groupBy=day\|week\|month` | Özet + önceki dönemle karşılaştırma, zaman serisi, en çok satanlar, kategoriler, kuponlar, yeni/tekrar müşteri, ödeme dönüşümü |
+| `GET /admin/reports/sales.csv?from&to` | Muhasebe için ödenmiş siparişler (Türkçe Excel: UTF-8 BOM, `;` ayraç, `,` ondalık) |
+
+- **Satış** = ödemesi alınmış sipariş, **ödeme tarihine** göre. **İadeler** yapıldıkları tarihte düşülür (iade talepleri + ödendikten sonra iptal edilenler); net = brüt − iade.
+- Gün sınırları `STORE_TIMEZONE` (varsayılan Europe/Istanbul) saat dilimine göre; dönüşümü PostgreSQL yapar (yaz saati dahil).
+- Aralık en fazla 1 yıl; boş günler 0 ile döner. Tüm sorgular parametreli; tarih alanları sıkı biçim denetiminden geçer.
+- CSV: formül enjeksiyonuna karşı `= + - @` ile başlayan hücreler etkisizleştirilir; en fazla 20.000 satır.
+- Admin: **Raporlar** sayfası (hazır aralıklar, özel tarih, gruplama, grafik + tablo görünümü, CSV indir).
+
 ## İki adımlı doğrulama (yöneticiler)
 
 | Uç | Açıklama |

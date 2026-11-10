@@ -6,6 +6,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 
 import {
+  BarChart3,
   Blocks,
   ChevronDown,
   CircleUserRound,
@@ -27,6 +28,7 @@ import { logoutAdmin } from "@/app/actions";
 const navigation = [
   { label: "Dashboard", href: "/dashboard", icon: LayoutDashboard },
   { label: "Siparişler", href: "/orders", icon: ShoppingBag },
+  { label: "Raporlar", href: "/reports", icon: BarChart3 },
   { label: "Ürünler", href: "/shop/products", icon: Package },
   { label: "Kategoriler", href: "/shop/categories", icon: FolderTree },
   { label: "Medya", href: "/media", icon: Images },
