@@ -5,6 +5,8 @@ import { fromKurus, toKurus } from '../commerce/money.js';
 import type { OrderStatus, Prisma } from '../generated/prisma/client.js';
 import { PrismaService } from '../prisma/prisma.service.js';
 
+import { OrderMailService } from './order-mail.service.js';
+
 type Tx = Prisma.TransactionClient;
 
 /**
@@ -52,6 +54,7 @@ export class OrdersService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly audit: AuditService,
+    private readonly mails: OrderMailService,
   ) {}
 
   // ───────────── Görünümler ─────────────
@@ -137,6 +140,7 @@ export class OrdersService {
       await this.restock(tx, orderId);
       await tx.orderEvent.create({ data: { orderId, status: 'CANCELLED', note: reason.slice(0, 500), actorId } });
     });
+    await this.mails.cancelled(orderId, reason).catch(() => undefined);
   }
 
   async transition(
@@ -171,12 +175,10 @@ export class OrdersService {
         });
         if (count === 0) throw new ConflictException('Sipariş bu sırada değişti; sayfayı yenileyin.');
         await tx.orderEvent.create({ data: { orderId, status: to, note: extra.note?.trim().slice(0, 500) || null, actorId } });
-        // Ödeme alındı: siparişin geldiği sepet boşaltılır
-        if (to === 'PAID' && order.sourceCartId) {
-          await tx.cartItem.deleteMany({ where: { cartId: order.sourceCartId } });
-          await tx.cart.updateMany({ where: { id: order.sourceCartId }, data: { couponCode: null } });
-        }
+        if (to === 'PAID') await this.clearSourceCart(tx, order.sourceCartId);
       });
+      if (to === 'PAID') await this.mails.paid(orderId).catch(() => undefined);
+      if (to === 'SHIPPED') await this.mails.shipped(orderId).catch(() => undefined);
     }
     await this.audit.log({
       action: 'admin.order_status',
@@ -206,6 +208,30 @@ export class OrdersService {
     }
     if (cancelled) this.logger.log(`${cancelled} ödenmemiş sipariş iptal edildi, stoklar geri eklendi.`);
     return cancelled;
+  }
+
+  /** Ödeme alındı: siparişin geldiği sepet boşaltılır */
+  async clearSourceCart(tx: Tx, cartId: string | null) {
+    if (!cartId) return;
+    await tx.cartItem.deleteMany({ where: { cartId } });
+    await tx.cart.updateMany({ where: { id: cartId }, data: { couponCode: null } });
+  }
+
+  /**
+   * İptal edilmiş (ör. süresi dolmuş) siparişe sonradan ödeme gelirse: stok
+   * yeniden ayrılmaya çalışılır. Yeterli stok yoksa false (yönetici iade etmeli).
+   */
+  async revive(tx: Tx, orderId: string): Promise<boolean> {
+    const items = await tx.orderItem.findMany({ where: { orderId }, select: { variantId: true, quantity: true, variant: { select: { trackStock: true } } } });
+    for (const item of items) {
+      if (!item.variant.trackStock) continue;
+      const { count } = await tx.productVariant.updateMany({
+        where: { id: item.variantId, stock: { gte: item.quantity } },
+        data: { stock: { decrement: item.quantity } },
+      });
+      if (count === 0) return false;
+    }
+    return true;
   }
 
   private async restock(tx: Tx, orderId: string) {

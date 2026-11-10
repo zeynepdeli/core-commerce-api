@@ -9,6 +9,7 @@ import { getOrder, type Address } from "@/lib/orders";
 import { formatPrice } from "@/lib/shop";
 
 const fmt = new Intl.DateTimeFormat("tr-TR", { dateStyle: "medium", timeStyle: "short", timeZone: "Europe/Istanbul" });
+const PAYMENT_LABEL = { PENDING: "Ödeme sayfası açıldı", SUCCEEDED: "Ödendi (iyzico)", FAILED: "Başarısız deneme", REFUNDED: "İade edildi" } as const;
 const DOC_TITLE: Record<string, string> = { PRE_INFORMATION: "Ön Bilgilendirme Formu", DISTANCE_SALES: "Mesafeli Satış Sözleşmesi" };
 
 function AddressBlock({ a }: { a: Pick<Address, "addressLine" | "district" | "city"> & Partial<Address> }) {
@@ -129,8 +130,56 @@ export default async function OrderPage({ params }: { params: Promise<{ id: stri
               </p>
             )}
             {o.cancelReason && <p className="mb-4 text-sm text-muted-foreground">İptal nedeni: {o.cancelReason}</p>}
+            {o.payment?.status === "SUCCEEDED" && ["PAID", "PROCESSING"].includes(o.status) && (
+              <p className="mb-4 rounded-xl bg-surface-muted p-3 text-xs leading-5 text-muted-foreground">
+                Kartla ödenmiş siparişi iptal ederseniz ücret iadesini iyzico panelinden yapmayı unutmayın.
+              </p>
+            )}
             <OrderStatusPanel key={o.status} orderId={o.id} next={o.nextStatuses} />
           </AreaCard>
+
+          {o.payment && (
+            <AreaCard title="Ödeme">
+              <dl className="grid grid-cols-[auto_1fr] gap-x-4 gap-y-1 text-sm">
+                <dt className="text-muted-foreground">Durum</dt>
+                <dd className={o.payment.status === "SUCCEEDED" ? "font-medium text-emerald-700" : o.payment.status === "FAILED" ? "text-red-700" : ""}>
+                  {PAYMENT_LABEL[o.payment.status]}
+                </dd>
+                {o.payment.summary?.paidPrice && (
+                  <>
+                    <dt className="text-muted-foreground">Çekilen</dt>
+                    <dd>
+                      {formatPrice(o.payment.summary.paidPrice)}
+                      {o.payment.summary.installment && o.payment.summary.installment > 1 ? ` · ${o.payment.summary.installment} taksit` : " · tek çekim"}
+                    </dd>
+                  </>
+                )}
+                {o.payment.summary?.lastFourDigits && (
+                  <>
+                    <dt className="text-muted-foreground">Kart</dt>
+                    <dd>
+                      {o.payment.summary.cardAssociation ?? ""} •••• {o.payment.summary.lastFourDigits}
+                    </dd>
+                  </>
+                )}
+                {o.payment.providerPaymentId && (
+                  <>
+                    <dt className="text-muted-foreground">iyzico no</dt>
+                    <dd className="font-mono text-xs">{o.payment.providerPaymentId}</dd>
+                  </>
+                )}
+                {o.payment.errorMessage && o.payment.status !== "SUCCEEDED" && (
+                  <>
+                    <dt className="text-muted-foreground">Son hata</dt>
+                    <dd className="text-xs">{o.payment.errorMessage}</dd>
+                  </>
+                )}
+              </dl>
+              {o.payment.status === "SUCCEEDED" && o.status === "CANCELLED" && (
+                <p className="mt-3 rounded-xl bg-red-50 p-3 text-sm text-red-900">Bu sipariş iptal edildi ama ödeme alınmış. İadeyi iyzico panelinden yapın.</p>
+              )}
+            </AreaCard>
+          )}
 
           <AreaCard title="Müşteri">
             <p className="text-sm leading-6">

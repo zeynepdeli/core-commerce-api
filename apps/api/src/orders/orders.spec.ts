@@ -6,6 +6,7 @@ import { newOrderNumber } from './order-number.js';
 import { OrdersService, TRANSITIONS } from './orders.service.js';
 
 const audit = { log: vi.fn() };
+const mails = { paid: vi.fn().mockResolvedValue(undefined), shipped: vi.fn().mockResolvedValue(undefined), cancelled: vi.fn().mockResolvedValue(undefined) };
 
 function prismaMock(order: Record<string, unknown> | null, updateCount = 1) {
   const tx = {
@@ -36,7 +37,7 @@ describe('sipariş numarası', () => {
 describe('OrdersService', () => {
   it('iptal: stok (yalnızca takip edilen) ve kupon geri alınır', async () => {
     const prisma = prismaMock({ status: 'PENDING' });
-    await new OrdersService(prisma as never, audit as never).cancel('o1', 'test', null);
+    await new OrdersService(prisma as never, audit as never, mails as never).cancel('o1', 'test', null);
     expect(prisma.tx.productVariant.update).toHaveBeenCalledTimes(1);
     expect(prisma.tx.productVariant.update).toHaveBeenCalledWith({ where: { id: 'v1' }, data: { stock: { increment: 2 } } });
     expect(prisma.tx.couponRedemption.delete).toHaveBeenCalled();
@@ -45,27 +46,27 @@ describe('OrdersService', () => {
 
   it('zaten iptal edilmiş sipariş tekrar iptal edilemez (stok iki kez eklenmez)', async () => {
     const prisma = prismaMock({ status: 'CANCELLED' }, 0);
-    await expect(new OrdersService(prisma as never, audit as never).cancel('o1', 'x', null)).rejects.toBeInstanceOf(ConflictException);
+    await expect(new OrdersService(prisma as never, audit as never, mails as never).cancel('o1', 'x', null)).rejects.toBeInstanceOf(ConflictException);
     expect(prisma.tx.productVariant.update).not.toHaveBeenCalled();
   });
 
   it('geçersiz geçiş reddedilir; kargoya verirken takip no zorunlu', async () => {
-    const svc = new OrdersService(prismaMock({ status: 'PENDING' }) as never, audit as never);
+    const svc = new OrdersService(prismaMock({ status: 'PENDING' }) as never, audit as never, mails as never);
     await expect(svc.transition('o1', 'SHIPPED', 'admin', {})).rejects.toBeInstanceOf(BadRequestException);
-    const svc2 = new OrdersService(prismaMock({ status: 'PROCESSING' }) as never, audit as never);
+    const svc2 = new OrdersService(prismaMock({ status: 'PROCESSING' }) as never, audit as never, mails as never);
     await expect(svc2.transition('o1', 'SHIPPED', 'admin', {})).rejects.toThrow(/takip numarası/);
   });
 
   it('ödendi: kaynak sepet boşaltılır', async () => {
     const prisma = prismaMock({ status: 'PENDING', sourceCartId: 'cart1' });
-    await new OrdersService(prisma as never, audit as never).transition('o1', 'PAID', 'admin', {});
+    await new OrdersService(prisma as never, audit as never, mails as never).transition('o1', 'PAID', 'admin', {});
     expect(prisma.tx.cartItem.deleteMany).toHaveBeenCalledWith({ where: { cartId: 'cart1' } });
   });
 
   it('ödeme süresi dolanlar iptal edilir; bu arada ödenmiş olan atlanır', async () => {
     const prisma = prismaMock({ status: 'PENDING' });
     prisma.tx.order.updateMany.mockResolvedValueOnce({ count: 1 }).mockResolvedValueOnce({ count: 0 });
-    expect(await new OrdersService(prisma as never, audit as never).expireUnpaid()).toBe(1);
+    expect(await new OrdersService(prisma as never, audit as never, mails as never).expireUnpaid()).toBe(1);
   });
 
   it('teslim edilen/iptal edilen siparişte geçiş kuralları', () => {

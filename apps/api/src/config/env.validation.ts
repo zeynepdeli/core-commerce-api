@@ -67,6 +67,15 @@ const envSchema = z
       .regex(/^[a-z0-9_-]{1,64}$/i, 'CLOUDINARY_FOLDER yalnızca harf, rakam, - ve _ içerebilir')
       .default('core-commerce'),
 
+    // ───── Ödeme: iyzico (ikisi de boşsa online ödeme kapalı) ─────
+    IYZICO_API_KEY: z.string().min(10).optional(),
+    IYZICO_SECRET_KEY: z.string().min(10).optional(),
+    IYZICO_BASE_URL: z.url('IYZICO_BASE_URL geçerli bir URL olmalıdır').default('https://sandbox-api.iyzipay.com'),
+    // iyzico'nun ödeme sonucunu geri göndereceği, internetten erişilebilir API adresi
+    API_PUBLIC_URL: z.url('API_PUBLIC_URL geçerli bir URL olmalıdır').optional(),
+    // Yeni sipariş bildiriminin gideceği adres (boşsa mağaza bilgilerindeki e-posta)
+    ORDER_NOTIFY_EMAIL: z.email('ORDER_NOTIFY_EMAIL geçerli bir e-posta olmalıdır').optional(),
+
     // Google ile giriş (isteğe bağlı). Google Cloud Console → OAuth istemci kimliği.
     GOOGLE_CLIENT_ID: z
       .string()
@@ -92,6 +101,12 @@ const envSchema = z
         if (!env[key]) ctx.addIssue({ code: 'custom', path: [key], message: `MEDIA_STORAGE=cloudinary için ${key} zorunludur` });
       }
     }
+    if (!!env.IYZICO_API_KEY !== !!env.IYZICO_SECRET_KEY) {
+      ctx.addIssue({ code: 'custom', path: ['IYZICO_SECRET_KEY'], message: 'IYZICO_API_KEY ve IYZICO_SECRET_KEY birlikte girilmelidir' });
+    }
+    if (env.IYZICO_API_KEY && !env.API_PUBLIC_URL) {
+      ctx.addIssue({ code: 'custom', path: ['API_PUBLIC_URL'], message: 'iyzico için API_PUBLIC_URL zorunludur (ödeme sonucu buraya döner)' });
+    }
     if (env.SMTP_HOST && !env.SMTP_FROM) {
       ctx.addIssue({ code: 'custom', path: ['SMTP_FROM'], message: 'SMTP_HOST tanımlıysa SMTP_FROM zorunludur' });
     }
@@ -102,6 +117,12 @@ const envSchema = z
         path: ['SMTP_HOST'],
         message: 'Production ortamında SMTP_HOST zorunludur (e-posta doğrulama ve şifre sıfırlama için)',
       });
+    }
+    if (env.IYZICO_API_KEY && (!env.IYZICO_BASE_URL.startsWith('https://') || !env.API_PUBLIC_URL?.startsWith('https://'))) {
+      ctx.addIssue({ code: 'custom', path: ['API_PUBLIC_URL'], message: 'Production ortamında iyzico ve API_PUBLIC_URL adresleri HTTPS olmalıdır' });
+    }
+    if (env.IYZICO_API_KEY?.startsWith('sandbox-') && env.IYZICO_BASE_URL.includes('sandbox') === false) {
+      ctx.addIssue({ code: 'custom', path: ['IYZICO_BASE_URL'], message: 'Sandbox anahtarı canlı iyzico adresiyle kullanılamaz' });
     }
     if (!env.ADMIN_URL.startsWith('https://')) {
       ctx.addIssue({ code: 'custom', path: ['ADMIN_URL'], message: 'Production ortamında ADMIN_URL HTTPS olmalıdır' });
