@@ -76,6 +76,12 @@ const envSchema = z
     // Yeni sipariş bildiriminin gideceği adres (boşsa mağaza bilgilerindeki e-posta)
     ORDER_NOTIFY_EMAIL: z.email('ORDER_NOTIFY_EMAIL geçerli bir e-posta olmalıdır').optional(),
 
+    // Mağazada ürün sayfasının yolu (e-posta bağlantıları ve Google ürün akışı için)
+    STOREFRONT_PRODUCT_PATH: z
+      .string()
+      .regex(/^\/[\w\-/]*\{slug\}[\w\-/]*$/, 'STOREFRONT_PRODUCT_PATH "/" ile başlamalı ve {slug} içermelidir (ör. /urun/{slug})')
+      .default('/urun/{slug}'),
+
     // Raporlarda "gün" sınırı bu saat dilimine göre hesaplanır
     STORE_TIMEZONE: z
       .string()

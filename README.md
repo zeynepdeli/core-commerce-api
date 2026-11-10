@@ -188,6 +188,24 @@ Mağaza sayfası token'ı `location.hash`'ten okuyup API'ye göndermelidir.
 - **Kargodan önce iptal:** Admin ödenmiş siparişi iptal ederse ücret otomatik iade edilir (önce iyzico iptali, olmazsa kalem kalem iade).
   Başarısız olursa yöneticiye e-posta + sipariş sayfasında "İadeyi iyzico ile yap" düğmesi.
 
+## Pazarlama
+
+| Uç | Açıklama |
+|---|---|
+| `POST /shop/stock-alerts` `{variantId, email?}` | "Gelince haber ver" (üyede hesap e-postası). Yanıt her durumda aynı |
+| `GET/PUT /account/consents` `{email?, sms?}` | Üyenin ticari ileti izinleri (İYS) |
+| `POST /marketing/unsubscribe` `{token}` | E-postadaki tek tıkla izinden çıkma (mağaza `/ileti-izni#t=…` sayfası POST eder) |
+| `GET /feeds/google.xml` | Google Merchant Center ürün akışı (ayardan açılır) |
+| `/admin/marketing` (özet, `POST run`, `POST feed/refresh`) | Yönetim |
+
+- **Stok bildirimi:** Stoğa giren varyantın bekleyen talepleri 10 dakikada bir e-postalanır, talep kapanır (tek seferlik, müşterinin isteği → izin gerekmez).
+  Bir e-posta en fazla 10 bekleyen talep (başkası adına toplu kayıt engeli); 180 günden eski talepler silinir.
+- **Sepet hatırlatma (ticari ileti):** Yalnızca üyeler, e-postası doğrulanmış ve **en son İYS kaydı "izin verdi"** olanlar. Sepet ayarlanan süre hareketsiz kalınca,
+  en fazla 7 günlük sepete, kişi başı haftada bir, sepet değişmedikçe tek kez. Arada sipariş verdiyse gönderilmez. Her e-postada imzalı (değiştirilemez)
+  tek tıkla ret bağlantısı ve satıcı bilgisi. İzin değişiklikleri silinmez, yeni satır olarak tutulur; gönderilen her ileti `MarketingMessage`'a yazılır.
+- **Google akışı:** RSS 2.0 + `g:` alanları; yalnızca yayındaki, görselli ürünler; varyant başına bir kalem (`item_group_id`), indirimde `price`/`sale_price`,
+  stokta var/yok (adet paylaşılmaz). XML kaçışlı; 10 dk önbellek + ETag. Ürün bağlantısı `STOREFRONT_URL` + `STOREFRONT_PRODUCT_PATH`.
+
 ## Satış raporları
 
 | Uç | Açıklama |

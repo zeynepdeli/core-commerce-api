@@ -8,6 +8,10 @@ export type StoreSettings = {
   minOrderAmount: string | null;
   paymentTimeoutMinutes: number;
   returnWindowDays: number;
+  abandonedCartEnabled: boolean;
+  abandonedCartDelayHours: number;
+  productFeedEnabled: boolean;
+  feedBrand: string | null;
   sellerName: string | null;
   sellerAddress: string | null;
   sellerPhone: string | null;
