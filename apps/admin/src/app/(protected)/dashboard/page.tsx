@@ -1,8 +1,9 @@
 import Link from "next/link";
-import { BarChart3, CircleHelp, Clock, FileText, FolderTree, LayoutTemplate, Palette, Megaphone, MessageSquareText, RotateCcw, Images, LayoutDashboard, Package, PackageCheck, PackagePlus, Plus, Scale, ShoppingBag, Store, TicketPercent, Truck, UserCog, Users } from "lucide-react";
+import { BarChart3, CircleHelp, Clock, FilePlus2, FileText, FolderTree, Info, LayoutTemplate, ListOrdered, Palette, Phone, ShieldCheck, Megaphone, MessageSquareText, RotateCcw, Images, LayoutDashboard, Package, PackageCheck, PackagePlus, Plus, Scale, ShoppingBag, Store, TicketPercent, Truck, UserCog, Users } from "lucide-react";
 
 import { AreaHeader } from "@/components/areas/AreaShell";
 import { getAdminUser } from "@/lib/auth";
+import { getPages } from "@/lib/content";
 import { getOrders } from "@/lib/orders";
 import { getReturns } from "@/lib/returns";
 import { getReviews } from "@/lib/reviews";
@@ -12,13 +13,14 @@ type Icon = React.ComponentType<{ className?: string }>;
 
 /** Pano: mağazanın her parçası ayrı bir kutucuk; her biri kendi ekranında düzenlenir */
 export default async function DashboardPage() {
-  const [user, products, lowStock, orders, returns, reviews] = await Promise.all([
+  const [user, products, lowStock, orders, returns, reviews, pages] = await Promise.all([
     getAdminUser(),
     getAdminProducts({}),
     getAdminProducts({ status: "low-stock" }),
     getOrders({}),
     getReturns({}),
     getReviews({ status: "PENDING" }),
+    getPages().catch(() => []),
   ]);
   const openReturns = (returns.counts.REQUESTED ?? 0) + (returns.counts.APPROVED ?? 0) + (returns.counts.RECEIVED ?? 0);
   const c = orders.statusCounts;
@@ -73,8 +75,29 @@ export default async function DashboardPage() {
       <Group eyebrow="Mağaza Sitesi" title="Site İçeriği">
         <Tile href="/content/theme" icon={Palette} title="Görünüm" description="Renkler, yazı tipi, logo, duyuru, iletişim" />
         <Tile href="/content/home" icon={LayoutTemplate} title="Ana Sayfa" description="Slayt, ürün listeleri, banner, bölümler" />
-        <Tile href="/content/pages" icon={FileText} title="Sayfalar" description="Hakkımızda, Teslimat, İletişim…" />
         <Tile href="/content/faq" icon={CircleHelp} title="S.S.S." description="Sıkça sorulan sorular" />
+      </Group>
+
+      <Group
+        eyebrow="Mağaza Sitesi"
+        title="Sayfalar"
+        action={
+          <Link href="/content/pages" className="inline-flex items-center gap-1.5 text-xs font-semibold text-(--brand-accent) hover:underline">
+            <ListOrdered className="size-4" /> Sıralama ve tüm sayfalar
+          </Link>
+        }
+      >
+        {pages.map((p) => (
+          <Tile
+            key={p.id}
+            href={`/content/pages/${p.id}`}
+            icon={pageIcon(p.slug)}
+            title={p.title}
+            description={`/sayfa/${p.slug}`}
+            badge={!p.isPublished && <span className="rounded-full bg-neutral-500 px-2 py-0.5 text-[11px] font-bold text-white">Taslak</span>}
+          />
+        ))}
+        <Tile href="/content/pages/new" icon={FilePlus2} title="Yeni Sayfa" description="Kampanya, bilgi veya hikâye sayfası ekle" />
       </Group>
 
       <Group eyebrow="Katalog" title="Mağaza">
@@ -107,6 +130,16 @@ export default async function DashboardPage() {
       </Group>
     </div>
   );
+}
+
+/** Sayfa adresine göre tanıdık bir simge */
+function pageIcon(slug: string): Icon {
+  if (/hakkimizda|hikaye|biz/.test(slug)) return Info;
+  if (/iletisim|bize-ulasin/.test(slug)) return Phone;
+  if (/kargo|teslimat/.test(slug)) return Truck;
+  if (/iade|degisim/.test(slug)) return RotateCcw;
+  if (/gizlilik|guvenlik|kvkk/.test(slug)) return ShieldCheck;
+  return FileText;
 }
 
 function Group({
