@@ -71,6 +71,7 @@ export const storeInfoSchema = z.object({
   sellerMersisNo: z.string().trim().regex(/^(\d{16})?$/, "16 haneli olmalı."),
   sellerAddress: z.string().trim().max(500),
   paymentTimeoutMinutes: z.string().trim().regex(/^\d{2,4}$/, "10–1440 arası dakika").refine((v) => Number(v) >= 10 && Number(v) <= 1440, "10–1440 arası dakika"),
+  returnWindowDays: z.string().trim().regex(/^\d{2,3}$/, "14–365 arası gün").refine((v) => Number(v) >= 14 && Number(v) <= 365, "Yasal olarak en az 14 gün"),
 });
 
 export const legalSchema = z.object({

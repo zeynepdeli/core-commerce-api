@@ -66,6 +66,7 @@ function productPayload(v: ProductFormValues) {
     vatRate: Number(v.vatRate),
     isActive: v.isActive,
     featured: v.featured,
+    isReturnable: v.isReturnable,
     metaTitle: emptyToNull(v.metaTitle),
     metaDescription: emptyToNull(v.metaDescription),
     variants: v.variants.map((variant) => ({

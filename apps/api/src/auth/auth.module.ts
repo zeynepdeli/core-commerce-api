@@ -11,6 +11,7 @@ import { OptionalJwtAuthGuard } from './guards/optional-jwt-auth.guard.js';
 import { RolesGuard } from './guards/roles.guard.js';
 import { PasswordService } from './password.service.js';
 import { TokensService } from './tokens.service.js';
+import { TwoFactorService } from './two-factor/two-factor.service.js';
 
 @Module({
   imports: [
@@ -24,7 +25,7 @@ import { TokensService } from './tokens.service.js';
     }),
   ],
   controllers: [AuthController],
-  providers: [AuthService, PasswordService, TokensService, JwtAuthGuard, OptionalJwtAuthGuard, RolesGuard],
-  exports: [PasswordService, TokensService, JwtAuthGuard, OptionalJwtAuthGuard, RolesGuard],
+  providers: [AuthService, PasswordService, TokensService, TwoFactorService, JwtAuthGuard, OptionalJwtAuthGuard, RolesGuard],
+  exports: [PasswordService, TokensService, TwoFactorService, JwtAuthGuard, OptionalJwtAuthGuard, RolesGuard],
 })
 export class AuthModule {}

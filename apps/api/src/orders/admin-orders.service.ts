@@ -2,6 +2,7 @@ import { Injectable, NotFoundException } from '@nestjs/common';
 
 import { fromKurus, toKurus } from '../commerce/money.js';
 import type { Prisma } from '../generated/prisma/client.js';
+import { RETURN_STATUS_LABEL } from '../returns/returns.service.js';
 import { PrismaService } from '../prisma/prisma.service.js';
 
 import type { AdminOrdersQueryDto } from './orders.dto.js';
@@ -84,6 +85,7 @@ export class AdminOrdersService {
         events: { orderBy: { createdAt: 'asc' } },
         agreements: { select: { type: true, version: true, contentHash: true, acceptedAt: true, ipAddress: true, content: true } },
         user: { select: { id: true, name: true, email: true } },
+        returns: { orderBy: { createdAt: 'desc' }, select: { id: true, returnNumber: true, status: true, refundAmount: true, refundShipping: true, createdAt: true } },
         payment: { select: { provider: true, status: true, providerPaymentId: true, providerRawResponse: true, errorMessage: true, paidAt: true, initiatedAt: true } },
       },
     });
@@ -137,6 +139,14 @@ export class AdminOrdersService {
         actor: e.actorId ? (actorName.get(e.actorId) ?? 'Yönetici') : null,
       })),
       agreements: o.agreements,
+      returns: o.returns.map((r) => ({
+        id: r.id,
+        returnNumber: r.returnNumber,
+        status: r.status,
+        statusLabel: RETURN_STATUS_LABEL[r.status],
+        refundTotal: fromKurus(toKurus(r.refundAmount) + toKurus(r.refundShipping)),
+        createdAt: r.createdAt,
+      })),
       // Kart numarası tutulmaz; yalnızca son 4 hane, taksit ve sağlayıcı ödeme no
       payment: o.payment
         ? {

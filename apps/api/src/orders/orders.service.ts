@@ -3,6 +3,8 @@ import { BadRequestException, ConflictException, Injectable, Logger, NotFoundExc
 import { AuditService } from '../audit/audit.service.js';
 import { fromKurus, toKurus } from '../commerce/money.js';
 import type { OrderStatus, Prisma } from '../generated/prisma/client.js';
+import { RefundsService } from '../iyzico/refunds.service.js';
+import { ReturnsService } from '../returns/returns.service.js';
 import { PrismaService } from '../prisma/prisma.service.js';
 
 import { OrderMailService } from './order-mail.service.js';
@@ -55,6 +57,8 @@ export class OrdersService {
     private readonly prisma: PrismaService,
     private readonly audit: AuditService,
     private readonly mails: OrderMailService,
+    private readonly refunds: RefundsService,
+    private readonly returns: ReturnsService,
   ) {}
 
   // ───────────── Görünümler ─────────────
@@ -114,14 +118,18 @@ export class OrdersService {
   async getForUser(userId: string, orderNumber: string) {
     const order = await this.prisma.order.findFirst({ where: { orderNumber, userId }, include: DETAIL_INCLUDE });
     if (!order) throw new NotFoundException('Sipariş bulunamadı.');
-    return this.customerView(order);
+    return this.withReturns(order);
+  }
+
+  private async withReturns(order: Prisma.OrderGetPayload<{ include: typeof DETAIL_INCLUDE }>) {
+    return { ...this.customerView(order), returns: await this.returns.customerInfo(order.id) };
   }
 
   /** Misafir: sipariş no + erişim anahtarı (ikisi birden eşleşmeli) */
   async getForGuest(orderNumber: string, accessTokenHash: string) {
     const order = await this.prisma.order.findFirst({ where: { orderNumber, guestAccessTokenHash: accessTokenHash }, include: DETAIL_INCLUDE });
     if (!order) throw new NotFoundException('Sipariş bulunamadı.');
-    return this.customerView(order);
+    return this.withReturns(order);
   }
 
   // ───────────── Durum değişiklikleri ─────────────
@@ -158,6 +166,8 @@ export class OrdersService {
 
     if (to === 'CANCELLED') {
       await this.cancel(orderId, extra.note?.trim() || 'Yönetici tarafından iptal edildi.', actorId, [order.status]);
+      // Kartla ödenmişse ücret iyzico'dan otomatik iade edilir
+      if (order.status !== 'PENDING') await this.refundCancelled(orderId, actorId, ipAddress);
     } else {
       if (to === 'SHIPPED' && (!extra.shippingCarrier || !extra.trackingNumber)) {
         throw new BadRequestException('Kargoya verirken kargo firması ve takip numarası zorunludur.');
@@ -188,6 +198,27 @@ export class OrdersService {
       ipAddress,
       metaData: { from: order.status, to },
     });
+  }
+
+  /**
+   * İptal edilmiş, ödenmiş siparişin ücretini iyzico'dan iade eder. Başarısız olursa
+   * yöneticiye uyarı; admin sayfasındaki "İadeyi tekrar dene" ile yeniden denenebilir.
+   */
+  async refundCancelled(orderId: string, actorId: string | null, ipAddress?: string) {
+    const order = await this.prisma.order.findUnique({ where: { id: orderId }, select: { status: true, orderNumber: true } });
+    if (order?.status !== 'CANCELLED') throw new ConflictException('Yalnızca iptal edilmiş siparişin ücreti bu şekilde iade edilir.');
+    if (!(await this.refunds.autoRefundable(orderId))) return { refunded: false, manual: true };
+    const result = await this.refunds.refundAll(orderId, ipAddress);
+    await this.prisma.orderEvent.create({
+      data: { orderId, status: 'CANCELLED', note: result.ok ? 'Ücret iyzico üzerinden iade edildi.' : `Otomatik iade başarısız: ${result.error ?? ''}`.slice(0, 500), actorId },
+    });
+    await this.audit.log({ action: result.ok ? 'payment.refunded' : 'payment.refund_failed', entity: 'Order', entityId: orderId, userId: actorId ?? undefined, ipAddress, metaData: { error: result.error ?? null } });
+    if (!result.ok) {
+      await this.mails
+        .alertAdmin(`İADE BAŞARISIZ: ${order.orderNumber}`, `${order.orderNumber} numaralı iptal edilen siparişin ücreti otomatik iade edilemedi.\nNeden: ${result.error ?? '-'}\nAdmin sipariş sayfasından tekrar deneyin veya iyzico panelinden iade edin.`)
+        .catch(() => undefined);
+    }
+    return { refunded: result.ok, manual: false, error: result.error };
   }
 
   /** Ödeme süresi dolan siparişler (zamanlanmış iş çağırır) */

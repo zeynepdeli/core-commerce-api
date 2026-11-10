@@ -14,6 +14,7 @@ export type UserRow = {
   isActive: boolean;
   deletedAt: string | null;
   lockedUntil: string | null;
+  twoFactorEnabledAt: string | null;
   failedLoginCount: number;
   createdAt: string;
 };

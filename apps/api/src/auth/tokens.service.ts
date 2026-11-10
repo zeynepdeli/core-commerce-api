@@ -21,7 +21,8 @@ export type IssuedTokens = {
   refreshTokenExpiresAt: string;
 };
 
-export type AccessPayload = { sub: string; role: Role; typ: 'access'; iat: number; exp: number };
+/** ims: verilme anı (milisaniye). iat saniye hassasiyetinde; aynı saniyede kapatılan oturumu ayırt etmek için */
+export type AccessPayload = { sub: string; role: Role; typ: 'access'; iat: number; exp: number; ims?: number };
 
 const INVALID = 'Oturum geçersiz veya süresi dolmuş. Lütfen tekrar giriş yapın.';
 
@@ -137,7 +138,7 @@ export class TokensService {
     });
 
     const accessToken = await this.jwt.signAsync(
-      { sub: user.id, role: user.role, typ: 'access' },
+      { sub: user.id, role: user.role, typ: 'access', ims: Date.now() },
       { expiresIn: this.accessTtl, algorithm: 'HS256' },
     );
 

@@ -18,6 +18,7 @@ export default async function StoreInfoPage() {
           sellerMersisNo: s.sellerMersisNo ?? "",
           sellerAddress: s.sellerAddress ?? "",
           paymentTimeoutMinutes: String(s.paymentTimeoutMinutes),
+          returnWindowDays: String(s.returnWindowDays),
         }}
       />
     </AreaShell>

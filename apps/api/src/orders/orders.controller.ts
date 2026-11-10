@@ -1,4 +1,4 @@
-import { Body, Controller, Get, HttpCode, HttpStatus, Injectable, NotFoundException, Param, ParseUUIDPipe, Patch, Post, Query, Req, UseGuards } from '@nestjs/common';
+import { BadRequestException, Body, Controller, Get, HttpCode, HttpStatus, Injectable, NotFoundException, Param, ParseUUIDPipe, Patch, Post, Query, Req, UseGuards } from '@nestjs/common';
 import { Cron } from '@nestjs/schedule';
 import { Throttle } from '@nestjs/throttler';
 import type { Request } from 'express';
@@ -79,6 +79,17 @@ export class AdminOrdersController {
 
   @Get(':id')
   get(@Param('id', ParseUUIDPipe) id: string) {
+    return this.admin.get(id);
+  }
+
+  /** İptal edilmiş, kartla ödenmiş siparişin iadesini (yeniden) dener */
+  @Post(':id/refund')
+  @HttpCode(HttpStatus.OK)
+  @Throttle({ default: { limit: 5, ttl: 60_000 } })
+  async refund(@CurrentUser() actor: RequestUser, @Param('id', ParseUUIDPipe) id: string, @Req() req: Request) {
+    const result = await this.orders.refundCancelled(id, actor.id, clientIp(req).ip);
+    if (result.manual) throw new BadRequestException('Bu ödeme otomatik iade edilemiyor; iyzico panelinden iade edin.');
+    if (!result.refunded) throw new BadRequestException(result.error ?? 'İade yapılamadı.');
     return this.admin.get(id);
   }
 

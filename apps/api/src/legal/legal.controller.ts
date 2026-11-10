@@ -47,6 +47,7 @@ export class PublicLegalController {
         SATICI_VERGI_DAIRESI: s.sellerTaxOffice ?? '',
         SATICI_VERGI_NO: s.sellerTaxNumber ?? '',
         SATICI_MERSIS: s.sellerMersisNo ?? '',
+        CAYMA_SURESI: String(s.returnWindowDays),
       }),
     };
   }

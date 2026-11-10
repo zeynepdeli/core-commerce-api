@@ -7,6 +7,7 @@ export type StoreSettings = {
   freeShippingThreshold: string | null;
   minOrderAmount: string | null;
   paymentTimeoutMinutes: number;
+  returnWindowDays: number;
   sellerName: string | null;
   sellerAddress: string | null;
   sellerPhone: string | null;

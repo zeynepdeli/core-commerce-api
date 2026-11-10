@@ -43,7 +43,7 @@ export class CheckoutService {
       phone: shipping?.phone ?? '',
       shipping,
       billing: dto.billing ? this.billingInfo(dto.billing, shipping) : null,
-      lines: view.items.filter((i) => i.available).map((i) => ({ name: i.productName, variant: i.variantName, quantity: i.quantity, lineTotal: toKurus(i.lineTotal) })),
+      lines: await this.withReturnable(view.items.filter((i) => i.available).map((i) => ({ productId: i.productId, name: i.productName, variant: i.variantName, quantity: i.quantity, lineTotal: toKurus(i.lineTotal) }))),
       totals: {
         subtotal: toKurus(view.summary.subtotal),
         discount: toKurus(view.summary.discount),
@@ -105,7 +105,7 @@ export class CheckoutService {
         for (const item of cart.items) {
           const v = await tx.productVariant.findFirst({
             where: { id: item.variantId, ...SELLABLE_VARIANT },
-            select: { id: true, name: true, sku: true, price: true, trackStock: true, product: { select: { id: true, name: true, vatRate: true } } },
+            select: { id: true, name: true, sku: true, price: true, trackStock: true, product: { select: { id: true, name: true, vatRate: true, isReturnable: true } } },
           });
           if (!v) throw new ConflictException(`"${item.variant.product.name}" artık satışta değil; sepetinizi kontrol edin.`);
           if (v.trackStock) {
@@ -156,6 +156,7 @@ export class CheckoutService {
             variant: l.variant.name,
             quantity: l.quantity,
             lineTotal: l.unitPrice * l.quantity,
+            returnable: l.variant.product.isReturnable,
           })),
           totals: { subtotal: q.subtotal, discount: q.discount, shipping: q.shipping, total: q.total, vat: q.vat },
           date: now,
@@ -190,6 +191,7 @@ export class CheckoutService {
                 variantName: l.variant.name,
                 productSku: l.variant.sku,
                 vatRate: l.variant.product.vatRate,
+                returnable: l.variant.product.isReturnable,
                 quantity: l.quantity,
                 price: fromKurus(l.unitPrice),
               })),
@@ -255,13 +257,19 @@ export class CheckoutService {
     };
   }
 
+  private async withReturnable<T extends { productId: string }>(lines: T[]) {
+    const rows = await this.prisma.product.findMany({ where: { id: { in: lines.map((l) => l.productId) } }, select: { id: true, isReturnable: true } });
+    const map = new Map(rows.map((r) => [r.id, r.isReturnable]));
+    return lines.map((l) => ({ ...l, returnable: map.get(l.productId) ?? true }));
+  }
+
   private async renderDocuments(data: {
     buyerName: string;
     email: string;
     phone: string;
     shipping: Address | null;
     billing: ReturnType<CheckoutService['billingInfo']> | null;
-    lines: { name: string; variant: string | null; quantity: number; lineTotal: number }[];
+    lines: { name: string; variant: string | null; quantity: number; lineTotal: number; returnable: boolean }[];
     totals: { subtotal: number; discount: number; shipping: number; total: number; vat: number };
     date: Date;
     orderNumber?: string;
@@ -285,7 +293,10 @@ export class CheckoutService {
           ? `${b.companyName} · ${b.taxOffice} V.D. ${b.taxNumber} · ${b.addressLine ?? ''} ${b.district ?? ''}/${b.city ?? ''}`
           : `${b.fullName}${b.identityNumber ? ` · TCKN ${b.identityNumber}` : ''} · ${b.addressLine ?? ''} ${b.district ?? ''}/${b.city ?? ''}`
         : '',
-      URUNLER: data.lines.map((l) => `- ${l.name}${l.variant ? ` (${l.variant})` : ''} × ${l.quantity} = ${tl(l.lineTotal)}`).join('\n'),
+      URUNLER: data.lines
+        .map((l) => `- ${l.name}${l.variant ? ` (${l.variant})` : ''} × ${l.quantity} = ${tl(l.lineTotal)}${l.returnable ? '' : ' — cayma hakkı kullanılamaz (yönetmelik md. 15)'}`)
+        .join('\n'),
+      CAYMA_SURESI: String(s.returnWindowDays),
       ARA_TOPLAM: tl(data.totals.subtotal),
       INDIRIM: tl(data.totals.discount),
       KARGO: tl(data.totals.shipping),

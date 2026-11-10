@@ -43,8 +43,14 @@ describe('validateEnv', () => {
         SMTP_FROM: 'magaza@example.com',
         STOREFRONT_URL: 'https://magaza.com',
         ADMIN_URL: 'https://admin.magaza.com',
+        TWO_FACTOR_ENCRYPTION_KEY: Buffer.alloc(32, 1).toString('base64'),
       }),
     ).not.toThrow();
+  });
+
+  it('production: 2FA şifreleme anahtarı zorunlu ve 32 bayt olmalı', () => {
+    expect(() => validateEnv({ ...base, NODE_ENV: 'production' })).toThrow(/TWO_FACTOR_ENCRYPTION_KEY/);
+    expect(() => validateEnv({ ...base, TWO_FACTOR_ENCRYPTION_KEY: 'kisa' })).toThrow(/32 bayt/);
   });
 
   it('production: SMTP ve https mağaza adresi zorunlu; SMTP_HOST varsa SMTP_FROM zorunlu', () => {

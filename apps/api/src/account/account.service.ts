@@ -3,6 +3,7 @@ import { BadRequestException, Injectable, NotFoundException, UnauthorizedExcepti
 import { AuditService } from '../audit/audit.service.js';
 import { PasswordService } from '../auth/password.service.js';
 import { type ClientMeta, TokensService } from '../auth/tokens.service.js';
+import { TwoFactorService } from '../auth/two-factor/two-factor.service.js';
 import { PrismaService } from '../prisma/prisma.service.js';
 
 const PROFILE_SELECT = {
@@ -15,6 +16,7 @@ const PROFILE_SELECT = {
   passwordHash: true,
   googleId: true,
   createdAt: true,
+  twoFactorEnabledAt: true,
 } as const;
 
 @Injectable()
@@ -24,14 +26,22 @@ export class AccountService {
     private readonly password: PasswordService,
     private readonly tokens: TokensService,
     private readonly audit: AuditService,
+    private readonly twoFactor: TwoFactorService,
   ) {}
 
   async me(userId: string) {
     const user = await this.prisma.user.findUnique({ where: { id: userId }, select: PROFILE_SELECT });
     if (!user) throw new NotFoundException('Kullanıcı bulunamadı.');
     // Şifre özeti ve Google kimliği ASLA dışarı verilmez; yalnızca var/yok bilgisi
-    const { passwordHash, googleId, emailVerifiedAt, ...rest } = user;
-    return { ...rest, emailVerified: emailVerifiedAt !== null, hasPassword: passwordHash !== null, googleLinked: googleId !== null };
+    const { passwordHash, googleId, emailVerifiedAt, twoFactorEnabledAt, ...rest } = user;
+    return {
+      ...rest,
+      emailVerified: emailVerifiedAt !== null,
+      hasPassword: passwordHash !== null,
+      googleLinked: googleId !== null,
+      twoFactorEnabled: twoFactorEnabledAt !== null,
+      twoFactorRequired: this.twoFactor.requiredFor(user.role),
+    };
   }
 
   async updateProfile(userId: string, name: string) {

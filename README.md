@@ -165,7 +165,47 @@ Mağaza sayfası token'ı `location.hash`'ten okuyup API'ye göndermelidir.
   saldırısına karşı). Süre dolup iptal edilen siparişe sonradan ödeme gelirse stok varsa sipariş canlanır; yoksa yöneticiye
   **"İADE GEREKLİ"** e-postası gider ve AuditLog'a yazılır.
 - **E-postalar:** Ödeme alındı (müşteri + yönetici), kargoya verildi (firma + takip no), iptal (yalnızca ödenmiş siparişte).
-- **Not:** Kartla ödenmiş siparişi iptal ederseniz ücret iadesini iyzico panelinden yapın (admin sipariş sayfası uyarır).
+
+## İade (cayma hakkı)
+
+| Uç | Açıklama |
+|---|---|
+| `POST /account/orders/:no/returns` · `POST /account/orders/:no/returns/:id/cancel` | Üye iade talebi / vazgeçme. Gövde: `items: [{orderItemId, quantity}]`, `reason` (`DAMAGED`, `WRONG_ITEM`, `NOT_AS_DESCRIBED`, `CHANGED_MIND`, `OTHER`), `note?` |
+| `POST /orders/returns` · `POST /orders/returns/:id/cancel` | Misafir: aynısı + `orderNumber`, `accessToken` |
+| `/admin/returns` (liste, detay, `PATCH :id/decision`, `POST :id/receive`, `POST :id/refund`) | Yönetim (ADMIN) |
+| `POST /admin/orders/:id/refund` | İptal edilmiş, kartla ödenmiş siparişin iadesini yeniden dener |
+
+- **Süre:** Teslimden itibaren `returnWindowDays` gün (mağaza ayarı; yasal alt sınır 14). Kargodaki siparişte süre henüz başlamamıştır.
+  Süre sözleşmelere `{{CAYMA_SURESI}}` ile otomatik yazılır.
+- **İade edilemeyen ürünler:** Üründe "İade edilebilir" kapatılırsa (çabuk bozulan gıda vb., yönetmelik md. 15) sözleşmede belirtilir ve talep edilemez.
+  Sipariş anındaki değer saklanır.
+- **Tutar sunucuda hesaplanır:** Kupon indirimi satırlara dağıtılmış, ödenen tutar üzerinden (iyzico'daki kalem tutarıyla birebir).
+  Siparişin tamamı iade edilirse ilk kargo ücreti de iade edilir (md. 13). Eş zamanlı talepler adetleri aşamaz (satır kilidi).
+- **Akış:** Talep → Onay (müşteriye not, iade adresi e-postada) veya Ret (gerekçe zorunlu) → Ürün geldi (isteğe bağlı stoğa ekle)
+  → Ücret iadesi. Her adımda müşteriye e-posta.
+- **iyzico iadesi:** Kalem bazında; çift tıklamada iki kez iade yapılmaz (kilit), yarıda kalırsa yalnızca kalan kalemler denenir.
+  Kartla ödenmemiş (havale) siparişte "Elle iade edildi" işaretlenir. Tamamı iade edilen sipariş "İade edildi" olur.
+- **Kargodan önce iptal:** Admin ödenmiş siparişi iptal ederse ücret otomatik iade edilir (önce iyzico iptali, olmazsa kalem kalem iade).
+  Başarısız olursa yöneticiye e-posta + sipariş sayfasında "İadeyi iyzico ile yap" düğmesi.
+
+## İki adımlı doğrulama (yöneticiler)
+
+| Uç | Açıklama |
+|---|---|
+| `POST /auth/login` | 2FA açıksa token yerine `{ twoFactorRequired: true, challengeToken, expiresIn }` döner |
+| `POST /auth/2fa` `{challengeToken, code}` | 6 haneli kod veya `ABCDE-FGHJK` yedek kod → oturum |
+| `GET /account/2fa` · `POST /account/2fa/setup` `{password}` · `/enable` `{code}` · `/disable` `{password, code}` · `/recovery-codes` `{code}` | Kurulum ve yönetim (yalnızca yöneticiler) |
+| `POST /admin/users/:id/two-factor/reset` | SUPER_ADMIN: telefonunu ve yedek kodlarını kaybedenin 2FA'sını sıfırlar |
+
+- **TOTP (RFC 6238):** Google/Microsoft Authenticator, 1Password vb. ile uyumlu; harici kütüphane yok, RFC test vektörleriyle test edildi.
+- **Gizli anahtar şifreli:** AES-256-GCM (`TWO_FACTOR_ENCRYPTION_KEY`), kullanıcı kimliğine bağlı; veritabanı sızsa bile kullanılamaz.
+- **Giriş:** Şifre doğruysa 5 dk geçerli, tek kullanımlık, en fazla 5 denemelik bir giriş anahtarı verilir (admin'de httpOnly çerezde).
+  Hatalı kodlar hesap kilitleme sayacına eklenir. Aynı kod ikinci kez kabul edilmez (replay).
+- **Yedek kodlar:** 10 adet, tek kullanımlık, yalnızca SHA-256 özeti saklanır; kullanılınca e-posta bildirimi.
+- **Açılınca** diğer tüm oturumlar kapanır (o andan önce verilmiş erişim token'ları milisaniye hassasiyetle reddedilir).
+- **Zorunluluk:** `ADMIN_2FA_REQUIRED` (boşsa production'da açık). Kurmamış yönetici yönetim uçlarından 403 `TWO_FACTOR_SETUP_REQUIRED` alır;
+  admin paneli kurulum ekranına yönlendirir.
+- Kurulum için şifre tekrar sorulur (açık unutulmuş bir oturumla başkası kendi telefonunu bağlayamaz). Açma/kapama/sıfırlama e-postayla bildirilir.
 
 ## Güvenlik ilkeleri (OWASP)
 

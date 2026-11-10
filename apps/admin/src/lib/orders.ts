@@ -83,6 +83,7 @@ export type OrderDetail = {
   total: string;
   timeline: { status: OrderStatus; label: string; note: string | null; at: string; actor: string | null }[];
   agreements: { type: string; version: number; contentHash: string; acceptedAt: string; ipAddress: string | null; content: string }[];
+  returns: { id: string; returnNumber: string; status: "REQUESTED" | "APPROVED" | "REJECTED" | "RECEIVED" | "REFUNDED" | "CANCELLED"; statusLabel: string; refundTotal: string; createdAt: string }[];
   payment: {
     provider: string;
     status: "PENDING" | "SUCCEEDED" | "FAILED" | "REFUNDED";

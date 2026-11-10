@@ -155,6 +155,11 @@ export class CreateProductDto {
   @IsBoolean()
   featured?: boolean;
 
+  /** Kapalıysa müşteri iade talep edemez (çabuk bozulan gıda vb.) */
+  @IsOptional()
+  @IsBoolean()
+  isReturnable?: boolean;
+
   @IsUUID('all', { message: 'Kategori seçin.' })
   categoryId!: string;
 
@@ -227,6 +232,11 @@ export class UpdateProductDto {
   @IsOptional()
   @IsBoolean()
   featured?: boolean;
+
+  /** Kapalıysa müşteri iade talep edemez (çabuk bozulan gıda vb.) */
+  @IsOptional()
+  @IsBoolean()
+  isReturnable?: boolean;
 
   @IsOptional()
   @IsUUID('all', { message: 'Kategori seçin.' })
