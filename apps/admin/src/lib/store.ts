@@ -7,6 +7,12 @@ export type StoreSettings = {
   freeShippingThreshold: string | null;
   minOrderAmount: string | null;
   paymentTimeoutMinutes: number;
+  returnWindowDays: number;
+  abandonedCartEnabled: boolean;
+  abandonedCartDelayHours: number;
+  productFeedEnabled: boolean;
+  feedBrand: string | null;
+  reviewAutoApprove: boolean;
   sellerName: string | null;
   sellerAddress: string | null;
   sellerPhone: string | null;

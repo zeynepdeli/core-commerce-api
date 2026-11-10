@@ -24,7 +24,7 @@ export function OrderStatusPanel({ orderId, next }: { orderId: string; next: { s
 
   function submit() {
     if (!target) return;
-    if (target === "CANCELLED" && !confirm("Sipariş iptal edilsin mi? Stok geri eklenecek. Ödeme alındıysa iadeyi ayrıca yapmanız gerekir.")) return;
+    if (target === "CANCELLED" && !confirm("Sipariş iptal edilsin mi? Stok geri eklenecek; kartla ödendiyse ücret iyzico üzerinden otomatik iade edilir.")) return;
     setError(null);
     start(async () => {
       const result = await updateOrderStatusAction(orderId, {

@@ -1,0 +1,254 @@
+import { Transform, Type } from 'class-transformer';
+import {
+  ArrayMaxSize,
+  ArrayMinSize,
+  ArrayUnique,
+  IsArray,
+  IsBoolean,
+  IsDateString,
+  IsEmail,
+  IsIn,
+  IsInt,
+  IsOptional,
+  IsString,
+  IsUUID,
+  Matches,
+  Max,
+  MaxLength,
+  Min,
+  MinLength,
+  ValidateBy,
+  ValidateIf,
+  ValidateNested,
+} from 'class-validator';
+
+import { HEX_COLOR_MESSAGE, HEX_COLOR_REGEX, IsImageUrl, IsSafeLink, isImageUrl, SINGLE_LINE_REGEX, SLUG_MESSAGE, SLUG_REGEX } from '../common/validators.js';
+
+const trim = ({ value }: { value: unknown }) => (typeof value === 'string' ? value.trim() : value);
+const nullable = (_: unknown, v: unknown) => v != null && v !== '';
+const ONE_LINE = { message: 'Tek satır olmalı.' };
+// Çok satırlı metin: satır sonu serbest, diğer kontrol karakterleri yok
+const MULTI_LINE = /^[^\u0000-\u0008\u000b\u000c\u000e-\u001f\u007f]*$/;
+
+/** Mağazanın CSS'ine yazılacağı için serbest metin değil, izinli liste (CSS enjeksiyonu yok) */
+export const FONTS = [
+  'Inter',
+  'Roboto',
+  'Open Sans',
+  'Poppins',
+  'Montserrat',
+  'Nunito',
+  'DM Sans',
+  'Work Sans',
+  'Manrope',
+  'Playfair Display',
+  'Lora',
+  'Merriweather',
+  'Cormorant Garamond',
+  'Libre Baskerville',
+  'Source Serif 4',
+] as const;
+
+/** Sosyal ağ → izin verilen alan adları */
+export const SOCIAL_HOSTS: Record<string, string[]> = {
+  instagram: ['instagram.com', 'www.instagram.com'],
+  facebook: ['facebook.com', 'www.facebook.com'],
+  x: ['x.com', 'twitter.com', 'www.x.com', 'www.twitter.com'],
+  youtube: ['youtube.com', 'www.youtube.com'],
+  tiktok: ['tiktok.com', 'www.tiktok.com'],
+  pinterest: ['pinterest.com', 'tr.pinterest.com', 'www.pinterest.com'],
+  linkedin: ['linkedin.com', 'www.linkedin.com'],
+};
+
+/** Medya / https görseli veya mağazanın kendi statik dosyası (ör. /logo.png). "//" ve ".." yok */
+const STATIC_ASSET = /^\/(?![/\\])(?!.*\.\.)[A-Za-z0-9_\-./]{1,200}\.(png|jpg|jpeg|webp|svg|ico)$/;
+const IsBrandImage = () =>
+  ValidateBy({
+    name: 'isBrandImage',
+    validator: {
+      validate: (v: unknown) => isImageUrl(v) || (typeof v === 'string' && STATIC_ASSET.test(v)),
+      defaultMessage: () => 'Görsel medya kütüphanesinden, https:// adresinden veya mağazanın /dosya.png biçimindeki statik dosyasından olmalıdır.',
+    },
+  });
+
+class Line {
+  static text(max: number) {
+    return [Transform(trim), IsString(), MaxLength(max), Matches(SINGLE_LINE_REGEX, ONE_LINE)];
+  }
+}
+const apply = (...decorators: PropertyDecorator[]) => (target: object, key: string | symbol) => decorators.forEach((d) => d(target, key));
+const OptionalLine = (max: number) => apply(ValidateIf(nullable), ...Line.text(max));
+const RequiredLine = (max: number) => apply(...Line.text(max), MinLength(1, { message: 'Boş bırakılamaz.' }));
+const OptionalText = (max: number) => apply(ValidateIf(nullable), Transform(trim), IsString(), MaxLength(max), Matches(MULTI_LINE));
+
+// ───────────── Görünüm ─────────────
+
+export class UpdateSiteDto {
+  @IsOptional() @RequiredLine(80) siteName?: string;
+
+  @IsOptional() @Matches(HEX_COLOR_REGEX, { message: HEX_COLOR_MESSAGE }) primaryColor?: string;
+  @IsOptional() @Matches(HEX_COLOR_REGEX, { message: HEX_COLOR_MESSAGE }) secondaryColor?: string;
+  @IsOptional() @Matches(HEX_COLOR_REGEX, { message: HEX_COLOR_MESSAGE }) backgroundColor?: string;
+  @IsOptional() @Matches(HEX_COLOR_REGEX, { message: HEX_COLOR_MESSAGE }) textColor?: string;
+
+  @IsOptional() @IsIn(FONTS, { message: 'Yazı tipi listeden seçilmelidir.' }) fontHeading?: string;
+  @IsOptional() @IsIn(FONTS, { message: 'Yazı tipi listeden seçilmelidir.' }) fontBody?: string;
+
+  @IsOptional() @IsBrandImage() logoUrl?: string;
+  @IsOptional() @IsBrandImage() faviconUrl?: string;
+  @ValidateIf(nullable) @IsImageUrl() backgroundImageUrl?: string | null;
+  @IsOptional() @IsIn(['cover', 'contain', 'repeat']) backgroundImageFit?: string;
+  @ValidateIf(nullable) @IsImageUrl() cardTextureUrl?: string | null;
+  @ValidateIf(nullable) @IsImageUrl() ogImageUrl?: string | null;
+
+  @OptionalLine(160) announcementText?: string | null;
+  @ValidateIf(nullable) @IsSafeLink() announcementLink?: string | null;
+
+  @ValidateIf(nullable) @IsEmail({}, { message: 'Geçerli bir e-posta girin.' }) @MaxLength(254) contactEmail?: string | null;
+  @ValidateIf(nullable) @Matches(/^[0-9 +()-]{7,20}$/, { message: 'Telefon yalnızca rakam ve + ( ) - içerebilir.' }) contactPhone?: string | null;
+  @ValidateIf(nullable) @Matches(/^\+?[0-9]{10,15}$/, { message: 'WhatsApp numarası ülke koduyla, yalnızca rakam (ör. 905321234567).' }) contactWhatsapp?: string | null;
+  @OptionalText(300) contactAddress?: string | null;
+  @OptionalLine(120) workingHours?: string | null;
+
+  /** { instagram: "https://instagram.com/…" } — yalnızca bilinen ağlar ve kendi alan adları */
+  @IsOptional() socialLinks?: Record<string, string>;
+
+  @OptionalLine(70) metaTitle?: string | null;
+  @OptionalLine(160) metaDescription?: string | null;
+}
+
+// ───────────── Ana sayfa bölümleri ─────────────
+
+export const BLOCK_TYPES = ['HERO', 'PRODUCT_LIST', 'CATEGORY_GRID', 'BANNER', 'TEXT', 'FEATURES'] as const;
+export type BlockType = (typeof BLOCK_TYPES)[number];
+export const FEATURE_ICONS = ['truck', 'shield', 'gift', 'leaf', 'phone', 'refresh', 'star', 'clock', 'award', 'heart', 'credit-card', 'map-pin'] as const;
+
+class BlockBase {
+  @IsIn(BLOCK_TYPES) type!: BlockType;
+  /** Planlı yayın (kampanya bannerı vb.) */
+  @ValidateIf(nullable) @IsDateString() visibleFrom?: string | null;
+  @ValidateIf(nullable) @IsDateString() visibleUntil?: string | null;
+}
+
+export class HeroSlideDto {
+  @IsImageUrl() imageUrl!: string;
+  @ValidateIf(nullable) @IsImageUrl() mobileImageUrl?: string | null;
+  @OptionalLine(150) alt?: string | null;
+  @OptionalLine(80) heading?: string | null;
+  @OptionalText(200) text?: string | null;
+  @OptionalLine(30) buttonLabel?: string | null;
+  @ValidateIf(nullable) @IsSafeLink() buttonLink?: string | null;
+}
+
+export class HeroBlockDto extends BlockBase {
+  declare type: 'HERO';
+  @IsArray() @ArrayMinSize(1, { message: 'En az bir slayt ekleyin.' }) @ArrayMaxSize(5) @ValidateNested({ each: true }) @Type(() => HeroSlideDto) slides!: HeroSlideDto[];
+  @IsOptional() @IsBoolean() autoplay?: boolean;
+}
+
+export class ProductListBlockDto extends BlockBase {
+  declare type: 'PRODUCT_LIST';
+  @OptionalLine(80) title?: string | null;
+  @OptionalLine(200) subtitle?: string | null;
+  @IsIn(['featured', 'new', 'bestsellers', 'rating', 'category', 'manual']) source!: 'featured' | 'new' | 'bestsellers' | 'rating' | 'category' | 'manual';
+  @ValidateIf((o: ProductListBlockDto) => o.source === 'category') @IsUUID('all', { message: 'Kategori seçin.' }) categoryId?: string;
+  @ValidateIf((o: ProductListBlockDto) => o.source === 'manual')
+  @IsArray()
+  @ArrayMinSize(1, { message: 'En az bir ürün seçin.' })
+  @ArrayMaxSize(24)
+  @ArrayUnique()
+  @IsUUID('all', { each: true })
+  productIds?: string[];
+  @IsInt() @Min(1) @Max(24) limit!: number;
+  @OptionalLine(30) buttonLabel?: string | null;
+  @ValidateIf(nullable) @IsSafeLink() buttonLink?: string | null;
+}
+
+export class CategoryGridBlockDto extends BlockBase {
+  declare type: 'CATEGORY_GRID';
+  @OptionalLine(80) title?: string | null;
+  /** Boş = tüm aktif kategoriler (sırasıyla, en fazla 12) */
+  @IsOptional() @IsArray() @ArrayMaxSize(12) @ArrayUnique() @IsUUID('all', { each: true }) categoryIds?: string[];
+}
+
+export class BannerBlockDto extends BlockBase {
+  declare type: 'BANNER';
+  @IsImageUrl() imageUrl!: string;
+  @ValidateIf(nullable) @IsImageUrl() mobileImageUrl?: string | null;
+  @OptionalLine(150) alt?: string | null;
+  @OptionalLine(80) heading?: string | null;
+  @OptionalText(200) text?: string | null;
+  @OptionalLine(30) buttonLabel?: string | null;
+  @ValidateIf(nullable) @IsSafeLink() link?: string | null;
+}
+
+export class TextBlockDto extends BlockBase {
+  declare type: 'TEXT';
+  @OptionalLine(80) title?: string | null;
+  /** Markdown (mağaza HTML'e izin vermeden işler) */
+  @Transform(trim) @IsString() @MinLength(1) @MaxLength(10_000) @Matches(MULTI_LINE) body!: string;
+}
+
+export class FeatureItemDto {
+  @IsIn(FEATURE_ICONS) icon!: (typeof FEATURE_ICONS)[number];
+  @RequiredLine(40) title!: string;
+  @OptionalLine(120) text?: string | null;
+}
+
+export class FeaturesBlockDto extends BlockBase {
+  declare type: 'FEATURES';
+  @OptionalLine(80) title?: string | null;
+  @IsArray() @ArrayMinSize(1) @ArrayMaxSize(6) @ValidateNested({ each: true }) @Type(() => FeatureItemDto) items!: FeatureItemDto[];
+}
+
+export type BlockData = HeroBlockDto | ProductListBlockDto | CategoryGridBlockDto | BannerBlockDto | TextBlockDto | FeaturesBlockDto;
+
+export class SaveBlockDto {
+  /** Bölüm anahtarı (kalıcı, ör. "ana-slider"); boşsa üretilir */
+  @IsOptional() @Matches(SLUG_REGEX, { message: SLUG_MESSAGE }) @MaxLength(60) key?: string;
+
+  @IsOptional() @IsBoolean() isActive?: boolean;
+
+  @ValidateNested()
+  @Type(() => BlockBase, {
+    keepDiscriminatorProperty: true,
+    discriminator: {
+      property: 'type',
+      subTypes: [
+        { value: HeroBlockDto, name: 'HERO' },
+        { value: ProductListBlockDto, name: 'PRODUCT_LIST' },
+        { value: CategoryGridBlockDto, name: 'CATEGORY_GRID' },
+        { value: BannerBlockDto, name: 'BANNER' },
+        { value: TextBlockDto, name: 'TEXT' },
+        { value: FeaturesBlockDto, name: 'FEATURES' },
+      ],
+    },
+  })
+  data!: BlockData;
+}
+
+export class ActiveDto {
+  @IsBoolean() isActive!: boolean;
+}
+
+// ───────────── Sayfalar ─────────────
+
+export class SavePageDto {
+  @RequiredLine(120) title!: string;
+  @Matches(SLUG_REGEX, { message: SLUG_MESSAGE }) @MaxLength(80) slug!: string;
+  /** Markdown */
+  @Transform(trim) @IsString() @MinLength(1, { message: 'İçerik boş olamaz.' }) @MaxLength(50_000) @Matches(MULTI_LINE) body!: string;
+  @OptionalLine(70) metaTitle?: string | null;
+  @OptionalLine(160) metaDescription?: string | null;
+  @IsOptional() @IsBoolean() isPublished?: boolean;
+  @IsOptional() @IsBoolean() showInFooter?: boolean;
+}
+
+// ───────────── S.S.S. ─────────────
+
+export class SaveFaqDto {
+  @RequiredLine(300) question!: string;
+  @Transform(trim) @IsString() @MinLength(1, { message: 'Cevap boş olamaz.' }) @MaxLength(5000) @Matches(MULTI_LINE) answer!: string;
+  @OptionalLine(60) category?: string | null;
+  @IsOptional() @IsBoolean() isActive?: boolean;
+}

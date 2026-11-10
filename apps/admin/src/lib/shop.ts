@@ -57,6 +57,7 @@ export type Product = {
   vatRate: number;
   isActive: boolean;
   featured: boolean;
+  isReturnable: boolean;
   metaTitle: string | null;
   metaDescription: string | null;
   images: { url: string; alt: string | null }[];
@@ -122,6 +123,7 @@ export function toProductFormValues(p: Product): ProductFormValues {
     vatRate: String(p.vatRate) as ProductFormValues["vatRate"],
     isActive: p.isActive,
     featured: p.featured,
+    isReturnable: p.isReturnable,
     metaTitle: p.metaTitle ?? "",
     metaDescription: p.metaDescription ?? "",
     variants: p.variants.map((v) => ({

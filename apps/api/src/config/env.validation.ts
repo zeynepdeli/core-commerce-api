@@ -76,6 +76,35 @@ const envSchema = z
     // Yeni sipariş bildiriminin gideceği adres (boşsa mağaza bilgilerindeki e-posta)
     ORDER_NOTIFY_EMAIL: z.email('ORDER_NOTIFY_EMAIL geçerli bir e-posta olmalıdır').optional(),
 
+    // Mağazada ürün sayfasının yolu (e-posta bağlantıları ve Google ürün akışı için)
+    STOREFRONT_PRODUCT_PATH: z
+      .string()
+      .regex(/^\/[\w\-/]*\{slug\}[\w\-/]*$/, 'STOREFRONT_PRODUCT_PATH "/" ile başlamalı ve {slug} içermelidir (ör. /urun/{slug})')
+      .default('/urun/{slug}'),
+
+    // Raporlarda "gün" sınırı bu saat dilimine göre hesaplanır
+    STORE_TIMEZONE: z
+      .string()
+      .refine((tz) => {
+        try {
+          new Intl.DateTimeFormat('en', { timeZone: tz });
+          return true;
+        } catch {
+          return false;
+        }
+      }, 'STORE_TIMEZONE geçerli bir IANA saat dilimi olmalıdır (ör. Europe/Istanbul)')
+      .default('Europe/Istanbul'),
+
+    // ───── İki adımlı doğrulama (yönetici) ─────
+    // TOTP gizli anahtarlarını şifreleyen anahtar (32 bayt, base64). Üretmek için: openssl rand -base64 32
+    // Kaybolursa/değişirse herkesin 2FA kurulumu geçersiz olur (yedek kodlar yine çalışır).
+    TWO_FACTOR_ENCRYPTION_KEY: z
+      .string()
+      .refine((v) => Buffer.from(v, 'base64').length === 32, 'TWO_FACTOR_ENCRYPTION_KEY 32 baytlık base64 olmalıdır (openssl rand -base64 32)')
+      .optional(),
+    // Yöneticiler 2FA kurmadan panele erişemesin. Boşsa: production'da açık, geliştirmede kapalı.
+    ADMIN_2FA_REQUIRED: z.enum(['true', 'false']).optional(),
+
     // Google ile giriş (isteğe bağlı). Google Cloud Console → OAuth istemci kimliği.
     GOOGLE_CLIENT_ID: z
       .string()
@@ -111,6 +140,9 @@ const envSchema = z
       ctx.addIssue({ code: 'custom', path: ['SMTP_FROM'], message: 'SMTP_HOST tanımlıysa SMTP_FROM zorunludur' });
     }
     if (env.NODE_ENV !== 'production') return;
+    if (!env.TWO_FACTOR_ENCRYPTION_KEY) {
+      ctx.addIssue({ code: 'custom', path: ['TWO_FACTOR_ENCRYPTION_KEY'], message: 'Production ortamında TWO_FACTOR_ENCRYPTION_KEY zorunludur (openssl rand -base64 32)' });
+    }
     if (!env.SMTP_HOST) {
       ctx.addIssue({
         code: 'custom',

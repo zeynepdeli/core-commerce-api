@@ -33,6 +33,8 @@ const SORTS: Record<ProductSort, Prisma.ProductOrderByWithRelationInput[]> = {
   'price-asc': [{ price: 'asc' }, { id: 'asc' }],
   'price-desc': [{ price: 'desc' }, { id: 'asc' }],
   name: [{ name: 'asc' }, { id: 'asc' }],
+  // En beğenilen: puan, sonra yorum sayısı
+  rating: [{ ratingAvg: 'desc' }, { ratingCount: 'desc' }, { id: 'asc' }],
 };
 
 const searchWhere = (q?: string): Prisma.ProductWhereInput =>
@@ -83,6 +85,8 @@ export class ProductsService {
           compareAtPrice: true,
           currency: true,
           featured: true,
+          ratingAvg: true,
+          ratingCount: true,
           category: { select: { name: true, slug: true } },
           images: { orderBy: { order: 'asc' }, take: 1, select: { url: true, alt: true } },
           // Yalnızca stok durumu için (adet dışarı verilmez)
@@ -92,11 +96,12 @@ export class ProductsService {
     ]);
 
     return {
-      items: products.map(({ images, variants, ...p }) => ({
+      items: products.map(({ images, variants, ratingAvg, ratingCount, ...p }) => ({
         ...p,
         // Birden çok varyant varsa bu "…'den başlayan" fiyattır
         price: money(p.price),
         compareAtPrice: money(p.compareAtPrice),
+        rating: ratingCount ? { average: Number(ratingAvg), count: ratingCount } : null,
         variantCount: variants.length,
         // Kesin stok adedi paylaşılmaz; yalnızca satılabilir mi
         inStock: variants.some(inStock),
@@ -123,6 +128,9 @@ export class ProductsService {
         currency: true,
         vatRate: true,
         featured: true,
+        isReturnable: true,
+        ratingAvg: true,
+        ratingCount: true,
         metaTitle: true,
         metaDescription: true,
         category: { select: { name: true, slug: true } },
@@ -142,10 +150,12 @@ export class ProductsService {
       compareAtPrice: money(v.compareAtPrice),
       inStock: inStock({ stock, trackStock }),
     }));
+    const { ratingAvg, ratingCount, ...rest } = p;
     return {
-      ...p,
+      ...rest,
       price: money(p.price),
       compareAtPrice: money(p.compareAtPrice),
+      rating: ratingCount ? { average: Number(ratingAvg), count: ratingCount } : null,
       inStock: variants.some((v) => v.inStock),
       variants,
     };
@@ -267,6 +277,7 @@ export class ProductsService {
           variants: { create: dto.variants.map((v, order) => variantData(v, order)) },
           isActive: dto.isActive ?? true,
           featured: dto.featured ?? false,
+          isReturnable: dto.isReturnable ?? true,
           categoryId: dto.categoryId,
           metaTitle: dto.metaTitle ?? null,
           metaDescription: dto.metaDescription ?? null,
@@ -309,6 +320,7 @@ export class ProductsService {
             vatRate: dto.vatRate,
             isActive: dto.isActive,
             featured: dto.featured,
+            isReturnable: dto.isReturnable,
             categoryId: dto.categoryId,
             metaTitle: dto.metaTitle,
             metaDescription: dto.metaDescription,

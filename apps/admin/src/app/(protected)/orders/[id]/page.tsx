@@ -1,10 +1,13 @@
+import Link from "next/link";
 import { notFound } from "next/navigation";
 import { ShoppingBag } from "lucide-react";
 import { z } from "zod";
 
 import { AreaCard, AreaShell } from "@/components/areas/AreaShell";
 import { OrderStatusPanel } from "@/components/orders/OrderStatusPanel";
+import { RetryRefundButton } from "@/components/orders/RetryRefundButton";
 import { StatusBadge } from "@/components/orders/StatusBadge";
+import { ReturnBadge } from "@/components/returns/ReturnBadge";
 import { getOrder, type Address } from "@/lib/orders";
 import { formatPrice } from "@/lib/shop";
 
@@ -132,7 +135,7 @@ export default async function OrderPage({ params }: { params: Promise<{ id: stri
             {o.cancelReason && <p className="mb-4 text-sm text-muted-foreground">İptal nedeni: {o.cancelReason}</p>}
             {o.payment?.status === "SUCCEEDED" && ["PAID", "PROCESSING"].includes(o.status) && (
               <p className="mb-4 rounded-xl bg-surface-muted p-3 text-xs leading-5 text-muted-foreground">
-                Kartla ödenmiş siparişi iptal ederseniz ücret iadesini iyzico panelinden yapmayı unutmayın.
+                Kartla ödenmiş sipariş iptal edilirse ücret iyzico üzerinden otomatik iade edilir.
               </p>
             )}
             <OrderStatusPanel key={o.status} orderId={o.id} next={o.nextStatuses} />
@@ -176,8 +179,27 @@ export default async function OrderPage({ params }: { params: Promise<{ id: stri
                 )}
               </dl>
               {o.payment.status === "SUCCEEDED" && o.status === "CANCELLED" && (
-                <p className="mt-3 rounded-xl bg-red-50 p-3 text-sm text-red-900">Bu sipariş iptal edildi ama ödeme alınmış. İadeyi iyzico panelinden yapın.</p>
+                <div className="mt-3 space-y-3 rounded-xl bg-red-50 p-3 text-sm text-red-900">
+                  <p>Bu sipariş iptal edildi ama ödeme iade edilmedi.</p>
+                  <RetryRefundButton orderId={o.id} />
+                </div>
               )}
+            </AreaCard>
+          )}
+
+          {o.returns.length > 0 && (
+            <AreaCard title="İade Talepleri">
+              <ul className="space-y-2 text-sm">
+                {o.returns.map((r) => (
+                  <li key={r.id} className="flex items-center justify-between gap-3">
+                    <Link href={`/returns/${r.id}`} className="font-mono font-semibold text-(--brand-accent)">
+                      {r.returnNumber}
+                    </Link>
+                    <ReturnBadge status={r.status} />
+                    <span>{formatPrice(r.refundTotal)}</span>
+                  </li>
+                ))}
+              </ul>
             </AreaCard>
           )}
 

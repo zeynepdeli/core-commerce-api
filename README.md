@@ -165,7 +165,109 @@ Mağaza sayfası token'ı `location.hash`'ten okuyup API'ye göndermelidir.
   saldırısına karşı). Süre dolup iptal edilen siparişe sonradan ödeme gelirse stok varsa sipariş canlanır; yoksa yöneticiye
   **"İADE GEREKLİ"** e-postası gider ve AuditLog'a yazılır.
 - **E-postalar:** Ödeme alındı (müşteri + yönetici), kargoya verildi (firma + takip no), iptal (yalnızca ödenmiş siparişte).
-- **Not:** Kartla ödenmiş siparişi iptal ederseniz ücret iadesini iyzico panelinden yapın (admin sipariş sayfası uyarır).
+
+## İade (cayma hakkı)
+
+| Uç | Açıklama |
+|---|---|
+| `POST /account/orders/:no/returns` · `POST /account/orders/:no/returns/:id/cancel` | Üye iade talebi / vazgeçme. Gövde: `items: [{orderItemId, quantity}]`, `reason` (`DAMAGED`, `WRONG_ITEM`, `NOT_AS_DESCRIBED`, `CHANGED_MIND`, `OTHER`), `note?` |
+| `POST /orders/returns` · `POST /orders/returns/:id/cancel` | Misafir: aynısı + `orderNumber`, `accessToken` |
+| `/admin/returns` (liste, detay, `PATCH :id/decision`, `POST :id/receive`, `POST :id/refund`) | Yönetim (ADMIN) |
+| `POST /admin/orders/:id/refund` | İptal edilmiş, kartla ödenmiş siparişin iadesini yeniden dener |
+
+- **Süre:** Teslimden itibaren `returnWindowDays` gün (mağaza ayarı; yasal alt sınır 14). Kargodaki siparişte süre henüz başlamamıştır.
+  Süre sözleşmelere `{{CAYMA_SURESI}}` ile otomatik yazılır.
+- **İade edilemeyen ürünler:** Üründe "İade edilebilir" kapatılırsa (çabuk bozulan gıda vb., yönetmelik md. 15) sözleşmede belirtilir ve talep edilemez.
+  Sipariş anındaki değer saklanır.
+- **Tutar sunucuda hesaplanır:** Kupon indirimi satırlara dağıtılmış, ödenen tutar üzerinden (iyzico'daki kalem tutarıyla birebir).
+  Siparişin tamamı iade edilirse ilk kargo ücreti de iade edilir (md. 13). Eş zamanlı talepler adetleri aşamaz (satır kilidi).
+- **Akış:** Talep → Onay (müşteriye not, iade adresi e-postada) veya Ret (gerekçe zorunlu) → Ürün geldi (isteğe bağlı stoğa ekle)
+  → Ücret iadesi. Her adımda müşteriye e-posta.
+- **iyzico iadesi:** Kalem bazında; çift tıklamada iki kez iade yapılmaz (kilit), yarıda kalırsa yalnızca kalan kalemler denenir.
+  Kartla ödenmemiş (havale) siparişte "Elle iade edildi" işaretlenir. Tamamı iade edilen sipariş "İade edildi" olur.
+- **Kargodan önce iptal:** Admin ödenmiş siparişi iptal ederse ücret otomatik iade edilir (önce iyzico iptali, olmazsa kalem kalem iade).
+  Başarısız olursa yöneticiye e-posta + sipariş sayfasında "İadeyi iyzico ile yap" düğmesi.
+
+## Site içeriği (headless mağaza için)
+
+| Uç | Açıklama |
+|---|---|
+| `GET /shop/site` | Her sayfada gereken her şey tek istekte: ad, tema (renk, yazı tipi, arka plan), logo, favicon, duyuru şeridi, iletişim, sosyal medya, SEO varsayılanları, alt bilgi sayfaları |
+| `GET /shop/home` | Ana sayfa bölümleri (sırayla, yayın zamanı gelmiş); ürün listeleri ve kategoriler çözümlenmiş halde |
+| `GET /shop/pages/:slug` | Bilgi sayfası (Markdown) |
+| `GET /shop/faq` | S.S.S. (kategorilere göre gruplu) |
+| `/admin/content/*` (`site`, `home` + `reorder` + `:id/active`, `pages` + `reorder`, `faq` + `reorder`, `options`) | Yönetim |
+
+- **Bölüm türleri:** `HERO` (1–5 slayt), `PRODUCT_LIST` (öne çıkan / yeni / çok satan / en beğenilen / kategori / elle seçim), `CATEGORY_GRID`, `BANNER`, `TEXT` (Markdown), `FEATURES` (ikonlu avantajlar). Her bölüm tarih aralığıyla planlanabilir.
+- **Güvenlik:** Her bölüm türü ayrı sınıfla katı doğrulanır (tanımsız alan reddedilir). Bağlantılar yalnızca `/site-ici` veya `https://`
+  (`javascript:`, `data:`, `//` açık yönlendirme reddedilir). Görseller medya kütüphanesi veya https. Renkler `#RRGGBB`, yazı tipleri izinli listeden
+  (mağaza CSS'ine yazılır → enjeksiyon yok). Sosyal bağlantılar yalnızca kendi alan adları.
+- **Markdown** ham metin olarak döner; mağaza **HTML'e izin vermeden** işlemelidir (ör. `react-markdown`, `rehype-raw` OLMADAN).
+- Mağaza yanıtları 60 sn önbellekte; yönetici değiştirince anında temizlenir. Ana sayfada kullanılan görseller medya kütüphanesinde "kullanımda" sayılır.
+
+## Yorumlar ve favoriler
+
+| Uç | Açıklama |
+|---|---|
+| `GET /shop/products/:slug/reviews?sort=new\|rating-high\|rating-low&rating=1-5&page` | Yayındaki yorumlar + özet (ortalama, sayı, 1–5 dağılımı) |
+| `GET /account/reviews` · `GET /account/reviews/eligible` · `POST /account/reviews` · `PATCH/DELETE /account/reviews/:id` | Üyenin yorumları, "değerlendirin" listesi |
+| `GET /account/favorites` · `GET /account/favorites/ids` · `PUT/DELETE /account/favorites/:productId` | Favoriler |
+| `/admin/reviews` (liste, `PATCH :id` onay/ret, `PUT :id/reply`, `DELETE :id`, `GET favorites`) | Yönetim |
+
+- **Yalnızca satın alanlar:** Ürünü içeren siparişi kargolanmış/teslim edilmiş üye yorum yapabilir ("Doğrulanmış alıcı"). Ürün başına bir yorum.
+- **Onay:** Varsayılan olarak onaydan sonra yayınlanır (ayar: `reviewAutoApprove`); düzenlenen yorum yeniden onaya düşer. Ret gerekçesi yazara e-postayla gider.
+- **Kişisel veri:** Mağazada ad maskelenir ("Ayşe Y."), e-posta/kimlik dönmez. Hesap kapatılınca yorumlar ve favoriler silinir, puanlar yeniden hesaplanır.
+- **Puan özeti** ürün tablosunda tutulur (`ratingAvg`, `ratingCount`; liste ve `sort=rating` için hızlı). Yorum metni düz metindir.
+
+## Pazarlama
+
+| Uç | Açıklama |
+|---|---|
+| `POST /shop/stock-alerts` `{variantId, email?}` | "Gelince haber ver" (üyede hesap e-postası). Yanıt her durumda aynı |
+| `GET/PUT /account/consents` `{email?, sms?}` | Üyenin ticari ileti izinleri (İYS) |
+| `POST /marketing/unsubscribe` `{token}` | E-postadaki tek tıkla izinden çıkma (mağaza `/ileti-izni#t=…` sayfası POST eder) |
+| `GET /feeds/google.xml` | Google Merchant Center ürün akışı (ayardan açılır) |
+| `/admin/marketing` (özet, `POST run`, `POST feed/refresh`) | Yönetim |
+
+- **Stok bildirimi:** Stoğa giren varyantın bekleyen talepleri 10 dakikada bir e-postalanır, talep kapanır (tek seferlik, müşterinin isteği → izin gerekmez).
+  Bir e-posta en fazla 10 bekleyen talep (başkası adına toplu kayıt engeli); 180 günden eski talepler silinir.
+- **Sepet hatırlatma (ticari ileti):** Yalnızca üyeler, e-postası doğrulanmış ve **en son İYS kaydı "izin verdi"** olanlar. Sepet ayarlanan süre hareketsiz kalınca,
+  en fazla 7 günlük sepete, kişi başı haftada bir, sepet değişmedikçe tek kez. Arada sipariş verdiyse gönderilmez. Her e-postada imzalı (değiştirilemez)
+  tek tıkla ret bağlantısı ve satıcı bilgisi. İzin değişiklikleri silinmez, yeni satır olarak tutulur; gönderilen her ileti `MarketingMessage`'a yazılır.
+- **Google akışı:** RSS 2.0 + `g:` alanları; yalnızca yayındaki, görselli ürünler; varyant başına bir kalem (`item_group_id`), indirimde `price`/`sale_price`,
+  stokta var/yok (adet paylaşılmaz). XML kaçışlı; 10 dk önbellek + ETag. Ürün bağlantısı `STOREFRONT_URL` + `STOREFRONT_PRODUCT_PATH`.
+
+## Satış raporları
+
+| Uç | Açıklama |
+|---|---|
+| `GET /admin/reports/sales?from=YYYY-AA-GG&to=YYYY-AA-GG&groupBy=day\|week\|month` | Özet + önceki dönemle karşılaştırma, zaman serisi, en çok satanlar, kategoriler, kuponlar, yeni/tekrar müşteri, ödeme dönüşümü |
+| `GET /admin/reports/sales.csv?from&to` | Muhasebe için ödenmiş siparişler (Türkçe Excel: UTF-8 BOM, `;` ayraç, `,` ondalık) |
+
+- **Satış** = ödemesi alınmış sipariş, **ödeme tarihine** göre. **İadeler** yapıldıkları tarihte düşülür (iade talepleri + ödendikten sonra iptal edilenler); net = brüt − iade.
+- Gün sınırları `STORE_TIMEZONE` (varsayılan Europe/Istanbul) saat dilimine göre; dönüşümü PostgreSQL yapar (yaz saati dahil).
+- Aralık en fazla 1 yıl; boş günler 0 ile döner. Tüm sorgular parametreli; tarih alanları sıkı biçim denetiminden geçer.
+- CSV: formül enjeksiyonuna karşı `= + - @` ile başlayan hücreler etkisizleştirilir; en fazla 20.000 satır.
+- Admin: **Raporlar** sayfası (hazır aralıklar, özel tarih, gruplama, grafik + tablo görünümü, CSV indir).
+
+## İki adımlı doğrulama (yöneticiler)
+
+| Uç | Açıklama |
+|---|---|
+| `POST /auth/login` | 2FA açıksa token yerine `{ twoFactorRequired: true, challengeToken, expiresIn }` döner |
+| `POST /auth/2fa` `{challengeToken, code}` | 6 haneli kod veya `ABCDE-FGHJK` yedek kod → oturum |
+| `GET /account/2fa` · `POST /account/2fa/setup` `{password}` · `/enable` `{code}` · `/disable` `{password, code}` · `/recovery-codes` `{code}` | Kurulum ve yönetim (yalnızca yöneticiler) |
+| `POST /admin/users/:id/two-factor/reset` | SUPER_ADMIN: telefonunu ve yedek kodlarını kaybedenin 2FA'sını sıfırlar |
+
+- **TOTP (RFC 6238):** Google/Microsoft Authenticator, 1Password vb. ile uyumlu; harici kütüphane yok, RFC test vektörleriyle test edildi.
+- **Gizli anahtar şifreli:** AES-256-GCM (`TWO_FACTOR_ENCRYPTION_KEY`), kullanıcı kimliğine bağlı; veritabanı sızsa bile kullanılamaz.
+- **Giriş:** Şifre doğruysa 5 dk geçerli, tek kullanımlık, en fazla 5 denemelik bir giriş anahtarı verilir (admin'de httpOnly çerezde).
+  Hatalı kodlar hesap kilitleme sayacına eklenir. Aynı kod ikinci kez kabul edilmez (replay).
+- **Yedek kodlar:** 10 adet, tek kullanımlık, yalnızca SHA-256 özeti saklanır; kullanılınca e-posta bildirimi.
+- **Açılınca** diğer tüm oturumlar kapanır (o andan önce verilmiş erişim token'ları milisaniye hassasiyetle reddedilir).
+- **Zorunluluk:** `ADMIN_2FA_REQUIRED` (boşsa production'da açık). Kurmamış yönetici yönetim uçlarından 403 `TWO_FACTOR_SETUP_REQUIRED` alır;
+  admin paneli kurulum ekranına yönlendirir.
+- Kurulum için şifre tekrar sorulur (açık unutulmuş bir oturumla başkası kendi telefonunu bağlayamaz). Açma/kapama/sıfırlama e-postayla bildirilir.
 
 ## Güvenlik ilkeleri (OWASP)
 

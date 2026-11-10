@@ -5,9 +5,12 @@ import { redirect } from "next/navigation";
 
 import { isAdminRole } from "@/lib/auth";
 import { clientIpHeaders } from "@/lib/client-ip-headers";
-import { ACCESS_COOKIE, REFRESH_COOKIE, isTokenPair, sessionCookies } from "@/lib/session-cookies";
+import { ACCESS_COOKIE, REFRESH_COOKIE, cookieOptions, isTokenPair, sessionCookies } from "@/lib/session-cookies";
 
-export type LoginResult = { success: boolean; error?: string };
+export type LoginResult = { success: boolean; error?: string; twoFactor?: boolean };
+
+/** Şifre doğru, kod bekleniyor: giriş anahtarı tarayıcı JS'ine verilmez (httpOnly, 5 dk) */
+const CHALLENGE_COOKIE = "admin_2fa";
 
 const apiUrl = () => process.env.API_URL?.replace(/\/$/, "");
 
@@ -36,6 +39,50 @@ export async function loginAdmin(email: string, password: string): Promise<Login
     if (!response.ok) return { success: false, error: "E-posta veya şifre hatalı." };
 
     const data = (await response.json()) as unknown;
+    const challenge = data as { twoFactorRequired?: unknown; challengeToken?: unknown };
+    if (challenge.twoFactorRequired === true && typeof challenge.challengeToken === "string" && /^[A-Za-z0-9_-]{43}$/.test(challenge.challengeToken)) {
+      (await cookies()).set(CHALLENGE_COOKIE, challenge.challengeToken, { ...cookieOptions(300) });
+      return { success: true, twoFactor: true };
+    }
+    return finishLogin(api, data);
+  } catch {
+    return { success: false, error: "Sunucu bağlantısında bir sorun oluştu." };
+  }
+}
+
+/** Girişin 2. adımı: kimlik doğrulayıcı uygulamadaki kod veya yedek kod */
+export async function verifyTwoFactorLogin(code: string): Promise<LoginResult> {
+  const api = apiUrl();
+  if (!api) return { success: false, error: "API bağlantısı yapılandırılmamış." };
+  const store = await cookies();
+  const challengeToken = store.get(CHALLENGE_COOKIE)?.value;
+  if (!challengeToken) return { success: false, error: "Doğrulama süresi doldu. Lütfen yeniden giriş yapın." };
+  if (typeof code !== "string" || !/^[0-9A-Za-z -]{6,20}$/.test(code.trim())) return { success: false, error: "Doğrulama kodu hatalı." };
+
+  try {
+    const response = await fetch(`${api}/auth/2fa`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json", ...(await clientIpHeaders()) },
+      body: JSON.stringify({ challengeToken, code: code.trim() }),
+      cache: "no-store",
+      redirect: "error",
+    });
+    if (response.status === 429) return { success: false, error: "Çok fazla deneme yapıldı. Lütfen bir dakika sonra tekrar deneyin." };
+    if (!response.ok) {
+      const body = (await response.json().catch(() => ({}))) as { message?: unknown };
+      const message = typeof body.message === "string" ? body.message : "Doğrulama kodu hatalı.";
+      if (message.includes("yeniden giriş")) store.delete(CHALLENGE_COOKIE);
+      return { success: false, error: message.slice(0, 200) };
+    }
+    store.delete(CHALLENGE_COOKIE);
+    return finishLogin(api, await response.json());
+  } catch {
+    return { success: false, error: "Sunucu bağlantısında bir sorun oluştu." };
+  }
+}
+
+async function finishLogin(api: string, data: unknown): Promise<LoginResult> {
+  try {
     if (!isTokenPair(data)) return { success: false, error: "Sunucu beklenmeyen bir yanıt verdi." };
 
     // Müşteri hesabıyla panele girilemez; açılan oturum hemen kapatılır

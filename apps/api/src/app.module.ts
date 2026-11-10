@@ -10,6 +10,11 @@ import { CheckoutModule } from './checkout/checkout.module.js';
 import { LegalModule } from './legal/legal.module.js';
 import { OrdersModule } from './orders/orders.module.js';
 import { PaymentsModule } from './payments/payments.module.js';
+import { MarketingModule } from './marketing/marketing.module.js';
+import { ContentModule } from './content/content.module.js';
+import { ReviewsModule } from './reviews/reviews.module.js';
+import { ReportsModule } from './reports/reports.module.js';
+import { ReturnsModule } from './returns/returns.module.js';
 import { CouponsModule } from './coupons/coupons.module.js';
 import { StoreSettingsModule } from './store-settings/store-settings.module.js';
 import { AdminUsersModule } from './admin-users/admin-users.module.js';
@@ -53,6 +58,11 @@ import { PrismaModule } from './prisma/prisma.module.js';
     OrdersModule,
     CheckoutModule,
     PaymentsModule,
+    ReturnsModule,
+    ReportsModule,
+    MarketingModule,
+    ReviewsModule,
+    ContentModule,
   ],
   providers: [{ provide: APP_GUARD, useClass: AppThrottlerGuard }],
 })

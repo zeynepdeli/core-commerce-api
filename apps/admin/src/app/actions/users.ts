@@ -24,3 +24,9 @@ export async function setUserRoleAction(id: string, role: string): Promise<Actio
   if (!isUuid(id) || !parsed.success) return invalid();
   return sendToApi(`/admin/users/${id}/role`, "PATCH", { role: parsed.data }, "Rol değiştirilemedi.", "/users");
 }
+
+/** Yalnızca SUPER_ADMIN (API ayrıca denetler) */
+export async function resetUserTwoFactorAction(id: string): Promise<ActionResult> {
+  if (!isUuid(id)) return invalid();
+  return sendToApi(`/admin/users/${id}/two-factor/reset`, "POST", undefined, "Sıfırlanamadı.", "/users");
+}

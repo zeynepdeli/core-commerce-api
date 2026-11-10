@@ -20,6 +20,7 @@ const LIST_SELECT = {
   deletedAt: true,
   lockedUntil: true,
   failedLoginCount: true,
+  twoFactorEnabledAt: true,
   createdAt: true,
 } as const;
 

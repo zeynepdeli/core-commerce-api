@@ -6,7 +6,7 @@ import { cookies } from "next/headers";
 import { ACCESS_COOKIE } from "@/lib/session-cookies";
 
 export type AdminRole = "ADMIN" | "SUPER_ADMIN";
-export type AdminUser = { id: string; email: string; name: string; role: AdminRole };
+export type AdminUser = { id: string; email: string; name: string; role: AdminRole; twoFactorEnabled: boolean; twoFactorRequired: boolean };
 
 export const isAdminRole = (role: unknown): role is AdminRole => role === "ADMIN" || role === "SUPER_ADMIN";
 
@@ -30,7 +30,14 @@ export const getAdminUser = cache(async (): Promise<AdminUser | null> => {
     if (!response.ok) return null;
     const user = (await response.json()) as Partial<AdminUser>;
     if (typeof user.id !== "string" || typeof user.email !== "string" || !isAdminRole(user.role)) return null;
-    return { id: user.id, email: user.email, name: typeof user.name === "string" ? user.name : user.email, role: user.role };
+    return {
+      id: user.id,
+      email: user.email,
+      name: typeof user.name === "string" ? user.name : user.email,
+      role: user.role,
+      twoFactorEnabled: user.twoFactorEnabled === true,
+      twoFactorRequired: user.twoFactorRequired === true,
+    };
   } catch {
     return null;
   }

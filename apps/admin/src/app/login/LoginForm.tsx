@@ -4,8 +4,13 @@ import { useState, type FormEvent } from "react";
 import Link from "next/link";
 import { BRAND } from "@/brand/brand";
 import { useRouter } from "next/navigation";
-import { LockKeyhole, ArrowRight, LoaderCircle } from "lucide-react";
-import { loginAdmin } from "@/app/actions";
+import {
+  LockKeyhole,
+  ArrowRight,
+  LoaderCircle,
+  ShieldCheck,
+} from "lucide-react";
+import { loginAdmin, verifyTwoFactorLogin } from "@/app/actions";
 
 export function LoginForm({ resetDone }: { resetDone: boolean }) {
   const router = useRouter();
@@ -14,6 +19,9 @@ export function LoginForm({ resetDone }: { resetDone: boolean }) {
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
+  const [step, setStep] = useState<"password" | "code">("password");
+  const [code, setCode] = useState("");
+  const [useRecovery, setUseRecovery] = useState(false);
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -24,10 +32,23 @@ export function LoginForm({ resetDone }: { resetDone: boolean }) {
     setError("");
 
     try {
-      const result = await loginAdmin(email.trim(), password);
+      const result =
+        step === "password"
+          ? await loginAdmin(email.trim(), password)
+          : await verifyTwoFactorLogin(code);
 
       if (!result.success) {
         setError(result.error ?? "Giriş yapılamadı.");
+        // Süre dolduysa baştan
+        if (step === "code" && result.error?.includes("yeniden giriş")) {
+          setStep("password");
+          setCode("");
+        }
+        return;
+      }
+      if (result.twoFactor) {
+        setPassword("");
+        setStep("code");
         return;
       }
 
@@ -46,7 +67,11 @@ export function LoginForm({ resetDone }: { resetDone: boolean }) {
         <div className="mb-9 text-center">
           {BRAND.logo ? (
             // eslint-disable-next-line @next/next/no-img-element
-            <img src={BRAND.logo} alt="" className="mx-auto mb-5 h-14 w-auto max-w-48 object-contain" />
+            <img
+              src={BRAND.logo}
+              alt=""
+              className="mx-auto mb-5 h-14 w-auto max-w-48 object-contain"
+            />
           ) : (
             <div className="mx-auto mb-5 flex size-14 items-center justify-center rounded-2xl bg-primary text-primary-foreground shadow-lg">
               <LockKeyhole size={25} strokeWidth={1.7} />
@@ -57,9 +82,7 @@ export function LoginForm({ resetDone }: { resetDone: boolean }) {
             {BRAND.name}
           </h1>
 
-          <p className="mt-3 text-sm text-muted-foreground">
-            {BRAND.tagline}
-          </p>
+          <p className="mt-3 text-sm text-muted-foreground">{BRAND.tagline}</p>
         </div>
 
         <div className="rounded-3xl border border-border bg-surface p-7 shadow-xl shadow-primary/5 sm:p-9">
@@ -74,54 +97,116 @@ export function LoginForm({ resetDone }: { resetDone: boolean }) {
           </div>
 
           {resetDone && (
-            <p role="status" className="mb-5 rounded-xl border border-emerald-500/30 bg-emerald-500/10 p-3 text-sm text-emerald-700">
+            <p
+              role="status"
+              className="mb-5 rounded-xl border border-emerald-500/30 bg-emerald-500/10 p-3 text-sm text-emerald-700"
+            >
               Şifreniz yenilendi. Yeni şifrenizle giriş yapabilirsiniz.
             </p>
           )}
 
           <form onSubmit={handleSubmit} className="space-y-5">
-            <div>
-              <label
-                htmlFor="email"
-                className="mb-2 block text-sm font-medium text-foreground"
-              >
-                E-posta adresi
-              </label>
-
-              <input
-                id="email"
-                type="email"
-                autoComplete="username"
-                required
-                maxLength={254}
-                value={email}
-                onChange={(event) => setEmail(event.target.value)}
-                placeholder="admin@example.com"
-                className="w-full rounded-xl border border-border bg-background px-4 py-3 text-sm text-foreground outline-none transition focus:border-accent focus:ring-2 focus:ring-accent/15"
-              />
-            </div>
-
-            <div>
-              <div className="mb-2 flex items-center justify-between">
-                <label htmlFor="password" className="block text-sm font-medium text-foreground">
-                  Şifre
+            {step === "code" ? (
+              <div>
+                <div className="mb-4 flex items-start gap-3 rounded-xl bg-(--brand-accent)/10 p-3 text-sm text-foreground">
+                  <ShieldCheck className="mt-0.5 size-5 shrink-0 text-(--brand-accent)" />
+                  <span>
+                    {useRecovery
+                      ? "Kurulum sırasında kaydettiğiniz yedek kodlardan birini girin. Her kod bir kez kullanılabilir."
+                      : "Kimlik doğrulayıcı uygulamanızdaki (Google Authenticator vb.) 6 haneli kodu girin."}
+                  </span>
+                </div>
+                <label
+                  htmlFor="code"
+                  className="mb-2 block text-sm font-medium text-foreground"
+                >
+                  {useRecovery ? "Yedek kod" : "Doğrulama kodu"}
                 </label>
-                <Link href="/forgot-password" className="text-xs font-medium text-(--brand-accent) hover:underline">
-                  Şifremi unuttum
-                </Link>
+                <input
+                  id="code"
+                  autoFocus
+                  required
+                  autoComplete="one-time-code"
+                  inputMode={useRecovery ? "text" : "numeric"}
+                  maxLength={useRecovery ? 11 : 6}
+                  pattern={useRecovery ? undefined : "[0-9]{6}"}
+                  value={code}
+                  onChange={(event) =>
+                    setCode(
+                      useRecovery
+                        ? event.target.value.toUpperCase()
+                        : event.target.value.replace(/\D/g, ""),
+                    )
+                  }
+                  placeholder={useRecovery ? "ABCDE-FGHJK" : "123456"}
+                  className="w-full rounded-xl border border-border bg-background px-4 py-3 text-center font-mono text-lg tracking-[0.3em] text-foreground outline-none transition focus:border-accent focus:ring-2 focus:ring-accent/15"
+                />
+                <button
+                  type="button"
+                  onClick={() => {
+                    setUseRecovery(!useRecovery);
+                    setCode("");
+                    setError("");
+                  }}
+                  className="mt-2 text-xs font-medium text-(--brand-accent) hover:underline"
+                >
+                  {useRecovery
+                    ? "Uygulamadaki kodu kullan"
+                    : "Telefonuma erişemiyorum — yedek kod kullan"}
+                </button>
               </div>
+            ) : (
+              <>
+                <div>
+                  <label
+                    htmlFor="email"
+                    className="mb-2 block text-sm font-medium text-foreground"
+                  >
+                    E-posta adresi
+                  </label>
 
-              <input
-                id="password"
-                type="password"
-                autoComplete="current-password"
-                required
-                value={password}
-                onChange={(event) => setPassword(event.target.value)}
-                placeholder="Şifrenizi girin"
-                className="w-full rounded-xl border border-border bg-background px-4 py-3 text-sm text-foreground outline-none transition focus:border-accent focus:ring-2 focus:ring-accent/15"
-              />
-            </div>
+                  <input
+                    id="email"
+                    type="email"
+                    autoComplete="username"
+                    required
+                    maxLength={254}
+                    value={email}
+                    onChange={(event) => setEmail(event.target.value)}
+                    placeholder="admin@example.com"
+                    className="w-full rounded-xl border border-border bg-background px-4 py-3 text-sm text-foreground outline-none transition focus:border-accent focus:ring-2 focus:ring-accent/15"
+                  />
+                </div>
+
+                <div>
+                  <div className="mb-2 flex items-center justify-between">
+                    <label
+                      htmlFor="password"
+                      className="block text-sm font-medium text-foreground"
+                    >
+                      Şifre
+                    </label>
+                    <Link
+                      href="/forgot-password"
+                      className="text-xs font-medium text-(--brand-accent) hover:underline"
+                    >
+                      Şifremi unuttum
+                    </Link>
+                  </div>
+
+                  <input
+                    id="password"
+                    type="password"
+                    autoComplete="current-password"
+                    required
+                    value={password}
+                    onChange={(event) => setPassword(event.target.value)}
+                    placeholder="Şifrenizi girin"
+                    className="w-full rounded-xl border border-border bg-background px-4 py-3 text-sm text-foreground outline-none transition focus:border-accent focus:ring-2 focus:ring-accent/15"
+                  />
+                </div>
+              </>
+            )}
 
             {error && (
               <p
@@ -140,11 +225,11 @@ export function LoginForm({ resetDone }: { resetDone: boolean }) {
               {loading ? (
                 <>
                   <LoaderCircle size={18} className="animate-spin" />
-                  Giriş yapılıyor...
+                  {step === "code" ? "Doğrulanıyor..." : "Giriş yapılıyor..."}
                 </>
               ) : (
                 <>
-                  Giriş Yap
+                  {step === "code" ? "Doğrula" : "Giriş Yap"}
                   <ArrowRight size={18} />
                 </>
               )}

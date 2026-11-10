@@ -339,6 +339,12 @@ export function ProductForm({ productId, initialValues, categories, mediaBaseUrl
         <div className="grid gap-5 @xl:grid-cols-2">
           <FormSwitch name="isActive" label="Yayında" description="Kapalıysa ürün sitede görünmez ve satılamaz." control={control} />
           <FormSwitch name="featured" label="Öne çıkan ürün" description="Ana sayfa vitrini gibi alanlarda gösterilir." control={control} />
+          <FormSwitch
+            name="isReturnable"
+            label="İade edilebilir"
+            description="Çabuk bozulan gıda, açılmış hijyen ürünü gibi cayma hakkı olmayan ürünlerde kapatın. Sözleşmede belirtilir, müşteri iade talep edemez."
+            control={control}
+          />
         </div>
       </AreaCard>
 

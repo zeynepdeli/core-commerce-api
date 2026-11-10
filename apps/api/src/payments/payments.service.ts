@@ -11,7 +11,7 @@ import { OrdersService } from '../orders/orders.service.js';
 import { PrismaService } from '../prisma/prisma.service.js';
 
 import { buildBasket, splitName } from './basket.js';
-import { IyzicoClient, type IyzicoResponse } from './iyzico.client.js';
+import { IyzicoClient, type IyzicoResponse } from '../iyzico/iyzico.client.js';
 
 export const INIT_PATH = '/payment/iyzipos/checkoutform/initialize/auth/ecom';
 export const RETRIEVE_PATH = '/payment/iyzipos/checkoutform/auth/ecom/detail';
@@ -185,6 +185,12 @@ export class PaymentsService {
       cardFamily: str(response.cardFamily),
       lastFourDigits: str(response.lastFourDigits),
       fraudStatus: Number(response.fraudStatus ?? 0),
+      // İade için gerekli: iyzico iadeyi sepet kalemi bazında (paymentTransactionId) yapar
+      items: (Array.isArray(response.itemTransactions) ? (response.itemTransactions as Record<string, unknown>[]) : []).map((t) => ({
+        itemId: String(t.itemId),
+        paymentTransactionId: String(t.paymentTransactionId),
+        price: String(t.price),
+      })),
     };
 
     const now = new Date();

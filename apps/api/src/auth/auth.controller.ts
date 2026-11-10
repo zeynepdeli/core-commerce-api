@@ -9,6 +9,7 @@ import {
   EmailDto,
   GoogleLoginDto,
   LoginDto,
+  TwoFactorLoginDto,
   RefreshDto,
   RegisterDto,
   ResetPasswordDto,
@@ -39,6 +40,13 @@ export class AuthController {
   @Throttle(STRICT)
   login(@Body() dto: LoginDto, @Req() req: Request) {
     return this.auth.login(dto, meta(req));
+  }
+
+  @Post('2fa')
+  @HttpCode(HttpStatus.OK)
+  @Throttle(STRICT)
+  twoFactor(@Body() dto: TwoFactorLoginDto, @Req() req: Request) {
+    return this.auth.verifyTwoFactor(dto.challengeToken, dto.code, meta(req));
   }
 
   @Post('google')

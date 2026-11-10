@@ -93,6 +93,7 @@ export const productSchema = z
     vatRate: z.enum(VAT_RATES),
     isActive: z.boolean(),
     featured: z.boolean(),
+    isReturnable: z.boolean(),
     metaTitle: oneLine(150),
     metaDescription: z.string().trim().max(300),
     variants: z
@@ -133,6 +134,7 @@ export const productDefaultValues: ProductFormValues = {
   vatRate: "20",
   isActive: true,
   featured: false,
+  isReturnable: true,
   metaTitle: "",
   metaDescription: "",
   variants: [emptyVariant("Adet")],
