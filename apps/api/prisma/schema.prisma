@@ -802,9 +802,30 @@ model SiteTheme {
   logoUrl    String @default("/logo.png")
   faviconUrl String @default("/favicon.ico")
 
+  // Üst duyuru şeridi (ör. "500 TL üzeri kargo bedava")
+  announcementText String?
+  announcementLink String?
+
+  // İletişim (alt bilgi, İletişim sayfası)
+  contactEmail    String?
+  contactPhone    String?
+  contactWhatsapp String?
+  contactAddress  String?
+  workingHours    String?
+
+  // { instagram, facebook, x, youtube, tiktok, pinterest, linkedin } → https adresleri
+  socialLinks Json @default("{}")
+
+  // Varsayılan SEO
+  metaTitle       String?
+  metaDescription String?
+  ogImageUrl      String?
+
   updatedAt DateTime @updatedAt
 }
 
+// Sayfa bölümleri (ör. page = "home"). data.type: HERO | PRODUCT_LIST | CATEGORY_GRID |
+// BANNER | TEXT | FEATURES — her türün alanları API'de ayrı ayrı doğrulanır.
 model ContentBlock {
   id String @id @default(uuid())
 
@@ -821,6 +842,28 @@ model ContentBlock {
 
   @@unique([page, key])
   @@index([page, isActive])
+}
+
+// Bilgi sayfaları (Hakkımızda, Teslimat, İletişim…). Gövde Markdown'dır; mağaza HTML'e izin
+// vermeden (güvenli) işler.
+model Page {
+  id    String @id @default(uuid())
+  slug  String @unique
+  title String
+  body  String @db.Text
+
+  metaTitle       String?
+  metaDescription String?
+
+  isPublished  Boolean @default(true)
+  // Alt bilgide bağlantısı görünsün mü
+  showInFooter Boolean @default(true)
+  order        Int     @default(0)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([isPublished, order])
 }
 
 model FaqItem {

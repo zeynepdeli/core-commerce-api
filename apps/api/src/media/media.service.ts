@@ -1,6 +1,7 @@
 import { ConflictException, Inject, Injectable, Logger, NotFoundException } from '@nestjs/common';
 import { randomUUID } from 'node:crypto';
 
+import { blockImageUrls } from '../content/content.service.js';
 import { PrismaService } from '../prisma/prisma.service.js';
 
 import { MediaFileValidatorService } from './media-file-validator.service.js';
@@ -44,16 +45,19 @@ export class MediaService {
    */
   async usedAmong(urls: string[]): Promise<Set<string>> {
     if (urls.length === 0) return new Set();
-    const [productImages, categories, themes] = await Promise.all([
+    const [productImages, categories, themes, blocks] = await Promise.all([
       this.prisma.productImage.findMany({ where: { url: { in: urls } }, select: { url: true }, distinct: ['url'] }),
       this.prisma.category.findMany({ where: { image: { in: urls }, deletedAt: null }, select: { image: true } }),
-      this.prisma.siteTheme.findMany({ select: { backgroundImageUrl: true, cardTextureUrl: true, logoUrl: true, faviconUrl: true } }),
+      this.prisma.siteTheme.findMany({ select: { backgroundImageUrl: true, cardTextureUrl: true, logoUrl: true, faviconUrl: true, ogImageUrl: true } }),
+      // İçerik bölümleri az sayıda (en fazla 30): JSON içindeki görseller uygulamada toplanır
+      this.prisma.contentBlock.findMany({ select: { data: true } }),
     ]);
     const wanted = new Set(urls);
     const used = [
       ...productImages.map((i) => i.url),
       ...categories.map((c) => c.image),
-      ...themes.flatMap((t) => [t.backgroundImageUrl, t.cardTextureUrl, t.logoUrl, t.faviconUrl]),
+      ...themes.flatMap((t) => [t.backgroundImageUrl, t.cardTextureUrl, t.logoUrl, t.faviconUrl, t.ogImageUrl]),
+      ...blocks.flatMap((b) => blockImageUrls(b.data)),
     ].filter((url): url is string => !!url && wanted.has(url));
     return new Set(used);
   }

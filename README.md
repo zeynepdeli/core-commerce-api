@@ -188,6 +188,23 @@ Mağaza sayfası token'ı `location.hash`'ten okuyup API'ye göndermelidir.
 - **Kargodan önce iptal:** Admin ödenmiş siparişi iptal ederse ücret otomatik iade edilir (önce iyzico iptali, olmazsa kalem kalem iade).
   Başarısız olursa yöneticiye e-posta + sipariş sayfasında "İadeyi iyzico ile yap" düğmesi.
 
+## Site içeriği (headless mağaza için)
+
+| Uç | Açıklama |
+|---|---|
+| `GET /shop/site` | Her sayfada gereken her şey tek istekte: ad, tema (renk, yazı tipi, arka plan), logo, favicon, duyuru şeridi, iletişim, sosyal medya, SEO varsayılanları, alt bilgi sayfaları |
+| `GET /shop/home` | Ana sayfa bölümleri (sırayla, yayın zamanı gelmiş); ürün listeleri ve kategoriler çözümlenmiş halde |
+| `GET /shop/pages/:slug` | Bilgi sayfası (Markdown) |
+| `GET /shop/faq` | S.S.S. (kategorilere göre gruplu) |
+| `/admin/content/*` (`site`, `home` + `reorder` + `:id/active`, `pages` + `reorder`, `faq` + `reorder`, `options`) | Yönetim |
+
+- **Bölüm türleri:** `HERO` (1–5 slayt), `PRODUCT_LIST` (öne çıkan / yeni / çok satan / en beğenilen / kategori / elle seçim), `CATEGORY_GRID`, `BANNER`, `TEXT` (Markdown), `FEATURES` (ikonlu avantajlar). Her bölüm tarih aralığıyla planlanabilir.
+- **Güvenlik:** Her bölüm türü ayrı sınıfla katı doğrulanır (tanımsız alan reddedilir). Bağlantılar yalnızca `/site-ici` veya `https://`
+  (`javascript:`, `data:`, `//` açık yönlendirme reddedilir). Görseller medya kütüphanesi veya https. Renkler `#RRGGBB`, yazı tipleri izinli listeden
+  (mağaza CSS'ine yazılır → enjeksiyon yok). Sosyal bağlantılar yalnızca kendi alan adları.
+- **Markdown** ham metin olarak döner; mağaza **HTML'e izin vermeden** işlemelidir (ör. `react-markdown`, `rehype-raw` OLMADAN).
+- Mağaza yanıtları 60 sn önbellekte; yönetici değiştirince anında temizlenir. Ana sayfada kullanılan görseller medya kütüphanesinde "kullanımda" sayılır.
+
 ## Yorumlar ve favoriler
 
 | Uç | Açıklama |

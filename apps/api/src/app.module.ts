@@ -11,6 +11,7 @@ import { LegalModule } from './legal/legal.module.js';
 import { OrdersModule } from './orders/orders.module.js';
 import { PaymentsModule } from './payments/payments.module.js';
 import { MarketingModule } from './marketing/marketing.module.js';
+import { ContentModule } from './content/content.module.js';
 import { ReviewsModule } from './reviews/reviews.module.js';
 import { ReportsModule } from './reports/reports.module.js';
 import { ReturnsModule } from './returns/returns.module.js';
@@ -61,6 +62,7 @@ import { PrismaModule } from './prisma/prisma.module.js';
     ReportsModule,
     MarketingModule,
     ReviewsModule,
+    ContentModule,
   ],
   providers: [{ provide: APP_GUARD, useClass: AppThrottlerGuard }],
 })
