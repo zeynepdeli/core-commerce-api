@@ -13,7 +13,7 @@ import {
 
 import { SINGLE_LINE_REGEX, SLUG_REGEX } from '../../common/validators.js';
 
-export const PRODUCT_SORTS = ['new', 'price-asc', 'price-desc', 'name'] as const;
+export const PRODUCT_SORTS = ['new', 'price-asc', 'price-desc', 'name', 'rating'] as const;
 export type ProductSort = (typeof PRODUCT_SORTS)[number];
 
 const trim = ({ value }: { value: unknown }) => (typeof value === 'string' ? value.trim() : value);
