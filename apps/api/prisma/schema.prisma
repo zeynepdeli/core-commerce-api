@@ -815,6 +815,18 @@ model SiteTheme {
   // Header menü linkleri: [{ "label": "Ürünlerimiz", "href": "/urunler" }]. Boşsa mağaza kategorileri gösterir.
   headerLinks Json @default("[]")
 
+  // Header: teslimat kutusu (sol) ve metinler. Admin → Header.
+  showDelivery    Boolean @default(true)
+  deliveryTitle   String  @default("Teslimat Adresi")
+  deliveryText    String  @default("Konum Seçin")
+  deliveryLink    String  @default("/hesabim/adresler")
+  // Boşsa bakır daire içinde konum ikonu; doluysa dairede bu görsel
+  deliveryIconUrl String?
+  searchPlaceholder String @default("Ürün ara...")
+  loginText         String @default("Giriş Yap")
+  accountText       String @default("Hesabım")
+  cartText          String @default("Sepetim")
+
   // İletişim (alt bilgi, İletişim sayfası, e-postalar). Admin'de Footer sayfasından düzenlenir.
   contactEmail    String?
   contactPhone    String?

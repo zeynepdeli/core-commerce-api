@@ -37,6 +37,15 @@ export type ThemeValues = {
   announcementText: string;
   announcementLink: string;
   headerLinks: { label: string; href: string }[];
+  showDelivery: boolean;
+  deliveryTitle: string;
+  deliveryText: string;
+  deliveryLink: string;
+  deliveryIconUrl: string;
+  searchPlaceholder: string;
+  loginText: string;
+  accountText: string;
+  cartText: string;
   metaTitle: string;
   metaDescription: string;
 };
@@ -49,9 +58,25 @@ export type ThemeValues = {
 export const THEME_SECTIONS = {
   header: {
     title: "Header",
-    description: "Mağaza adı, logo, menü linkleri, duyuru şeridi",
+    description: "Logo, menü linkleri, teslimat kutusu, yazılar, duyuru şeridi",
     icon: PanelTop,
-    fields: ["siteName", "logoUrl", "faviconUrl", "headerLinks", "announcementText", "announcementLink"],
+    fields: [
+      "siteName",
+      "logoUrl",
+      "faviconUrl",
+      "headerLinks",
+      "showDelivery",
+      "deliveryTitle",
+      "deliveryText",
+      "deliveryLink",
+      "deliveryIconUrl",
+      "searchPlaceholder",
+      "loginText",
+      "accountText",
+      "cartText",
+      "announcementText",
+      "announcementLink",
+    ],
   },
   renkler: {
     title: "Renkler ve Yazı Tipleri",

@@ -135,6 +135,17 @@ export class UpdateSiteDto {
   @OptionalLine(160) announcementText?: string | null;
   @ValidateIf(nullable) @IsSafeLink() announcementLink?: string | null;
 
+  // Header: teslimat kutusu ve metinler
+  @IsOptional() @IsBoolean() showDelivery?: boolean;
+  @IsOptional() @RequiredLine(30) deliveryTitle?: string;
+  @IsOptional() @RequiredLine(40) deliveryText?: string;
+  @IsOptional() @IsSafeLink() deliveryLink?: string;
+  @ValidateIf(nullable) @IsImageUrl() deliveryIconUrl?: string | null;
+  @IsOptional() @RequiredLine(40) searchPlaceholder?: string;
+  @IsOptional() @RequiredLine(16) loginText?: string;
+  @IsOptional() @RequiredLine(16) accountText?: string;
+  @IsOptional() @RequiredLine(16) cartText?: string;
+
   /** Header menüsü (sıra = menüdeki sıra). Boş liste: mağaza kategorileri gösterir. */
   @IsOptional()
   @IsArray()
