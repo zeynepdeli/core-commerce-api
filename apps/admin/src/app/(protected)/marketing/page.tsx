@@ -5,6 +5,7 @@ import { MarketingSettings } from "@/components/marketing/MarketingSettings";
 import { getMarketingOverview } from "@/lib/marketing";
 import { formatPrice } from "@/lib/shop";
 import { getStoreSettings } from "@/lib/store";
+import { envUrl } from "@/lib/env-url";
 
 function Stat({ label, value, note }: { label: string; value: string; note?: string }) {
   return (
@@ -18,7 +19,7 @@ function Stat({ label, value, note }: { label: string; value: string; note?: str
 
 export default async function MarketingPage() {
   const [o, s] = await Promise.all([getMarketingOverview(), getStoreSettings()]);
-  const apiPublic = (process.env.API_PUBLIC_URL ?? process.env.API_URL ?? "").replace(/\/$/, "");
+  const apiPublic = envUrl("API_PUBLIC_URL", "API_URL");
 
   return (
     <AreaShell icon={Megaphone} title="Pazarlama" description="Stok bildirimleri, sepet hatırlatmaları ve Google Alışveriş ürün akışı.">
