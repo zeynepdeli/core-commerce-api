@@ -38,6 +38,8 @@ function Text({ label, name, register, max, area: isArea, placeholder, hint }: {
 /** Slayt süresi seçenekleri (saniye). API sınırıyla aynı: 3–15 (apps/api/src/content/content.dto.ts → HERO_INTERVAL) */
 const HERO_INTERVALS = [3, 4, 5, 6, 7, 8, 10, 12, 15] as const;
 const HERO_INTERVAL_DEFAULT = 5;
+/** API sınırıyla aynı (MAX_CUSTOM_CARDS) */
+const MAX_CUSTOM_CARDS = 12;
 const LINK_HINT = "/ ile başlayan site içi adres (ör. /kategori/peynir) veya https:// adresi.";
 
 /** Boş metinleri kaldır, tarihleri ISO'ya çevir (API boş alanı "yok" sayar) */
@@ -69,6 +71,11 @@ export function BlockEditor({ id, type, initial, initialKey, categories, product
     const { key, ...data } = v;
     // Tek kategori varsa onay kutusu dizi yerine değer/boolean döner: her zaman diziye çevir
     if (type === "CATEGORY_GRID") data.categoryIds = (Array.isArray(data.categoryIds) ? data.categoryIds : typeof data.categoryIds === "string" ? [data.categoryIds] : []).filter((x: unknown) => typeof x === "string" && x);
+    // Elle kartlar: ürün sayısı ve ürün seçimi gönderilmez (API de saklamaz)
+    if (type === "PRODUCT_LIST" && data.source === "custom") {
+      delete data.limit;
+      delete data.productIds;
+    }
     // Seçim kutusu metin döndürür; API tam sayı bekler
     if (type === "HERO") data.intervalSeconds = Number(data.intervalSeconds) || HERO_INTERVAL_DEFAULT;
     const body = clean({ ...data, type, visibleFrom: fromLocal(v.visibleFrom), visibleUntil: fromLocal(v.visibleUntil), ...(data.limit ? { limit: Number(data.limit) } : {}) }) as Data;
@@ -95,7 +102,7 @@ export function BlockEditor({ id, type, initial, initialKey, categories, product
           </div>
         </AreaCard>
       )}
-      {type === "PRODUCT_LIST" && <ProductListFields register={register} watch={watch} setValue={setValue} categories={categories} productNames={productNames} />}
+      {type === "PRODUCT_LIST" && <ProductListFields control={control} register={register} watch={watch} setValue={setValue} categories={categories} productNames={productNames} mediaBaseUrl={mediaBaseUrl} />}
       {type === "CATEGORY_GRID" && (
         <AreaCard title="Kategoriler" hint="Hiçbiri seçilmezse tüm aktif kategoriler (en fazla 12) gösterilir.">
           <div className="grid gap-5">
@@ -272,7 +279,23 @@ function FeatureFields({ control, register, icons }: { control: Control<Data>; r
   );
 }
 
-function ProductListFields({ register, watch, setValue, categories, productNames }: { register: UseFormRegister<Data>; watch: (n: string) => any; setValue: (n: string, v: any) => void; categories: { id: string; name: string }[]; productNames: Record<string, string> }) {
+function ProductListFields({
+  control,
+  register,
+  watch,
+  setValue,
+  categories,
+  productNames,
+  mediaBaseUrl,
+}: {
+  control: Control<Data>;
+  register: UseFormRegister<Data>;
+  watch: (n: string) => any;
+  setValue: (n: string, v: any) => void;
+  categories: { id: string; name: string }[];
+  productNames: Record<string, string>;
+  mediaBaseUrl: string;
+}) {
   const source = watch("source");
   const selected: string[] = watch("productIds") ?? [];
   const [names, setNames] = useState<Record<string, string>>(productNames);
@@ -300,13 +323,16 @@ function ProductListFields({ register, watch, setValue, categories, productNames
               <option value="bestsellers">Çok satanlar (son 30 gün)</option>
               <option value="rating">En beğenilenler (puan)</option>
               <option value="category">Bir kategoriden</option>
-              <option value="manual">Elle seçilenler</option>
+              <option value="manual">Elle seçilen ürünler</option>
+              <option value="custom">Kendi kartlarım (fotoğraf, isim, fiyatı ben girerim)</option>
             </select>
           </label>
-          <label className="flex flex-col gap-2 text-sm font-medium">
-            Kaç ürün
-            <input type="number" min={1} max={24} {...register("limit")} className={input} />
-          </label>
+          {source !== "custom" && (
+            <label className="flex flex-col gap-2 text-sm font-medium">
+              Kaç ürün
+              <input type="number" min={1} max={24} {...register("limit")} className={input} />
+            </label>
+          )}
           {source === "category" && (
             <label className="flex flex-col gap-2 text-sm font-medium">
               Kategori
@@ -399,7 +425,59 @@ function ProductListFields({ register, watch, setValue, categories, productNames
             )}
           </div>
         )}
+        {source === "custom" && <CustomCardsFields control={control} register={register} mediaBaseUrl={mediaBaseUrl} />}
       </div>
     </AreaCard>
+  );
+}
+
+/** Eski enfesGurme'deki gibi elle girilen kartlar: fotoğraf, isim, fiyat, bağlantı (en fazla 12) */
+function CustomCardsFields({ control, register, mediaBaseUrl }: { control: Control<Data>; register: UseFormRegister<Data>; mediaBaseUrl: string }) {
+  const { fields, append, remove, move } = useFieldArray({ control, name: "cards" });
+  return (
+    <div className="grid gap-4">
+      <p className="rounded-xl bg-surface-muted p-3 text-sm text-muted-foreground">
+        Kartlar ürünlerden bağımsızdır: yazdığın fiyat gösterilir. Fiyat değişince buradan da güncellemeyi unutma. Kartı ürün sayfasına bağlamak için bağlantıya ürünün adresini yaz (ör. /urun/antep-fistikli-helva).
+      </p>
+      {fields.map((f, i) => (
+        <fieldset key={f.id} className="grid gap-4 rounded-2xl border border-border p-4">
+          <legend className="px-1 text-sm font-semibold">{i + 1}. kart</legend>
+          <div className="grid gap-4 @3xl:grid-cols-[minmax(0,1fr)_minmax(0,1.4fr)]">
+            <ImageUploadField name={`cards.${i}.imageUrl`} label="Fotoğraf" control={control} mediaBaseUrl={mediaBaseUrl} required description="Arka planı şeffaf PNG/WEBP, eski sitedeki gibi en iyi görünür." />
+            <div className="grid content-start gap-4 @xl:grid-cols-2">
+              <div className="@xl:col-span-2">
+                <Text label="İsim" name={`cards.${i}.name`} register={register} max={80} placeholder="Antep Fıstıklı Helva" />
+              </div>
+              <Text label="Fiyat (₺, isteğe bağlı)" name={`cards.${i}.price`} register={register} max={12} placeholder="149,90" />
+              <Text label="Eski fiyat (indirim için, isteğe bağlı)" name={`cards.${i}.compareAtPrice`} register={register} max={12} placeholder="189,90" />
+              <div className="@xl:col-span-2">
+                <Text label="Bağlantı (isteğe bağlı)" name={`cards.${i}.link`} register={register} max={500} hint={`Boşsa kart tıklanmaz. ${LINK_HINT}`} />
+              </div>
+              <label className="flex items-center gap-2 text-sm">
+                <input type="checkbox" {...register(`cards.${i}.soldOut`)} className="size-4" /> Tükendi olarak göster
+              </label>
+            </div>
+          </div>
+          <div className="flex gap-1">
+            <Button type="button" variant="ghost" size="sm" disabled={i === 0} onClick={() => move(i, i - 1)} aria-label={`${i + 1}. kartı yukarı taşı`}>
+              ↑
+            </Button>
+            <Button type="button" variant="ghost" size="sm" disabled={i === fields.length - 1} onClick={() => move(i, i + 1)} aria-label={`${i + 1}. kartı aşağı taşı`}>
+              ↓
+            </Button>
+            <Button type="button" variant="ghost" size="sm" onClick={() => remove(i)} className="gap-1.5 text-destructive">
+              <Trash2 className="size-4" /> Kartı kaldır
+            </Button>
+          </div>
+        </fieldset>
+      ))}
+      {fields.length < MAX_CUSTOM_CARDS && (
+        <div>
+          <Button type="button" variant="outline" onClick={() => append({ name: "", imageUrl: "", price: "", compareAtPrice: "", link: "", soldOut: false })} className="gap-2">
+            <Plus className="size-4" /> Kart ekle
+          </Button>
+        </div>
+      )}
+    </div>
   );
 }

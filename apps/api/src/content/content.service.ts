@@ -49,10 +49,40 @@ const card = (p: CardRow) => ({
   inStock: p.variants.some((v) => !v.trackStock || v.stock > 0),
 });
 
+/** Elle girilen kartlar mağazaya: fiyat iki haneli metin ("149.90"), tükendi → inStock:false */
+export const customCards = (cards: ProductListBlockDto['cards']) =>
+  (cards ?? []).map((c) => ({
+    name: c.name,
+    image: { url: c.imageUrl, alt: null },
+    price: c.price ? Number(c.price).toFixed(2) : null,
+    compareAtPrice: c.compareAtPrice ? Number(c.compareAtPrice).toFixed(2) : null,
+    link: c.link ?? null,
+    inStock: !c.soldOut,
+  }));
+
+/**
+ * Kaydedilecek bölüm verisi. Ürün listesinde yalnızca seçili kaynağın alanı saklanır:
+ * kaynak "elle kartlar" değilse kartlar (doğrulanmadan gelmiş olabilir) atılır; "elle seçilen ürünler"
+ * değilse ürün seçimi. Kartlardan yalnızca bilinen alanlar yazılır.
+ */
+export function storedBlock(data: BlockData): Prisma.InputJsonValue {
+  if (data.type !== 'PRODUCT_LIST') return data as unknown as Prisma.InputJsonValue;
+  const { cards, productIds, ...rest } = data;
+  return {
+    ...rest,
+    ...(data.source === 'custom'
+      ? { cards: (cards ?? []).map(({ name, imageUrl, price, compareAtPrice, link, soldOut }) => ({ name, imageUrl, price, compareAtPrice, link, soldOut })) }
+      : {}),
+    ...(data.source === 'manual' ? { productIds } : {}),
+  } as unknown as Prisma.InputJsonValue;
+}
+
 /** Görsel adreslerini bölüm verisinden topla (medya "kullanımda" denetimi için) */
 export function blockImageUrls(data: unknown): string[] {
-  const d = data as { slides?: { imageUrl?: string; mobileImageUrl?: string }[]; imageUrl?: string; mobileImageUrl?: string };
-  return [...(d.slides ?? []).flatMap((s) => [s.imageUrl, s.mobileImageUrl]), d.imageUrl, d.mobileImageUrl].filter((u): u is string => typeof u === 'string' && u.length > 0);
+  const d = data as { slides?: { imageUrl?: string; mobileImageUrl?: string }[]; cards?: { imageUrl?: string }[]; imageUrl?: string; mobileImageUrl?: string };
+  return [...(d.slides ?? []).flatMap((s) => [s.imageUrl, s.mobileImageUrl]), ...(d.cards ?? []).map((c) => c.imageUrl), d.imageUrl, d.mobileImageUrl].filter(
+    (u): u is string => typeof u === 'string' && u.length > 0,
+  );
 }
 
 /**
@@ -238,7 +268,7 @@ export class ContentService {
         data: {
           page: HOME,
           key: dto.key ?? `${dto.data.type.toLowerCase().replace('_', '-')}-${randomBytes(3).toString('hex')}`,
-          data: dto.data as unknown as Prisma.InputJsonValue,
+          data: storedBlock(dto.data),
           order: count,
           isActive: dto.isActive ?? true,
         },
@@ -258,7 +288,7 @@ export class ContentService {
     try {
       const b = await this.prisma.contentBlock.update({
         where: { id },
-        data: { data: dto.data as unknown as Prisma.InputJsonValue, ...(dto.key ? { key: dto.key } : {}), ...(dto.isActive !== undefined ? { isActive: dto.isActive } : {}) },
+        data: { data: storedBlock(dto.data), ...(dto.key ? { key: dto.key } : {}), ...(dto.isActive !== undefined ? { isActive: dto.isActive } : {}) },
       });
       this.invalidate();
       return b;
@@ -306,6 +336,7 @@ export class ContentService {
         visible.map(async (b) => {
           const d = b.data as unknown as BlockData;
           const { visibleFrom: _f, visibleUntil: _u, ...data } = d;
+          if (d.type === 'PRODUCT_LIST' && d.source === 'custom') return { key: b.key, ...data, cards: customCards(d.cards) };
           if (d.type === 'PRODUCT_LIST') return { key: b.key, ...data, products: await this.products(d) };
           if (d.type === 'CATEGORY_GRID') {
             const ids = d.categoryIds ?? [];
@@ -322,8 +353,10 @@ export class ContentService {
           return { key: b.key, ...data };
         }),
       );
-      // Ürünü kalmamış liste gösterilmez
-      return { sections: sections.filter((s) => !('products' in s) || (s.products as unknown[]).length > 0) };
+      // Ürünü / kartı kalmamış liste gösterilmez
+      return {
+        sections: sections.filter((s) => (!('products' in s) || (s.products as unknown[]).length > 0) && (!('cards' in s) || (s.cards as unknown[]).length > 0)),
+      };
     });
   }
 

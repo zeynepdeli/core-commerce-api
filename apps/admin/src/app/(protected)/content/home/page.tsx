@@ -12,7 +12,7 @@ function summary(d: Record<string, unknown>) {
     case "HERO":
       return `${(d.slides as unknown[]).length} slayt${(d.slides as { heading?: string }[])[0]?.heading ? ` · ${(d.slides as { heading?: string }[])[0].heading}` : ""}`;
     case "PRODUCT_LIST":
-      return `${(d.title as string) ?? "Başlıksız"}${d.display === "hero" ? " · slider içinde" : ""} · ${({ featured: "öne çıkanlar", new: "en yeniler", bestsellers: "çok satanlar", rating: "en beğenilenler", category: "kategoriden", manual: "elle seçilen" } as Record<string, string>)[d.source as string]} · ${d.limit} ürün`;
+      return `${(d.title as string) ?? "Başlıksız"}${d.display === "hero" ? " · slider içinde" : ""} · ${({ featured: "öne çıkanlar", new: "en yeniler", bestsellers: "çok satanlar", rating: "en beğenilenler", category: "kategoriden", manual: "elle seçilen", custom: "kendi kartları" } as Record<string, string>)[d.source as string]} · ${d.source === "custom" ? `${(d.cards as unknown[] | undefined)?.length ?? 0} kart` : `${d.limit} ürün`}`;
     case "CATEGORY_GRID":
       return `${(d.title as string) ?? "Kategoriler"} · ${(d.categoryIds as unknown[] | undefined)?.length || "tüm"} kategori`;
     case "BANNER":
