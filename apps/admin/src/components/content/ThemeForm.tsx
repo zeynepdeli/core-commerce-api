@@ -106,6 +106,33 @@ export function ThemeForm({
               <p className="text-xs text-muted-foreground">Adres / ile başlayan site içi bir adres (ör. /kategori/baklava) veya https:// ile başlayan bir adres olmalı.</p>
             </div>
           </AreaCard>
+          <AreaCard title="Teslimat Kutusu" hint="Header'ın solundaki kutu (masaüstünde görünür). Kapatırsan header'da hiç görünmez.">
+            <div className="grid gap-5">
+              <label className="flex items-center gap-2 text-sm font-medium">
+                <input type="checkbox" {...register("showDelivery")} className="size-4" /> Teslimat kutusunu göster
+              </label>
+              <div className="grid gap-5 @xl:grid-cols-2">
+                <FormField name="deliveryTitle" label="Üst yazı" placeholder="Teslimat Adresi" register={register} required />
+                <FormField name="deliveryText" label="Ana yazı" placeholder="Konum Seçin" register={register} required />
+                <FormField name="deliveryLink" label="Tıklanınca gideceği adres" placeholder="/hesabim/adresler" register={register} required description="/ ile başlayan site içi adres veya https:// adresi." />
+                <ImageUploadField
+                  name="deliveryIconUrl"
+                  label="Simge görseli (isteğe bağlı)"
+                  control={control}
+                  mediaBaseUrl={mediaBaseUrl}
+                  description="Yuvarlak alanda gösterilir; kare görsel önerilir. Boşsa bakır daire içinde konum simgesi."
+                />
+              </div>
+            </div>
+          </AreaCard>
+          <AreaCard title="Header Yazıları" hint="Arama kutusu ve sağdaki simgelerin altındaki yazılar. Simge yazıları kısa olmalı (en fazla 16 karakter).">
+            <div className="grid gap-5 @xl:grid-cols-2">
+              <FormField name="searchPlaceholder" label="Arama kutusu yazısı" placeholder="Ürün ara..." register={register} required />
+              <FormField name="loginText" label="Giriş yazısı" placeholder="Giriş Yap" register={register} required />
+              <FormField name="accountText" label="Hesap yazısı (giriş yapılmışken)" placeholder="Hesabım" register={register} required />
+              <FormField name="cartText" label="Sepet yazısı" placeholder="Sepetim" register={register} required />
+            </div>
+          </AreaCard>
           <AreaCard title="Duyuru Şeridi" hint="Sitenin en üstünde görünür. Boş bırakılırsa gösterilmez.">
             <div className="grid gap-5 @xl:grid-cols-2">
               <FormField name="announcementText" label="Metin" placeholder="500 ₺ üzeri kargo bedava" register={register} />

@@ -19,6 +19,15 @@ export type SiteSettings = {
   announcementText: string | null;
   announcementLink: string | null;
   headerLinks: HeaderLink[];
+  showDelivery: boolean;
+  deliveryTitle: string;
+  deliveryText: string;
+  deliveryLink: string;
+  deliveryIconUrl: string | null;
+  searchPlaceholder: string;
+  loginText: string;
+  accountText: string;
+  cartText: string;
   /** Yalnızca dolu alanlar gelir */
   siteImages: Partial<Record<SiteImageSlot, string>>;
   metaTitle: string | null;
