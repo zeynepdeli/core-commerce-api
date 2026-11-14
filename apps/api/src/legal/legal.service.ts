@@ -6,7 +6,9 @@ import { PrismaService } from '../prisma/prisma.service.js';
 
 import { LEGAL_DEFAULTS } from './legal-defaults.js';
 
-export const LEGAL_TYPES = ['PRE_INFORMATION', 'DISTANCE_SALES', 'KVKK_NOTICE'] as const satisfies readonly LegalDocumentType[];
+export const LEGAL_TYPES = ['PRE_INFORMATION', 'DISTANCE_SALES', 'KVKK_NOTICE', 'COOKIE_POLICY'] as const satisfies readonly LegalDocumentType[];
+/** Ödeme adımında gösterilen metinler (çerez politikası sipariş metni değildir) */
+export const CHECKOUT_TYPES = ['PRE_INFORMATION', 'DISTANCE_SALES', 'KVKK_NOTICE'] as const satisfies readonly LegalDocumentType[];
 export const PLACEHOLDERS = [
   'SATICI_UNVAN',
   'SATICI_ADRES',
@@ -15,6 +17,7 @@ export const PLACEHOLDERS = [
   'SATICI_VERGI_DAIRESI',
   'SATICI_VERGI_NO',
   'SATICI_MERSIS',
+  'SATICI_KEP',
   'ALICI_AD',
   'ALICI_EPOSTA',
   'ALICI_TELEFON',
@@ -42,6 +45,36 @@ export function renderTemplate(template: string, values: Partial<Record<Placehol
   );
 }
 
+type SellerRow = {
+  sellerName: string | null;
+  sellerAddress: string | null;
+  sellerPhone: string | null;
+  sellerEmail: string | null;
+  sellerTaxOffice: string | null;
+  sellerTaxNumber: string | null;
+  sellerMersisNo: string | null;
+  sellerKepAddress: string | null;
+};
+
+/**
+ * Sitede herkese gösterilecek satıcı bilgileri (e-ticaret mevzuatı: unvan, adres, iletişim, KEP,
+ * tacir için MERSİS, esnaf için vergi kimlik no). Vergi numarası yalnızca MERSİS yoksa (esnaf)
+ * gösterilir: şahıs işletmesinde bu numara T.C. kimlik numarası olabilir, gereğinden fazla yayılmasın.
+ */
+export function publicSeller(s: SellerRow) {
+  const hasMersis = Boolean(s.sellerMersisNo);
+  return {
+    name: s.sellerName,
+    address: s.sellerAddress,
+    phone: s.sellerPhone,
+    email: s.sellerEmail,
+    kepAddress: s.sellerKepAddress,
+    mersisNo: s.sellerMersisNo,
+    taxOffice: hasMersis ? null : s.sellerTaxOffice,
+    taxNumber: hasMersis ? null : s.sellerTaxNumber,
+  };
+}
+
 export const sha256 = (text: string) => createHash('sha256').update(text, 'utf8').digest('hex');
 
 @Injectable()
@@ -56,6 +89,10 @@ export class LegalService {
 
   async all() {
     return Promise.all(LEGAL_TYPES.map((type) => this.get(type)));
+  }
+
+  async checkoutDocuments() {
+    return Promise.all(CHECKOUT_TYPES.map((type) => this.get(type)));
   }
 
   /** Her kaydedişte sürüm artar (onay kayıtları sürümü tutar) */

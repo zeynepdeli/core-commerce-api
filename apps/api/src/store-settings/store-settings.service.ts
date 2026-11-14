@@ -60,6 +60,7 @@ export class StoreSettingsService {
       sellerTaxOffice: s.sellerTaxOffice,
       sellerTaxNumber: s.sellerTaxNumber,
       sellerMersisNo: s.sellerMersisNo,
+      sellerKepAddress: s.sellerKepAddress,
     };
   }
 
@@ -93,6 +94,7 @@ export class StoreSettingsService {
         sellerTaxOffice: dto.sellerTaxOffice?.trim() || (dto.sellerTaxOffice === undefined ? undefined : null),
         sellerTaxNumber: dto.sellerTaxNumber ?? (dto.sellerTaxNumber === undefined ? undefined : null),
         sellerMersisNo: dto.sellerMersisNo ?? (dto.sellerMersisNo === undefined ? undefined : null),
+        sellerKepAddress: dto.sellerKepAddress?.trim().toLowerCase() || (dto.sellerKepAddress === undefined ? undefined : null),
       },
     });
     return this.adminView();

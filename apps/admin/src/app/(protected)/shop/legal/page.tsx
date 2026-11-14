@@ -10,7 +10,7 @@ export default async function LegalPage() {
     <AreaShell
       icon={Scale}
       title="Yasal Metinler"
-      description="Ön Bilgilendirme Formu, Mesafeli Satış Sözleşmesi ve KVKK Aydınlatma Metni. Varsayılan şablonları hukukçunuzla gözden geçirin."
+      description="Ön Bilgilendirme Formu, Mesafeli Satış Sözleşmesi, KVKK Aydınlatma Metni ve Çerez Politikası. Varsayılan şablonları hukukçunuzla gözden geçirin."
     >
       <AreaCard title="Yer Tutucular" hint="Metne yazdığınız bu alanlar sipariş anında doldurulur; doldurulmuş hali siparişe kanıt olarak kaydedilir.">
         <p className="flex flex-wrap gap-2">

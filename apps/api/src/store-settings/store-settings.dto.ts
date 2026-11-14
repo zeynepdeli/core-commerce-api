@@ -100,4 +100,9 @@ export class UpdateStoreSettingsDto {
   @ValidateIf(nullable)
   @Matches(/^\d{16}$/, { message: 'MERSİS no 16 haneli olmalı.' })
   sellerMersisNo?: string | null;
+
+  @ValidateIf(nullable)
+  @IsEmail({}, { message: 'KEP adresi e-posta biçiminde olmalı (ör. unvan@hs01.kep.tr).' })
+  @MaxLength(254)
+  sellerKepAddress?: string | null;
 }

@@ -70,6 +70,7 @@ export async function updateStoreInfoAction(values: z.input<typeof storeInfoSche
       sellerTaxOffice: blank(v.sellerTaxOffice),
       sellerTaxNumber: blank(v.sellerTaxNumber),
       sellerMersisNo: blank(v.sellerMersisNo),
+      sellerKepAddress: blank(v.sellerKepAddress),
       sellerAddress: blank(v.sellerAddress),
       paymentTimeoutMinutes: Number(v.paymentTimeoutMinutes),
       returnWindowDays: Number(v.returnWindowDays),
@@ -79,7 +80,7 @@ export async function updateStoreInfoAction(values: z.input<typeof storeInfoSche
   );
 }
 
-const LEGAL = z.enum(["PRE_INFORMATION", "DISTANCE_SALES", "KVKK_NOTICE"]);
+const LEGAL = z.enum(["PRE_INFORMATION", "DISTANCE_SALES", "KVKK_NOTICE", "COOKIE_POLICY"]);
 
 export async function saveLegalAction(type: string, values: z.input<typeof legalSchema>): Promise<ActionResult> {
   const t = LEGAL.safeParse(type);

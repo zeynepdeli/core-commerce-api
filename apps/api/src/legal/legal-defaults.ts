@@ -76,4 +76,29 @@ Veri sorumlusu {{SATICI_UNVAN}} olarak; ad-soyad, iletişim, adres ve sipariş b
 
 Kanun'un 11. maddesi kapsamındaki haklarınız için {{SATICI_EPOSTA}} adresine başvurabilirsiniz.`,
   },
+  COOKIE_POLICY: {
+    title: 'Çerez Politikası',
+    content: `ÇEREZ POLİTİKASI
+
+Bu politika, {{SATICI_UNVAN}} ("Mağaza") internet sitesinde kullanılan çerezleri açıklar.
+
+1. ÇEREZ NEDİR?
+Çerez, siteyi ziyaret ettiğinizde tarayıcınız aracılığıyla cihazınıza kaydedilen küçük bir metin dosyasıdır.
+
+2. KULLANDIĞIMIZ ÇEREZLER
+Sitemizde yalnızca sitenin çalışması için zorunlu çerezler kullanılır:
+- Oturum çerezi: Üye girişinizin açık kalması için.
+- Sepet çerezi: Sepetinize eklediğiniz ürünlerin hatırlanması için.
+- Güvenlik çerezleri: Sahte isteklere ve kötüye kullanıma karşı koruma için.
+
+Bu çerezler, açıkça talep ettiğiniz hizmetin (alışveriş) sunulabilmesi için kesinlikle gereklidir; bu nedenle açık rızanıza tabi değildir.
+
+Sitemizde şu anda analitik, reklam veya pazarlama amaçlı çerez KULLANILMAMAKTADIR. Bu tür çerezler kullanılmaya başlanırsa, cihazınıza yerleştirilmeden önce açık rızanız alınacak ve tercihlerinizi dilediğiniz zaman değiştirebileceğiniz bir seçenek sunulacaktır.
+
+3. ÇEREZLERİ NASIL YÖNETEBİLİRSİNİZ?
+Tarayıcınızın ayarlarından çerezleri silebilir veya engelleyebilirsiniz. Zorunlu çerezleri engellerseniz üye girişi ve sepet gibi özellikler çalışmayabilir.
+
+4. HAKLARINIZ
+6698 sayılı Kanun'un 11. maddesi kapsamındaki haklarınız için {{SATICI_EPOSTA}} adresine veya {{SATICI_KEP}} KEP adresine başvurabilirsiniz. Ayrıntılar için KVKK Aydınlatma Metni'ni inceleyiniz.`,
+  },
 };

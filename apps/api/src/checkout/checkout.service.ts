@@ -274,7 +274,7 @@ export class CheckoutService {
     date: Date;
     orderNumber?: string;
   }) {
-    const [docs, s] = await Promise.all([this.legal.all(), this.settings.seller()]);
+    const [docs, s] = await Promise.all([this.legal.checkoutDocuments(), this.settings.seller()]);
     const b = data.billing;
     const values: Record<Placeholder, string> = {
       SATICI_UNVAN: s.sellerName ?? '',
@@ -284,6 +284,7 @@ export class CheckoutService {
       SATICI_VERGI_DAIRESI: s.sellerTaxOffice ?? '',
       SATICI_VERGI_NO: s.sellerTaxNumber ?? '',
       SATICI_MERSIS: s.sellerMersisNo ?? '',
+      SATICI_KEP: s.sellerKepAddress ?? '',
       ALICI_AD: data.buyerName,
       ALICI_EPOSTA: data.email,
       ALICI_TELEFON: data.phone,

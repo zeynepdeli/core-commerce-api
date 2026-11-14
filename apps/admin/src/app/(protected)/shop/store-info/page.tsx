@@ -16,6 +16,7 @@ export default async function StoreInfoPage() {
           sellerTaxOffice: s.sellerTaxOffice ?? "",
           sellerTaxNumber: s.sellerTaxNumber ?? "",
           sellerMersisNo: s.sellerMersisNo ?? "",
+          sellerKepAddress: s.sellerKepAddress ?? "",
           sellerAddress: s.sellerAddress ?? "",
           paymentTimeoutMinutes: String(s.paymentTimeoutMinutes),
           returnWindowDays: String(s.returnWindowDays),

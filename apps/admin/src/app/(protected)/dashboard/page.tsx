@@ -149,7 +149,7 @@ export default async function DashboardPage() {
         <Tile href="/shop/shipping" icon={Truck} title="Kargo Ayarları" description="Kargo ücreti, ücretsiz kargo eşiği, en düşük sipariş" />
         <Tile href="/marketing" icon={Megaphone} title="Pazarlama" description="Stok bildirimi, sepet hatırlatma, Google akışı" />
         <Tile href="/shop/store-info" icon={Store} title="Mağaza Bilgileri" description="Satıcı unvanı, vergi bilgileri, ödeme süresi" />
-        <Tile href="/shop/legal" icon={Scale} title="Yasal Metinler" description="Ön bilgilendirme, mesafeli satış, KVKK" />
+        <Tile href="/shop/legal" icon={Scale} title="Yasal Metinler" description="Ön bilgilendirme, mesafeli satış, KVKK, çerez politikası" />
       </Section>
 
       <Section icon={Users} title="Hesaplar">
