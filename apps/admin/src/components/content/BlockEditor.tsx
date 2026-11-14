@@ -38,6 +38,11 @@ function Text({ label, name, register, max, area: isArea, placeholder, hint }: {
 /** Slayt süresi seçenekleri (saniye). API sınırıyla aynı: 3–15 (apps/api/src/content/content.dto.ts → HERO_INTERVAL) */
 const HERO_INTERVALS = [3, 4, 5, 6, 7, 8, 10, 12, 15] as const;
 const HERO_INTERVAL_DEFAULT = 5;
+/** Ürün listesinde kartların kaynağı: elle girilen kartlar ya da ürünler */
+const CARD_MODES = [
+  { custom: true, title: "Kendi kartlarım", text: "Fotoğraf, isim, fiyat ve bağlantıyı ben girerim (eski sitedeki gibi)." },
+  { custom: false, title: "Ürünlerimden otomatik", text: "Öne çıkan, çok satan, en yeni ya da seçtiğim ürünler; fiyat ve stok hep güncel." },
+] as const;
 /** API sınırıyla aynı (MAX_CUSTOM_CARDS) */
 const MAX_CUSTOM_CARDS = 12;
 const LINK_HINT = "/ ile başlayan site içi adres (ör. /kategori/peynir) veya https:// adresi.";
@@ -309,24 +314,50 @@ function ProductListFields({
     setSearching(false);
   }
 
+  const custom = source === "custom";
+  // Kendi kartlarımdan ürünlere dönünce son seçilen ürün kaynağı geri gelsin
+  const [productSource, setProductSource] = useState<string>(custom ? "featured" : source);
+
   return (
     <AreaCard title="Ürün Listesi">
       <div className="grid gap-5">
+        {/* En önemli seçim en üstte ve görünür: kartları kim dolduruyor? */}
+        <fieldset className="grid gap-3">
+          <legend className="mb-2 text-sm font-semibold">Kartlar nereden gelsin?</legend>
+          <div className="grid gap-3 @xl:grid-cols-2">
+            {CARD_MODES.map((o) => (
+              <label
+                key={o.title}
+                className={`flex cursor-pointer gap-3 rounded-2xl border-2 p-4 transition ${custom === o.custom ? "border-(--brand-accent) bg-(--brand-accent)/5" : "border-border hover:border-(--brand-accent)/40"}`}
+              >
+                <input type="radio" name="card-mode" checked={custom === o.custom} onChange={() => setValue("source", o.custom ? "custom" : productSource)} className="mt-1 size-4 shrink-0" />
+                <span>
+                  <span className="block font-semibold">{o.title}</span>
+                  <span className="mt-0.5 block text-sm text-muted-foreground">{o.text}</span>
+                </span>
+              </label>
+            ))}
+          </div>
+        </fieldset>
+
+        {custom && <CustomCardsFields control={control} register={register} mediaBaseUrl={mediaBaseUrl} />}
+
         <div className="grid gap-5 @xl:grid-cols-2">
           <Text label="Başlık" name="title" register={register} max={80} placeholder="Çok satanlar" />
           <Text label="Alt başlık" name="subtitle" register={register} max={200} />
-          <label className="flex flex-col gap-2 text-sm font-medium">
-            Hangi ürünler
-            <select {...register("source")} className={input}>
+          {!custom && (
+            <label className="flex flex-col gap-2 text-sm font-medium">
+              Hangi ürünler
+              <select {...register("source", { onChange: (e) => setProductSource(e.target.value) })} className={input}>
               <option value="featured">Öne çıkan ürünler</option>
               <option value="new">En yeniler</option>
               <option value="bestsellers">Çok satanlar (son 30 gün)</option>
               <option value="rating">En beğenilenler (puan)</option>
               <option value="category">Bir kategoriden</option>
               <option value="manual">Elle seçilen ürünler</option>
-              <option value="custom">Kendi kartlarım (fotoğraf, isim, fiyatı ben girerim)</option>
-            </select>
-          </label>
+              </select>
+            </label>
+          )}
           {source !== "custom" && (
             <label className="flex flex-col gap-2 text-sm font-medium">
               Kaç ürün
@@ -362,7 +393,7 @@ function ProductListFields({
         </div>
         {source === "featured" && (
           <p className="rounded-xl bg-surface-muted p-3 text-sm text-muted-foreground">
-            Ürünler sayfasında <strong>&quot;Öne çıkan ürün&quot;</strong> işaretli ürünler gösterilir. Hiçbiri işaretli değilse en yeni ürünler gösterilir. Kartları tek tek seçmek için &quot;Elle seçilenler&quot;i kullanın.
+            Ürünler sayfasında <strong>&quot;Öne çıkan ürün&quot;</strong> işaretli ürünler gösterilir. Hiçbiri işaretli değilse en yeni ürünler gösterilir. Fotoğraf, isim ve fiyatı kendin girmek için yukarıdan &quot;Kendi kartlarım&quot;ı seç.
           </p>
         )}
         {source === "bestsellers" && (
@@ -425,7 +456,6 @@ function ProductListFields({
             )}
           </div>
         )}
-        {source === "custom" && <CustomCardsFields control={control} register={register} mediaBaseUrl={mediaBaseUrl} />}
       </div>
     </AreaCard>
   );
@@ -439,6 +469,9 @@ function CustomCardsFields({ control, register, mediaBaseUrl }: { control: Contr
       <p className="rounded-xl bg-surface-muted p-3 text-sm text-muted-foreground">
         Kartlar ürünlerden bağımsızdır: yazdığın fiyat gösterilir. Fiyat değişince buradan da güncellemeyi unutma. Kartı ürün sayfasına bağlamak için bağlantıya ürünün adresini yaz (ör. /urun/antep-fistikli-helva).
       </p>
+      {fields.length === 0 && (
+        <p className="rounded-2xl border-2 border-dashed border-border p-6 text-center text-sm text-muted-foreground">Henüz kart yok. Aşağıdaki &quot;Kart ekle&quot; ile fotoğraf, isim ve fiyatla ilk kartını ekle.</p>
+      )}
       {fields.map((f, i) => (
         <fieldset key={f.id} className="grid gap-4 rounded-2xl border border-border p-4">
           <legend className="px-1 text-sm font-semibold">{i + 1}. kart</legend>
