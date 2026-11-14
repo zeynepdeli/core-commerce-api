@@ -10,7 +10,7 @@ import { getMediaBaseUrl } from "@/lib/media-base-url";
 import { getAdminCategories } from "@/lib/shop";
 
 const DEFAULTS: Record<string, Record<string, unknown>> = {
-  HERO: { slides: [{ imageUrl: "" }], autoplay: true },
+  HERO: { slides: [{ imageUrl: "" }], autoplay: true, intervalSeconds: 5 },
   PRODUCT_LIST: { source: "featured", limit: 8, productIds: [] },
   CATEGORY_GRID: { categoryIds: [] },
   BANNER: { imageUrl: "" },
