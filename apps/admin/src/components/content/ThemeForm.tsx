@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useState } from "react";
 import { useForm } from "react-hook-form";
 import { CheckCircle2, Loader2 } from "lucide-react";
@@ -7,7 +8,6 @@ import { CheckCircle2, Loader2 } from "lucide-react";
 import { saveSiteAction } from "@/app/actions/content";
 import { AreaCard } from "@/components/areas/AreaShell";
 import { FormField } from "@/components/forms/FormField";
-import { FormTextarea } from "@/components/forms/FormTextarea";
 import { ImageUploadField } from "@/components/forms/ImageUploadField";
 import { Button } from "@/components/ui/button";
 
@@ -27,14 +27,8 @@ type Values = {
   ogImageUrl: string;
   announcementText: string;
   announcementLink: string;
-  contactEmail: string;
-  contactPhone: string;
-  contactWhatsapp: string;
-  contactAddress: string;
-  workingHours: string;
   metaTitle: string;
   metaDescription: string;
-  social: Record<string, string>;
 };
 
 const COLORS: { name: keyof Values; label: string }[] = [
@@ -43,10 +37,9 @@ const COLORS: { name: keyof Values; label: string }[] = [
   { name: "backgroundColor", label: "Zemin" },
   { name: "textColor", label: "Metin" },
 ];
-const SOCIAL_LABEL: Record<string, string> = { instagram: "Instagram", facebook: "Facebook", x: "X (Twitter)", youtube: "YouTube", tiktok: "TikTok", pinterest: "Pinterest", linkedin: "LinkedIn" };
 const select = "min-h-11 w-full rounded-xl border border-border bg-surface px-3 text-sm";
 
-export function ThemeForm({ initial, fonts, networks, mediaBaseUrl }: { initial: Values; fonts: string[]; networks: string[]; mediaBaseUrl: string }) {
+export function ThemeForm({ initial, fonts, mediaBaseUrl }: { initial: Values; fonts: string[]; mediaBaseUrl: string }) {
   const { register, control, handleSubmit, watch, setValue, formState } = useForm<Values>({ defaultValues: initial });
   const [error, setError] = useState<string | null>(null);
   const [done, setDone] = useState(false);
@@ -54,10 +47,9 @@ export function ThemeForm({ initial, fonts, networks, mediaBaseUrl }: { initial:
   async function submit(v: Values) {
     setError(null);
     setDone(false);
-    const { social, ...rest } = v;
     // Logo/favicon boş bırakılırsa mevcut değer korunur
-    const body: Record<string, unknown> = { ...rest, socialLinks: social };
-    for (const k of ["logoUrl", "faviconUrl"] as const) if (!rest[k]) delete body[k];
+    const body: Record<string, unknown> = { ...v };
+    for (const k of ["logoUrl", "faviconUrl"] as const) if (!v[k]) delete body[k];
     const r = await saveSiteAction(body);
     if (!r.success) return setError(r.error);
     setDone(true);
@@ -135,25 +127,13 @@ export function ThemeForm({ initial, fonts, networks, mediaBaseUrl }: { initial:
         </div>
       </AreaCard>
 
-      <AreaCard title="İletişim ve Sosyal Medya">
-        <div className="grid gap-5 @xl:grid-cols-2">
-          <FormField name="contactEmail" label="E-posta" register={register} />
-          <FormField name="contactPhone" label="Telefon" register={register} />
-          <FormField name="contactWhatsapp" label="WhatsApp (ülke koduyla)" placeholder="905321234567" register={register} />
-          <FormField name="workingHours" label="Çalışma saatleri" placeholder="Hafta içi 09:00–18:00" register={register} />
-        </div>
-        <div className="mt-5">
-          <FormTextarea name="contactAddress" label="Adres" rows={2} register={register} />
-        </div>
-        <div className="mt-5 grid gap-5 @xl:grid-cols-2">
-          {networks.map((n) => (
-            <label key={n} className="flex flex-col gap-2 text-sm font-medium">
-              {SOCIAL_LABEL[n] ?? n}
-              <input {...register(`social.${n}` as const)} placeholder={`https://www.${n === "x" ? "x" : n}.com/…`} className={select} />
-            </label>
-          ))}
-        </div>
-      </AreaCard>
+      <p className="rounded-2xl border border-border bg-surface p-4 text-sm">
+        İletişim bilgileri ve sosyal medya bağlantıları{" "}
+        <Link href="/content/footer" className="font-semibold text-(--brand-accent) hover:underline">
+          Footer
+        </Link>{" "}
+        sayfasından düzenlenir.
+      </p>
 
       <AreaCard title="Arama Motoru (SEO) Varsayılanları">
         <div className="grid gap-5 @xl:grid-cols-2">

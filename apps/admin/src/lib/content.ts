@@ -17,18 +17,30 @@ export type SiteSettings = {
   faviconUrl: string;
   announcementText: string | null;
   announcementLink: string | null;
-  contactEmail: string | null;
-  contactPhone: string | null;
-  contactWhatsapp: string | null;
-  contactAddress: string | null;
-  workingHours: string | null;
-  socialLinks: Record<string, string>;
   metaTitle: string | null;
   metaDescription: string | null;
   ogImageUrl: string | null;
 };
 
-export type ContentOptions = { fonts: string[]; blockTypes: string[]; featureIcons: string[]; socialNetworks: string[] };
+export type ContentOptions = { fonts: string[]; blockTypes: string[]; featureIcons: string[]; footerIcons: string[]; maxFooterLinks: number };
+export type FooterSettings = {
+  description: string | null;
+  socialLinks: { icon: string; label: string; url: string }[];
+  pagesTitle: string;
+  contactTitle: string;
+  showCampaign: boolean;
+  campaignTitle: string;
+  campaignText: string | null;
+  campaignButtonLabel: string;
+  campaignButtonLink: string;
+  copyrightText: string | null;
+  contactEmail: string | null;
+  contactPhone: string | null;
+  contactWhatsapp: string | null;
+  contactAddress: string | null;
+  workingHours: string | null;
+  pages: { id: string; title: string; slug: string; isPublished: boolean; showInFooter: boolean }[];
+};
 export type Block = { id: string; key: string; data: { type: string; [k: string]: unknown }; order: number; isActive: boolean; updatedAt: string };
 export type PageRow = { id: string; slug: string; title: string; isPublished: boolean; showInFooter: boolean; order: number; updatedAt: string };
 export type PageDetail = PageRow & { body: string; metaTitle: string | null; metaDescription: string | null };
@@ -41,6 +53,7 @@ async function json<T>(path: string, what: string): Promise<T> {
 }
 
 export const getSite = () => json<SiteSettings>("/admin/content/site", "Görünüm");
+export const getFooter = () => json<FooterSettings>("/admin/content/footer", "Footer");
 export const getContentOptions = () => json<ContentOptions>("/admin/content/options", "Seçenekler");
 export const getBlocks = () => json<Block[]>("/admin/content/home", "Ana sayfa");
 export const getPages = () => json<PageRow[]>("/admin/content/pages", "Sayfalar");

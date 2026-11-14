@@ -9,10 +9,9 @@ export default async function ThemePage() {
   const [s, o] = await Promise.all([getSite(), getContentOptions()]);
   const str = (v: string | null) => v ?? "";
   return (
-    <AreaShell icon={Palette} title="Görünüm" description="Mağaza sitesinin renkleri, yazı tipleri, logosu, duyuru şeridi ve iletişim bilgileri." back={{ href: "/dashboard", label: "Dashboard" }}>
+    <AreaShell icon={Palette} title="Görünüm" description="Mağaza sitesinin renkleri, yazı tipleri, logosu, duyuru şeridi ve arama motoru ayarları." back={{ href: "/dashboard", label: "Dashboard" }}>
       <ThemeForm
         fonts={o.fonts}
-        networks={o.socialNetworks}
         mediaBaseUrl={getMediaBaseUrl()}
         initial={{
           siteName: s.siteName,
@@ -30,14 +29,8 @@ export default async function ThemePage() {
           ogImageUrl: str(s.ogImageUrl),
           announcementText: str(s.announcementText),
           announcementLink: str(s.announcementLink),
-          contactEmail: str(s.contactEmail),
-          contactPhone: str(s.contactPhone),
-          contactWhatsapp: str(s.contactWhatsapp),
-          contactAddress: str(s.contactAddress),
-          workingHours: str(s.workingHours),
           metaTitle: str(s.metaTitle),
           metaDescription: str(s.metaDescription),
-          social: Object.fromEntries(o.socialNetworks.map((n) => [n, s.socialLinks[n] ?? ""])),
         }}
       />
     </AreaShell>
