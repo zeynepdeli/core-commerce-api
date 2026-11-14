@@ -1,20 +1,27 @@
 import Link from "next/link";
-import { ArrowUpDown, BarChart3, CircleHelp, Clock, FilePlus2, FileText, FolderTree, GalleryHorizontal, Grid3x3, Image as ImageIcon, Images, Info, LayoutDashboard, LayoutTemplate, ListOrdered, Megaphone, MessageSquareText, Package, PackageCheck, PanelBottom, Phone, Plus, RotateCcw, Scale, ShieldCheck, ShoppingBag, ShoppingBasket, Sparkles, Store, TicketPercent, Truck, Type, UserCog, Users } from "lucide-react";
+import { ArrowUpDown, BarChart3, ChevronRight, CircleHelp, Clock, FilePlus2, FileText, FolderTree, GalleryHorizontal, Grid3x3, Image as ImageIcon, Images, Info, LayoutDashboard, LayoutTemplate, Megaphone, MessageSquareText, Package, PackageCheck, PackagePlus, Palette, PanelBottom, Phone, Plus, RotateCcw, Scale, ShieldCheck, ShoppingBag, ShoppingBasket, Sparkles, Store, TicketPercent, Truck, Type, UserCog, Users } from "lucide-react";
 
 import { AreaHeader } from "@/components/areas/AreaShell";
+import { Delta } from "@/components/reports/Delta";
 import { getAdminUser } from "@/lib/auth";
 import { BLOCK_LABEL, blockTitle, getBlocks, getPages } from "@/lib/content";
 import { getOrders } from "@/lib/orders";
 import { getReturns } from "@/lib/returns";
 import { getReviews } from "@/lib/reviews";
-import { getAdminProducts } from "@/lib/shop";
+import { getSalesReport } from "@/lib/reports";
+import { formatPrice, getAdminProducts } from "@/lib/shop";
 import { THEME_SECTIONS } from "@/lib/theme-sections";
 
 type Icon = React.ComponentType<{ className?: string }>;
 
-/** Pano: mağazanın her parçası ayrı bir kutu (gruplama yok); her biri kendi ekranında düzenlenir */
+const TZ = "Europe/Istanbul";
+const iso = (d: Date) => new Intl.DateTimeFormat("en-CA", { timeZone: TZ, year: "numeric", month: "2-digit", day: "2-digit" }).format(d);
+const daysAgo = (date: string, days: number) => new Date(Date.parse(`${date}T00:00:00Z`) - days * 86_400_000).toISOString().slice(0, 10);
+
+/** Pano: bölüm bölüm (istatistikler en üstte); her parça kendi kutusu, kendi ekranında düzenlenir */
 export default async function DashboardPage() {
-  const [user, products, lowStock, orders, returns, reviews, pages, blocks] = await Promise.all([
+  const today = iso(new Date());
+  const [user, products, lowStock, orders, returns, reviews, pages, blocks, sales] = await Promise.all([
     getAdminUser(),
     getAdminProducts({}),
     getAdminProducts({ status: "low-stock" }),
@@ -23,13 +30,16 @@ export default async function DashboardPage() {
     getReviews({ status: "PENDING" }),
     getPages().catch(() => []),
     getBlocks().catch(() => []),
+    // İstatistikler yüklenemezse pano yine açılır
+    getSalesReport({ from: daysAgo(today, 29), to: today }).catch(() => ({ error: "Rapor yüklenemedi." })),
   ]);
   const openReturns = (returns.counts.REQUESTED ?? 0) + (returns.counts.APPROVED ?? 0) + (returns.counts.RECEIVED ?? 0);
   const c = orders.statusCounts;
   const toPrepare = (c.PAID ?? 0) + (c.PROCESSING ?? 0);
+  const report = "report" in sales ? sales.report : null;
 
   return (
-    <div className="mx-auto w-full min-w-0 max-w-[1800px] space-y-7 pb-12">
+    <div className="mx-auto w-full min-w-0 max-w-[1800px] space-y-9 pb-12">
       <AreaHeader
         icon={LayoutDashboard}
         eyebrow="Yönetim Paneli"
@@ -46,17 +56,51 @@ export default async function DashboardPage() {
         }
       />
 
-      <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5">
-        {/* Satış */}
-        <Tile
-          href="/orders"
-          icon={ShoppingBag}
-          title="Siparişler"
-          description={`${orders.total} sipariş`}
-          badge={toPrepare > 0 && <Badge tone="info">{toPrepare} hazırlanacak</Badge>}
-        />
+      <Section
+        icon={BarChart3}
+        title="İstatistikler"
+        note="Son 30 gün"
+        action={<SectionLink href="/reports">Satış raporları</SectionLink>}
+      >
+        {report ? (
+          <>
+            <Stat href="/reports?aralik=30" label="Ciro" value={formatPrice(report.summary.gross)} delta={report.change.gross} />
+            <Stat href="/reports?aralik=30" label="Sipariş" value={report.summary.orders.toLocaleString("tr-TR")} delta={report.change.orders} />
+            <Stat href="/reports?aralik=30" label="Ortalama sepet" value={formatPrice(report.summary.aov)} delta={report.change.aov} />
+            <Stat href="/reports?aralik=30" label="Satılan ürün" value={report.summary.itemsSold.toLocaleString("tr-TR")} delta={report.change.itemsSold} />
+          </>
+        ) : (
+          <p className="col-span-full rounded-2xl border border-border bg-card p-5 text-sm text-muted-foreground">İstatistikler şu an yüklenemedi.</p>
+        )}
+      </Section>
+
+      <Section icon={ShoppingBag} title="Siparişler">
+        <Tile href="/orders" icon={ShoppingBag} title="Tüm Siparişler" description={`${orders.total} sipariş`} />
         <Tile href="/orders?durum=PENDING" icon={Clock} title="Ödeme Bekleyen" description={`${c.PENDING ?? 0} sipariş`} />
-        <Tile href="/orders?durum=PAID" icon={PackageCheck} title="Hazırlanacaklar" description={`${toPrepare} sipariş (ödeme alındı / hazırlanıyor)`} />
+        <Tile
+          href="/orders?durum=PAID"
+          icon={PackageCheck}
+          title="Hazırlanacaklar"
+          description="Ödemesi alınmış, kargoya verilecek"
+          badge={toPrepare > 0 && <Badge tone="info">{toPrepare}</Badge>}
+        />
+        <Tile
+          href="/returns"
+          icon={RotateCcw}
+          title="İade Talepleri"
+          description={`${openReturns} açık talep`}
+          badge={(returns.counts.REQUESTED ?? 0) > 0 && <Badge tone="warning">{returns.counts.REQUESTED} yeni</Badge>}
+        />
+        <Tile
+          href="/reviews"
+          icon={MessageSquareText}
+          title="Yorumlar ve Favoriler"
+          description="Onay, yanıt, en çok favorilenen"
+          badge={reviews.total > 0 && <Badge tone="warning">{reviews.total} onay bekliyor</Badge>}
+        />
+      </Section>
+
+      <Section icon={Package} title="Ürünler">
         <Tile
           href="/shop/products"
           icon={Package}
@@ -64,29 +108,26 @@ export default async function DashboardPage() {
           description={`${products.total} ürün · fiyat, stok, seçenekler, görseller`}
           badge={lowStock.total > 0 && <Badge tone="danger">{lowStock.total} stok azaldı</Badge>}
         />
+        <Tile href="/shop/products/new" icon={PackagePlus} title="Yeni Ürün" description="Mağazaya ürün ekle" />
         <Tile href="/shop/categories" icon={FolderTree} title="Kategoriler" description="Kategoriler ve sıralaması" />
-        <Tile href="/users" icon={Users} title="Kullanıcılar" description="Müşteriler, yöneticiler, askıya alma, kilit açma" />
+        <Tile href="/media" icon={Images} title="Medya Kütüphanesi" description="Yüklenen tüm görseller" />
+      </Section>
 
-        {/* Görünüm */}
-        {(Object.keys(THEME_SECTIONS) as (keyof typeof THEME_SECTIONS)[]).map((key) => {
-          const t = THEME_SECTIONS[key];
-          return <Tile key={key} href={`/content/theme/${key}`} icon={t.icon} title={t.title} description={t.description} />;
-        })}
-
-        {/* Ana sayfa: her bölüm ayrı kutu */}
+      <Section icon={LayoutTemplate} title="Ana Sayfa" action={<SectionLink href="/content/home">Sırala ve bölüm ekle</SectionLink>}>
         {blocks.map((b) => (
           <Tile
             key={b.id}
             href={`/content/home/${b.id}`}
             icon={BLOCK_ICON[b.data.type] ?? LayoutTemplate}
             title={blockTitle(b.data)}
-            description={`Ana sayfa · ${BLOCK_LABEL[b.data.type] ?? b.data.type}`}
+            description={BLOCK_LABEL[b.data.type] ?? b.data.type}
             badge={!b.isActive && <Badge tone="muted">Pasif</Badge>}
           />
         ))}
         <Tile href="/content/home" icon={ArrowUpDown} title="Ana Sayfa Düzeni" description="Bölümleri sırala, yeni bölüm ekle (slider, ürün listesi, banner…)" />
+      </Section>
 
-        {/* Bilgi sayfaları: her sayfa ayrı kutu */}
+      <Section icon={FileText} title="Sayfalar" action={<SectionLink href="/content/pages">Sıralama ve tüm sayfalar</SectionLink>}>
         {pages.map((p) => (
           <Tile
             key={p.id}
@@ -97,39 +138,68 @@ export default async function DashboardPage() {
             badge={!p.isPublished && <Badge tone="muted">Taslak</Badge>}
           />
         ))}
-        <Tile href="/content/pages/new" icon={FilePlus2} title="Yeni Sayfa" description="Kampanya, bilgi veya hikâye sayfası ekle" />
-        <Tile href="/content/pages" icon={ListOrdered} title="Sayfa Sıralaması" description="Tüm sayfalar ve sıraları" />
-
-        <Tile href="/content/footer" icon={PanelBottom} title="Footer" description="Sosyal medya, iletişim, kampanya kutusu" />
         <Tile href="/content/faq" icon={CircleHelp} title="S.S.S." description="Sıkça sorulan sorular" />
-        <Tile href="/media" icon={Images} title="Medya Kütüphanesi" description="Yüklenen tüm görseller" />
+        <Tile href="/content/pages/new" icon={FilePlus2} title="Yeni Sayfa" description="Kampanya, bilgi veya hikâye sayfası ekle" />
+      </Section>
 
-        {/* Müşteri ve satış sonrası */}
-        <Tile
-          href="/reviews"
-          icon={MessageSquareText}
-          title="Yorumlar ve Favoriler"
-          description="Onay, yanıt, en çok favorilenen"
-          badge={reviews.total > 0 && <Badge tone="warning">{reviews.total} onay bekliyor</Badge>}
-        />
-        <Tile
-          href="/returns"
-          icon={RotateCcw}
-          title="İade Talepleri"
-          description={`${openReturns} açık talep`}
-          badge={(returns.counts.REQUESTED ?? 0) > 0 && <Badge tone="warning">{returns.counts.REQUESTED} yeni</Badge>}
-        />
-        <Tile href="/reports" icon={BarChart3} title="Satış Raporları" description="Ciro, en çok satanlar, kuponlar, CSV" />
-        <Tile href="/marketing" icon={Megaphone} title="Pazarlama" description="Stok bildirimi, sepet hatırlatma, Google akışı" />
+      <Section icon={Palette} title="Görünüm">
+        {(Object.keys(THEME_SECTIONS) as (keyof typeof THEME_SECTIONS)[]).map((key) => {
+          const t = THEME_SECTIONS[key];
+          return <Tile key={key} href={`/content/theme/${key}`} icon={t.icon} title={t.title} description={t.description} />;
+        })}
+        <Tile href="/content/footer" icon={PanelBottom} title="Footer" description="Sosyal medya, iletişim, kampanya kutusu" />
+      </Section>
 
-        {/* Satış ayarları */}
+      <Section icon={TicketPercent} title="Satış ve Pazarlama">
         <Tile href="/shop/coupons" icon={TicketPercent} title="Kuponlar" description="İndirim kodları ve kullanım sınırları" />
         <Tile href="/shop/shipping" icon={Truck} title="Kargo Ayarları" description="Kargo ücreti, ücretsiz kargo eşiği, en düşük sipariş" />
+        <Tile href="/marketing" icon={Megaphone} title="Pazarlama" description="Stok bildirimi, sepet hatırlatma, Google akışı" />
         <Tile href="/shop/store-info" icon={Store} title="Mağaza Bilgileri" description="Satıcı unvanı, vergi bilgileri, ödeme süresi" />
         <Tile href="/shop/legal" icon={Scale} title="Yasal Metinler" description="Ön bilgilendirme, mesafeli satış, KVKK" />
+      </Section>
+
+      <Section icon={Users} title="Hesaplar">
+        <Tile href="/users" icon={Users} title="Kullanıcılar" description="Müşteriler, yöneticiler, askıya alma, kilit açma" />
         <Tile href="/account" icon={UserCog} title="Hesabım" description="Şifre değiştirme" />
-      </div>
+      </Section>
     </div>
+  );
+}
+
+function Section({ icon: SectionIcon, title, note, action, children }: { icon: Icon; title: string; note?: string; action?: React.ReactNode; children: React.ReactNode }) {
+  return (
+    <section className="space-y-4">
+      <header className="flex flex-wrap items-end justify-between gap-3 border-b border-border pb-3">
+        <h2 className="brand-heading flex flex-wrap items-baseline gap-2 text-2xl font-bold tracking-tight text-(--brand-primary)">
+          <SectionIcon className="size-5 self-center" />
+          {title}
+          {note && <span className="text-sm font-medium text-muted-foreground">{note}</span>}
+        </h2>
+        {action}
+      </header>
+      <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5">{children}</div>
+    </section>
+  );
+}
+
+function SectionLink({ href, children }: { href: string; children: React.ReactNode }) {
+  return (
+    <Link href={href} className="inline-flex items-center gap-1 text-xs font-semibold text-(--brand-accent) hover:underline">
+      {children} <ChevronRight className="size-4" />
+    </Link>
+  );
+}
+
+/** İstatistik kartı: rapora götürür */
+function Stat({ href, label, value, delta }: { href: string; label: string; value: string; delta: number | null }) {
+  return (
+    <Link href={href} className="rounded-2xl border border-border bg-card p-5 shadow-sm transition hover:-translate-y-0.5 hover:border-(--brand-accent)/40 hover:shadow-md">
+      <span className="block text-xs font-semibold uppercase tracking-[0.14em] text-muted-foreground">{label}</span>
+      <span className="mt-2 block text-3xl font-bold tracking-tight text-(--brand-primary) tabular-nums">{value}</span>
+      <span className="mt-1 block min-h-4">
+        <Delta value={delta} />
+      </span>
+    </Link>
   );
 }
 
