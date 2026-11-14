@@ -799,6 +799,9 @@ model SiteTheme {
 
   cardTextureUrl String?
 
+  // Tasarım görselleri: { "footerBackground": "/media/…", … }. İzinli adlar: content/site-images.ts
+  siteImages Json @default("{}")
+
   fontHeading String @default("Playfair Display")
   fontBody    String @default("Inter")
 

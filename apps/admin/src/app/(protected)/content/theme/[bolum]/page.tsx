@@ -4,7 +4,7 @@ import { AreaShell } from "@/components/areas/AreaShell";
 import { ThemeForm } from "@/components/content/ThemeForm";
 import { getContentOptions, getSite } from "@/lib/content";
 import { getMediaBaseUrl } from "@/lib/media-base-url";
-import { isThemeSection, THEME_SECTIONS } from "@/lib/theme-sections";
+import { isThemeSection, SITE_IMAGE_SLOTS, THEME_SECTIONS, type ThemeValues } from "@/lib/theme-sections";
 
 export default async function ThemeSectionPage({ params }: { params: Promise<{ bolum: string }> }) {
   const { bolum } = await params;
@@ -21,6 +21,7 @@ export default async function ThemeSectionPage({ params }: { params: Promise<{ b
         fonts={o.fonts}
         maxHeaderLinks={o.maxHeaderLinks}
         mediaBaseUrl={getMediaBaseUrl()}
+        storefrontUrl={(process.env.STOREFRONT_URL ?? "").replace(/\/$/, "")}
         initial={{
           siteName: s.siteName,
           primaryColor: s.primaryColor,
@@ -34,6 +35,7 @@ export default async function ThemeSectionPage({ params }: { params: Promise<{ b
           backgroundImageUrl: str(s.backgroundImageUrl),
           backgroundImageFit: s.backgroundImageFit,
           cardTextureUrl: str(s.cardTextureUrl),
+          siteImages: Object.fromEntries(SITE_IMAGE_SLOTS.map((slot) => [slot, s.siteImages[slot] ?? ""])) as ThemeValues["siteImages"],
           ogImageUrl: str(s.ogImageUrl),
           announcementText: str(s.announcementText),
           announcementLink: str(s.announcementLink),

@@ -10,6 +10,7 @@ import { PrismaService } from '../prisma/prisma.service.js';
 import { type BlockData, type ProductListBlockDto, type SaveBlockDto, type SaveFaqDto, type SavePageDto, type UpdateFooterDto, type UpdateSiteDto } from './content.dto.js';
 import { normalizeFooterLink, parseFooterLinks } from './footer-links.js';
 import { parseHeaderLinks } from './header-links.js';
+import { mergeSiteImages, parseSiteImages } from './site-images.js';
 
 const HOME = 'home';
 const CACHE_MS = 60_000;
@@ -83,18 +84,20 @@ export class ContentService {
   }
 
   async adminSite() {
-    const { id: _id, updatedAt: _u, headerLinks, ...t } = await this.theme();
-    return { ...t, headerLinks: parseHeaderLinks(headerLinks) };
+    const { id: _id, updatedAt: _u, headerLinks, siteImages, ...t } = await this.theme();
+    return { ...t, headerLinks: parseHeaderLinks(headerLinks), siteImages: parseSiteImages(siteImages) };
   }
 
   async updateSite(dto: UpdateSiteDto) {
-    const { headerLinks, ...rest } = dto;
+    const { headerLinks, siteImages, ...rest } = dto;
+    const current = await this.theme();
     const data = {
       ...Object.fromEntries(Object.entries(rest).map(([k, v]) => [k, v === '' ? null : v])),
       // Yalnızca doğrulanmış iki alan yazılır (DTO örneğinin başka özelliği JSON'a girmez)
       ...(headerLinks ? { headerLinks: headerLinks.map(({ label, href }) => ({ label, href })) } : {}),
+      // Gönderilen görseller mevcutların üstüne işlenir; izinli liste dışı ad yazılamaz
+      ...(siteImages ? { siteImages: mergeSiteImages(current.siteImages, siteImages) } : {}),
     } as Prisma.SiteThemeUpdateInput;
-    await this.theme();
     await this.prisma.siteTheme.update({ where: { id: 1 }, data });
     this.invalidate();
     return this.adminSite();
@@ -180,6 +183,7 @@ export class ContentService {
         faviconUrl: t.faviconUrl,
         announcement: t.announcementText ? { text: t.announcementText, link: t.announcementLink } : null,
         headerLinks: parseHeaderLinks(t.headerLinks),
+        siteImages: parseSiteImages(t.siteImages),
         contact: { email: t.contactEmail, phone: t.contactPhone, whatsapp: t.contactWhatsapp, address: t.contactAddress, workingHours: t.workingHours },
         seo: { title: t.metaTitle ?? t.siteName, description: t.metaDescription, ogImageUrl: t.ogImageUrl },
         footerPages: pages,

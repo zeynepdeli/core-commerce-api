@@ -9,6 +9,7 @@ import {
   IsEmail,
   IsIn,
   IsInt,
+  IsObject,
   IsOptional,
   IsString,
   IsUUID,
@@ -25,6 +26,7 @@ import {
 import { HEX_COLOR_MESSAGE, HEX_COLOR_REGEX, IsImageUrl, IsSafeLink, isImageUrl, SINGLE_LINE_REGEX, SLUG_MESSAGE, SLUG_REGEX } from '../common/validators.js';
 
 import { MAX_HEADER_LABEL, MAX_HEADER_LINKS } from './header-links.js';
+import type { SiteImageSlot } from './site-images.js';
 
 const trim = ({ value }: { value: unknown }) => (typeof value === 'string' ? value.trim() : value);
 const nullable = (_: unknown, v: unknown) => v != null && v !== '';
@@ -101,6 +103,14 @@ export class HeaderLinkDto {
   @Transform(trim) @IsSafeLink() href!: string;
 }
 
+/** Her alan isteğe bağlı: gönderilmeyen değişmez, null/"" varsayılana döndürür. Bilinmeyen ad reddedilir (forbidNonWhitelisted). */
+export class SiteImagesDto implements Partial<Record<SiteImageSlot, string | null>> {
+  @ValidateIf(nullable) @IsImageUrl() footerBackground?: string | null;
+  @ValidateIf(nullable) @IsImageUrl() productBandBackground?: string | null;
+  @ValidateIf(nullable) @IsImageUrl() productPlate?: string | null;
+  @ValidateIf(nullable) @IsImageUrl() iconTexture?: string | null;
+}
+
 export class UpdateSiteDto {
   @IsOptional() @RequiredLine(80) siteName?: string;
 
@@ -118,6 +128,9 @@ export class UpdateSiteDto {
   @IsOptional() @IsIn(['cover', 'contain', 'repeat']) backgroundImageFit?: string;
   @ValidateIf(nullable) @IsImageUrl() cardTextureUrl?: string | null;
   @ValidateIf(nullable) @IsImageUrl() ogImageUrl?: string | null;
+
+  /** Tasarım görselleri (footer zemini, ürün bandı zemini, ürün tabağı, ikon dokusu) */
+  @IsOptional() @IsObject() @ValidateNested() @Type(() => SiteImagesDto) siteImages?: SiteImagesDto;
 
   @OptionalLine(160) announcementText?: string | null;
   @ValidateIf(nullable) @IsSafeLink() announcementLink?: string | null;
