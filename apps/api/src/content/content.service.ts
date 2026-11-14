@@ -9,6 +9,7 @@ import { PrismaService } from '../prisma/prisma.service.js';
 
 import { type BlockData, type ProductListBlockDto, type SaveBlockDto, type SaveFaqDto, type SavePageDto, type UpdateFooterDto, type UpdateSiteDto } from './content.dto.js';
 import { normalizeFooterLink, parseFooterLinks } from './footer-links.js';
+import { parseHeaderLinks } from './header-links.js';
 
 const HOME = 'home';
 const CACHE_MS = 60_000;
@@ -82,12 +83,17 @@ export class ContentService {
   }
 
   async adminSite() {
-    const { id: _id, updatedAt: _u, ...t } = await this.theme();
-    return t;
+    const { id: _id, updatedAt: _u, headerLinks, ...t } = await this.theme();
+    return { ...t, headerLinks: parseHeaderLinks(headerLinks) };
   }
 
   async updateSite(dto: UpdateSiteDto) {
-    const data = Object.fromEntries(Object.entries(dto).map(([k, v]) => [k, v === '' ? null : v])) as Prisma.SiteThemeUpdateInput;
+    const { headerLinks, ...rest } = dto;
+    const data = {
+      ...Object.fromEntries(Object.entries(rest).map(([k, v]) => [k, v === '' ? null : v])),
+      // Yalnızca doğrulanmış iki alan yazılır (DTO örneğinin başka özelliği JSON'a girmez)
+      ...(headerLinks ? { headerLinks: headerLinks.map(({ label, href }) => ({ label, href })) } : {}),
+    } as Prisma.SiteThemeUpdateInput;
     await this.theme();
     await this.prisma.siteTheme.update({ where: { id: 1 }, data });
     this.invalidate();
@@ -173,6 +179,7 @@ export class ContentService {
         logoUrl: t.logoUrl,
         faviconUrl: t.faviconUrl,
         announcement: t.announcementText ? { text: t.announcementText, link: t.announcementLink } : null,
+        headerLinks: parseHeaderLinks(t.headerLinks),
         contact: { email: t.contactEmail, phone: t.contactPhone, whatsapp: t.contactWhatsapp, address: t.contactAddress, workingHours: t.workingHours },
         seo: { title: t.metaTitle ?? t.siteName, description: t.metaDescription, ogImageUrl: t.ogImageUrl },
         footerPages: pages,

@@ -809,6 +809,9 @@ model SiteTheme {
   announcementText String?
   announcementLink String?
 
+  // Header menü linkleri: [{ "label": "Ürünlerimiz", "href": "/urunler" }]. Boşsa mağaza kategorileri gösterir.
+  headerLinks Json @default("[]")
+
   // İletişim (alt bilgi, İletişim sayfası, e-postalar). Admin'de Footer sayfasından düzenlenir.
   contactEmail    String?
   contactPhone    String?

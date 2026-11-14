@@ -19,6 +19,7 @@ export default async function ThemeSectionPage({ params }: { params: Promise<{ b
       <ThemeForm
         section={bolum}
         fonts={o.fonts}
+        maxHeaderLinks={o.maxHeaderLinks}
         mediaBaseUrl={getMediaBaseUrl()}
         initial={{
           siteName: s.siteName,
@@ -36,6 +37,7 @@ export default async function ThemeSectionPage({ params }: { params: Promise<{ b
           ogImageUrl: str(s.ogImageUrl),
           announcementText: str(s.announcementText),
           announcementLink: str(s.announcementLink),
+          headerLinks: s.headerLinks,
           metaTitle: str(s.metaTitle),
           metaDescription: str(s.metaDescription),
         }}
