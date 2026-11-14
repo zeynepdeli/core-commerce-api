@@ -47,7 +47,7 @@ export default async function BlockPage({ params, searchParams }: { params: Prom
   );
 
   return (
-    <AreaShell icon={LayoutTemplate} title={`${isNew ? "Yeni" : "Düzenle"}: ${BLOCK_LABEL[type]}`} description="Kaydettikten sonra mağaza ana sayfası en geç 1 dakika içinde güncellenir." back={{ href: "/content/home", label: "Ana Sayfa" }}>
+    <AreaShell icon={LayoutTemplate} title={!isNew && typeof data.title === "string" && data.title ? data.title : `${isNew ? "Yeni" : "Düzenle"}: ${BLOCK_LABEL[type]}`} description="Kaydettikten sonra mağaza ana sayfası en geç 1 dakika içinde güncellenir." back={{ href: "/content/home", label: "Ana Sayfa" }}>
       <BlockEditor
         id={block?.id ?? null}
         type={type}
