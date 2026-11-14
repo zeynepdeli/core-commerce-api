@@ -35,6 +35,9 @@ function Text({ label, name, register, max, area: isArea, placeholder, hint }: {
     </label>
   );
 }
+/** Slayt süresi seçenekleri (saniye). API sınırıyla aynı: 3–15 (apps/api/src/content/content.dto.ts → HERO_INTERVAL) */
+const HERO_INTERVALS = [3, 4, 5, 6, 7, 8, 10, 12, 15] as const;
+const HERO_INTERVAL_DEFAULT = 5;
 const LINK_HINT = "/ ile başlayan site içi adres (ör. /kategori/peynir) veya https:// adresi.";
 
 /** Boş metinleri kaldır, tarihleri ISO'ya çevir (API boş alanı "yok" sayar) */
@@ -45,7 +48,16 @@ function clean(v: unknown): unknown {
 }
 
 export function BlockEditor({ id, type, initial, initialKey, categories, productNames, icons, mediaBaseUrl }: Props) {
-  const { register, control, handleSubmit, watch, setValue, formState } = useForm<Data>({ defaultValues: { key: initialKey, ...initial, visibleFrom: toLocal(initial.visibleFrom), visibleUntil: toLocal(initial.visibleUntil) } });
+  const { register, control, handleSubmit, watch, setValue, formState } = useForm<Data>({
+    defaultValues: {
+      key: initialKey,
+      ...initial,
+      visibleFrom: toLocal(initial.visibleFrom),
+      visibleUntil: toLocal(initial.visibleUntil),
+      // Süresi kaydedilmemiş eski slider'lar mağazadaki gibi 5 sn görünsün (seçim kutusu ilk seçeneğe düşmesin)
+      ...(type === "HERO" && { intervalSeconds: String(initial.intervalSeconds ?? HERO_INTERVAL_DEFAULT) }),
+    },
+  });
   const [error, setError] = useState<string | null>(null);
   const [saved, setSaved] = useState(false);
 
@@ -55,6 +67,8 @@ export function BlockEditor({ id, type, initial, initialKey, categories, product
     const { key, ...data } = v;
     // Tek kategori varsa onay kutusu dizi yerine değer/boolean döner: her zaman diziye çevir
     if (type === "CATEGORY_GRID") data.categoryIds = (Array.isArray(data.categoryIds) ? data.categoryIds : typeof data.categoryIds === "string" ? [data.categoryIds] : []).filter((x: unknown) => typeof x === "string" && x);
+    // Seçim kutusu metin döndürür; API tam sayı bekler
+    if (type === "HERO") data.intervalSeconds = Number(data.intervalSeconds) || HERO_INTERVAL_DEFAULT;
     const body = clean({ ...data, type, visibleFrom: fromLocal(v.visibleFrom), visibleUntil: fromLocal(v.visibleUntil), ...(data.limit ? { limit: Number(data.limit) } : {}) }) as Data;
     const r = await saveBlockAction(id, { ...(key ? { key } : {}), data: body });
     if (!r.success) return setError(r.error);
@@ -186,9 +200,24 @@ function HeroFields({ control, register, mediaBaseUrl }: { control: Control<Data
             </Button>
           </div>
         )}
-        <label className="flex items-center gap-2 text-sm">
-          <input type="checkbox" {...register("autoplay")} className="size-4" /> Otomatik geçiş
-        </label>
+        <div className="flex flex-wrap items-end gap-x-8 gap-y-4">
+          <label className="flex min-h-11 items-center gap-2 text-sm">
+            <input type="checkbox" {...register("autoplay")} className="size-4" /> Otomatik geçiş
+          </label>
+          <label className="flex flex-col gap-2 text-sm font-medium">
+            Slayt süresi
+            <select {...register("intervalSeconds")} className={`${input} w-40`}>
+              {HERO_INTERVALS.map((s) => (
+                <option key={s} value={s}>
+                  {s} saniye
+                </option>
+              ))}
+            </select>
+          </label>
+        </div>
+        <p className="-mt-2 text-xs text-muted-foreground">
+          Her slaytın ekranda kalma süresi (otomatik geçiş açıkken). Ziyaretçi fareyle slaytın üstüne gelince ya da duraklat düğmesine basınca geçiş durur.
+        </p>
       </div>
     </AreaCard>
   );

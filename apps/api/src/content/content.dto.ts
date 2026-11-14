@@ -212,10 +212,18 @@ export class HeroSlideDto {
   @ValidateIf(nullable) @IsSafeLink() buttonLink?: string | null;
 }
 
+/** Slayt süresi (saniye). Çok kısa okunamaz, çok uzun "donmuş" görünür. Verilmezse mağaza 5 sn kullanır. */
+export const HERO_INTERVAL = { min: 3, max: 15, default: 5 } as const;
+
 export class HeroBlockDto extends BlockBase {
   declare type: 'HERO';
   @IsArray() @ArrayMinSize(1, { message: 'En az bir slayt ekleyin.' }) @ArrayMaxSize(5) @ValidateNested({ each: true }) @Type(() => HeroSlideDto) slides!: HeroSlideDto[];
   @IsOptional() @IsBoolean() autoplay?: boolean;
+  @IsOptional()
+  @IsInt({ message: 'Slayt süresi tam sayı (saniye) olmalı.' })
+  @Min(HERO_INTERVAL.min, { message: `Slayt süresi en az ${HERO_INTERVAL.min} saniye olmalı.` })
+  @Max(HERO_INTERVAL.max, { message: `Slayt süresi en fazla ${HERO_INTERVAL.max} saniye olabilir.` })
+  intervalSeconds?: number;
 }
 
 export class ProductListBlockDto extends BlockBase {
