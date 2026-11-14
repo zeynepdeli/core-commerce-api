@@ -174,8 +174,6 @@ export class ContentService {
         faviconUrl: t.faviconUrl,
         announcement: t.announcementText ? { text: t.announcementText, link: t.announcementLink } : null,
         contact: { email: t.contactEmail, phone: t.contactPhone, whatsapp: t.contactWhatsapp, address: t.contactAddress, workingHours: t.workingHours },
-        // ESKİ biçim ({ instagram: "https://…" }): mağaza sitesi `footer.social`a geçince kaldırılacak.
-        social: Object.fromEntries(social.filter((l) => l.icon !== 'web').map((l) => [l.icon, l.url])),
         seo: { title: t.metaTitle ?? t.siteName, description: t.metaDescription, ogImageUrl: t.ogImageUrl },
         footerPages: pages,
         footer: {
