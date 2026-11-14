@@ -184,14 +184,27 @@ function SectionLink({ href, children }: { href: string; children: React.ReactNo
   );
 }
 
+/**
+ * Kutuların fareyle yükselme efekti TİTREMESİN diye iki katman:
+ * - Bağlantı (HIT_AREA) yerinde durur → farenin "üstünde mi" alanı hiç değişmez
+ * - İçteki kutu (LIFT) yükselir ve gölgelenir
+ * Önceden bağlantının kendisi yükseliyordu: fare kutunun alt kenarındayken kutu kalkınca fare
+ * dışarıda kalıyor, kutu iniyor, fare yine içeride kalıyor… saniyede onlarca kez (titreme).
+ */
+const HIT_AREA = "group block rounded-2xl focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-(--brand-accent)";
+const LIFT =
+  "rounded-2xl border border-border bg-card shadow-sm transition group-hover:-translate-y-0.5 group-hover:border-(--brand-accent)/40 group-hover:shadow-md motion-reduce:transition-none motion-reduce:group-hover:translate-y-0";
+
 /** İstatistik kartı: rapora götürür */
 function Stat({ href, label, value, delta }: { href: string; label: string; value: string; delta: number | null }) {
   return (
-    <Link href={href} className="rounded-2xl border border-border bg-card p-5 shadow-sm transition hover:-translate-y-0.5 hover:border-(--brand-accent)/40 hover:shadow-md">
-      <span className="block text-xs font-semibold uppercase tracking-[0.14em] text-muted-foreground">{label}</span>
-      <span className="mt-2 block text-3xl font-bold tracking-tight text-(--brand-primary) tabular-nums">{value}</span>
-      <span className="mt-1 block min-h-4">
-        <Delta value={delta} />
+    <Link href={href} className={HIT_AREA}>
+      <span className={`${LIFT} block h-full p-5`}>
+        <span className="block text-xs font-semibold uppercase tracking-[0.14em] text-muted-foreground">{label}</span>
+        <span className="mt-2 block text-3xl font-bold tracking-tight text-(--brand-primary) tabular-nums">{value}</span>
+        <span className="mt-1 block min-h-4">
+          <Delta value={delta} />
+        </span>
       </span>
     </Link>
   );
@@ -243,27 +256,26 @@ function Tile({
   badge?: React.ReactNode;
 }) {
   return (
-    <Link
-      href={href}
-      className="group flex min-h-28 items-start gap-4 rounded-2xl border border-border bg-card p-5 shadow-sm transition hover:-translate-y-0.5 hover:border-(--brand-accent)/40 hover:shadow-md"
-    >
-      <span className="relative flex size-12 shrink-0 items-center justify-center rounded-full bg-(--brand-primary)/10 text-(--brand-primary) transition group-hover:bg-(--brand-primary) group-hover:text-white">
-        {number ? (
-          <span className="text-sm font-bold">{number}</span>
-        ) : (
-          <TileIcon className="size-5" />
-        )}
-      </span>
-      <span className="min-w-0">
-        <span className="flex flex-wrap items-center gap-1.5 text-base font-bold text-(--brand-primary)">
-          <span className="truncate">{title}</span>
-          {badge}
+    <Link href={href} className={HIT_AREA}>
+      <span className={`${LIFT} flex h-full min-h-28 items-start gap-4 p-5`}>
+        <span className="relative flex size-12 shrink-0 items-center justify-center rounded-full bg-(--brand-primary)/10 text-(--brand-primary) transition group-hover:bg-(--brand-primary) group-hover:text-white">
+          {number ? (
+            <span className="text-sm font-bold">{number}</span>
+          ) : (
+            <TileIcon className="size-5" />
+          )}
         </span>
-        {description && (
-          <span className="mt-1 block text-sm leading-5 text-muted-foreground">
-            {description}
+        <span className="min-w-0">
+          <span className="flex flex-wrap items-center gap-1.5 text-base font-bold text-(--brand-primary)">
+            <span className="truncate">{title}</span>
+            {badge}
           </span>
-        )}
+          {description && (
+            <span className="mt-1 block text-sm leading-5 text-muted-foreground">
+              {description}
+            </span>
+          )}
+        </span>
       </span>
     </Link>
   );
