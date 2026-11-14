@@ -501,6 +501,8 @@ model StoreSettings {
   sellerTaxOffice String?
   sellerTaxNumber String?
   sellerMersisNo String?
+  // Tebligata elverişli kayıtlı elektronik posta (e-ticaret mevzuatı)
+  sellerKepAddress String?
 
   updatedAt DateTime @updatedAt
 }
@@ -641,6 +643,7 @@ enum LegalDocumentType {
   PRE_INFORMATION // Ön Bilgilendirme Formu
   DISTANCE_SALES  // Mesafeli Satış Sözleşmesi
   KVKK_NOTICE     // KVKK Aydınlatma Metni
+  COOKIE_POLICY   // Çerez Politikası
 }
 
 // Admin'de düzenlenen şablonlar ({{ALICI_ADI}} gibi yer tutucularla)

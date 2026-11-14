@@ -41,7 +41,7 @@ export function StoreInfoForm({ initial }: { initial: Values }) {
 
   return (
     <form noValidate onSubmit={handleSubmit(submit)} className="space-y-5">
-      <AreaCard title="Satıcı Bilgileri" hint="Ön Bilgilendirme Formu ve Mesafeli Satış Sözleşmesi'nde gösterilir (yasal zorunluluk).">
+      <AreaCard title="Satıcı Bilgileri" hint="Sitenin alt kısmında, Ön Bilgilendirme Formu'nda ve Mesafeli Satış Sözleşmesi'nde gösterilir (yasal zorunluluk). Vergi numarası, MERSİS numarası girilmişse sitede gösterilmez.">
         <div className="grid gap-5 @xl:grid-cols-2">
           <FormField name="sellerName" label="Ticari Unvan" placeholder="Örnek Gıda Ltd. Şti." register={register} error={errors.sellerName} />
           <FormField name="sellerEmail" label="E-posta" register={register} error={errors.sellerEmail} />
@@ -49,6 +49,7 @@ export function StoreInfoForm({ initial }: { initial: Values }) {
           <FormField name="sellerTaxOffice" label="Vergi Dairesi" register={register} error={errors.sellerTaxOffice} />
           <FormField name="sellerTaxNumber" label="Vergi No (VKN/TCKN)" register={register} error={errors.sellerTaxNumber} />
           <FormField name="sellerMersisNo" label="MERSİS No" register={register} error={errors.sellerMersisNo} />
+          <FormField name="sellerKepAddress" label="KEP Adresi" placeholder="unvan@hs01.kep.tr" register={register} error={errors.sellerKepAddress} description="Tebligata elverişli kayıtlı elektronik posta adresi." />
         </div>
         <div className="mt-5">
           <FormTextarea name="sellerAddress" label="Adres" rows={2} register={register} error={errors.sellerAddress} />

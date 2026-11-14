@@ -20,9 +20,10 @@ export type StoreSettings = {
   sellerTaxOffice: string | null;
   sellerTaxNumber: string | null;
   sellerMersisNo: string | null;
+  sellerKepAddress: string | null;
 };
 
-export type LegalDoc = { type: "PRE_INFORMATION" | "DISTANCE_SALES" | "KVKK_NOTICE"; title: string; content: string; version: number };
+export type LegalDoc = { type: "PRE_INFORMATION" | "DISTANCE_SALES" | "KVKK_NOTICE" | "COOKIE_POLICY"; title: string; content: string; version: number };
 
 export async function getLegalDocs(): Promise<{ documents: LegalDoc[]; placeholders: string[] }> {
   const response = await adminFetch("/admin/legal");

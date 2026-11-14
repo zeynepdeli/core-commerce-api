@@ -69,6 +69,7 @@ export const storeInfoSchema = z.object({
   sellerTaxOffice: optionalLine(100),
   sellerTaxNumber: z.string().trim().regex(/^(\d{10,11})?$/, "10 veya 11 haneli olmalı."),
   sellerMersisNo: z.string().trim().regex(/^(\d{16})?$/, "16 haneli olmalı."),
+  sellerKepAddress: z.union([z.email("KEP adresi e-posta biçiminde olmalı (ör. unvan@hs01.kep.tr)."), z.literal("")]),
   sellerAddress: z.string().trim().max(500),
   paymentTimeoutMinutes: z.string().trim().regex(/^\d{2,4}$/, "10–1440 arası dakika").refine((v) => Number(v) >= 10 && Number(v) <= 1440, "10–1440 arası dakika"),
   returnWindowDays: z.string().trim().regex(/^\d{2,3}$/, "14–365 arası gün").refine((v) => Number(v) >= 14 && Number(v) <= 365, "Yasal olarak en az 14 gün"),

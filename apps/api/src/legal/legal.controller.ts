@@ -7,7 +7,7 @@ import { RolesGuard } from '../auth/guards/roles.guard.js';
 import { SINGLE_LINE_REGEX } from '../common/validators.js';
 import { StoreSettingsService } from '../store-settings/store-settings.service.js';
 
-import { LEGAL_TYPES, LegalService, PLACEHOLDERS, renderTemplate } from './legal.service.js';
+import { LEGAL_TYPES, LegalService, PLACEHOLDERS, publicSeller, renderTemplate } from './legal.service.js';
 
 class SaveLegalDto {
   @IsString()
@@ -23,6 +23,12 @@ class SaveLegalDto {
 }
 
 const TYPE = new ParseEnumPipe(Object.fromEntries(LEGAL_TYPES.map((t) => [t, t])));
+/** Herkese açık sayfada alıcıya/siparişe özel alanlar ham "{{ALICI_AD}}" olarak görünmesin */
+const ORDER_PLACEHOLDERS = Object.fromEntries(
+  PLACEHOLDERS.filter((p) => !p.startsWith('SATICI_') && p !== 'CAYMA_SURESI').map((p) => [p, '(sipariş sırasında doldurulur)']),
+);
+/** Mağaza alt bilgisindeki sıra */
+const FOOTER_ORDER = ['KVKK_NOTICE', 'COOKIE_POLICY', 'DISTANCE_SALES', 'PRE_INFORMATION'] as const satisfies readonly (typeof LEGAL_TYPES)[number][];
 
 /** Mağaza: KVKK aydınlatma metni gibi genel metinler (satıcı bilgileri doldurulmuş) */
 @Controller('shop/legal')
@@ -32,6 +38,17 @@ export class PublicLegalController {
     private readonly settings: StoreSettingsService,
   ) {}
 
+  /** Alt bilgi: yasal metin başlıkları + mevzuat gereği sitede gösterilecek satıcı bilgileri */
+  @Get()
+  async index() {
+    const [docs, s] = await Promise.all([this.legal.all(), this.settings.seller()]);
+    const titles = new Map(docs.map((d) => [d.type, d.title]));
+    return {
+      seller: publicSeller(s),
+      documents: FOOTER_ORDER.map((type) => ({ type, title: titles.get(type) ?? type })),
+    };
+  }
+
   @Get(':type')
   async get(@Param('type', TYPE) type: (typeof LEGAL_TYPES)[number]) {
     const [doc, s] = await Promise.all([this.legal.get(type), this.settings.seller()]);
@@ -40,6 +57,7 @@ export class PublicLegalController {
       title: doc.title,
       version: doc.version,
       content: renderTemplate(doc.content, {
+        ...ORDER_PLACEHOLDERS,
         SATICI_UNVAN: s.sellerName ?? '',
         SATICI_ADRES: s.sellerAddress ?? '',
         SATICI_TELEFON: s.sellerPhone ?? '',
@@ -47,6 +65,7 @@ export class PublicLegalController {
         SATICI_VERGI_DAIRESI: s.sellerTaxOffice ?? '',
         SATICI_VERGI_NO: s.sellerTaxNumber ?? '',
         SATICI_MERSIS: s.sellerMersisNo ?? '',
+        SATICI_KEP: s.sellerKepAddress ?? '',
         CAYMA_SURESI: String(s.returnWindowDays),
       }),
     };
