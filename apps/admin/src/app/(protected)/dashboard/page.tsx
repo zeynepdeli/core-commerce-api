@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { ArrowUpDown, BarChart3, ChevronRight, CircleHelp, Clock, FilePlus2, FileText, FolderTree, GalleryHorizontal, Grid3x3, Image as ImageIcon, Images, Info, LayoutDashboard, LayoutTemplate, Megaphone, MessageSquareText, Package, PackageCheck, PackagePlus, Palette, PanelBottom, Phone, Plus, RotateCcw, Scale, ShieldCheck, ShoppingBag, ShoppingBasket, Sparkles, Store, TicketPercent, Truck, Type, UserCog, Users } from "lucide-react";
+import { ArrowUpDown, BarChart3, ChevronRight, CircleHelp, Clock, FilePlus2, FileText, FolderTree, GalleryHorizontal, Grid3x3, Image as ImageIcon, Images, Info, LayoutDashboard, LayoutTemplate, Megaphone, MessageSquareText, Package, PackageCheck, PanelBottom, Phone, Plus, RotateCcw, Scale, Search, ShieldCheck, ShoppingBag, ShoppingBasket, Sparkles, Store, TicketPercent, Truck, Type, UserCog, Users } from "lucide-react";
 
 import { AreaHeader } from "@/components/areas/AreaShell";
 import { Delta } from "@/components/reports/Delta";
@@ -100,7 +100,24 @@ export default async function DashboardPage() {
         />
       </Section>
 
-      <Section icon={Package} title="Ürünler">
+      <Section icon={Search} title="Google'da Görünürlük" note="Arama sonuçları ve sosyal medya paylaşımları">
+        <Tile href="/content/theme/seo" icon={Search} title="SEO Ayarları" description="Google'da görünen başlık ve açıklama, paylaşım görseli" />
+      </Section>
+
+      {/* Sitenin her parçası, sitedeki sırasıyla: üst → ana sayfa → katalog → bilgi sayfaları → alt → genel görünüm */}
+      <Section icon={FileText} title="Sayfalar" action={<SectionLink href="/content/pages">Sıralama ve tüm sayfalar</SectionLink>}>
+        <Tile href="/content/theme/header" icon={THEME_SECTIONS.header.icon} title="Header" description={THEME_SECTIONS.header.description} />
+        {blocks.map((b) => (
+          <Tile
+            key={b.id}
+            href={`/content/home/${b.id}`}
+            icon={BLOCK_ICON[b.data.type] ?? LayoutTemplate}
+            title={blockTitle(b.data)}
+            description={`Ana sayfa · ${BLOCK_LABEL[b.data.type] ?? b.data.type}`}
+            badge={!b.isActive && <Badge tone="muted">Pasif</Badge>}
+          />
+        ))}
+        <Tile href="/content/home" icon={ArrowUpDown} title="Ana Sayfa Düzeni" description="Bölümleri sırala, yeni bölüm ekle (slider, ürün listesi, banner…)" />
         <Tile
           href="/shop/products"
           icon={Package}
@@ -108,26 +125,7 @@ export default async function DashboardPage() {
           description={`${products.total} ürün · fiyat, stok, seçenekler, görseller`}
           badge={lowStock.total > 0 && <Badge tone="danger">{lowStock.total} stok azaldı</Badge>}
         />
-        <Tile href="/shop/products/new" icon={PackagePlus} title="Yeni Ürün" description="Mağazaya ürün ekle" />
         <Tile href="/shop/categories" icon={FolderTree} title="Kategoriler" description="Kategoriler ve sıralaması" />
-        <Tile href="/media" icon={Images} title="Medya Kütüphanesi" description="Yüklenen tüm görseller" />
-      </Section>
-
-      <Section icon={LayoutTemplate} title="Ana Sayfa" action={<SectionLink href="/content/home">Sırala ve bölüm ekle</SectionLink>}>
-        {blocks.map((b) => (
-          <Tile
-            key={b.id}
-            href={`/content/home/${b.id}`}
-            icon={BLOCK_ICON[b.data.type] ?? LayoutTemplate}
-            title={blockTitle(b.data)}
-            description={BLOCK_LABEL[b.data.type] ?? b.data.type}
-            badge={!b.isActive && <Badge tone="muted">Pasif</Badge>}
-          />
-        ))}
-        <Tile href="/content/home" icon={ArrowUpDown} title="Ana Sayfa Düzeni" description="Bölümleri sırala, yeni bölüm ekle (slider, ürün listesi, banner…)" />
-      </Section>
-
-      <Section icon={FileText} title="Sayfalar" action={<SectionLink href="/content/pages">Sıralama ve tüm sayfalar</SectionLink>}>
         {pages.map((p) => (
           <Tile
             key={p.id}
@@ -139,15 +137,11 @@ export default async function DashboardPage() {
           />
         ))}
         <Tile href="/content/faq" icon={CircleHelp} title="S.S.S." description="Sıkça sorulan sorular" />
-        <Tile href="/content/pages/new" icon={FilePlus2} title="Yeni Sayfa" description="Kampanya, bilgi veya hikâye sayfası ekle" />
-      </Section>
-
-      <Section icon={Palette} title="Görünüm">
-        {(Object.keys(THEME_SECTIONS) as (keyof typeof THEME_SECTIONS)[]).map((key) => {
-          const t = THEME_SECTIONS[key];
-          return <Tile key={key} href={`/content/theme/${key}`} icon={t.icon} title={t.title} description={t.description} />;
-        })}
         <Tile href="/content/footer" icon={PanelBottom} title="Footer" description="Sosyal medya, iletişim, kampanya kutusu" />
+        <Tile href="/content/theme/renkler" icon={THEME_SECTIONS.renkler.icon} title={THEME_SECTIONS.renkler.title} description="Sitenin tamamındaki renkler ve yazı tipleri" />
+        <Tile href="/content/theme/arka-plan" icon={THEME_SECTIONS["arka-plan"].icon} title={THEME_SECTIONS["arka-plan"].title} description={THEME_SECTIONS["arka-plan"].description} />
+        <Tile href="/media" icon={Images} title="Medya Kütüphanesi" description="Yüklenen tüm görseller" />
+        <Tile href="/content/pages/new" icon={FilePlus2} title="Yeni Sayfa" description="Kampanya, bilgi veya hikâye sayfası ekle" />
       </Section>
 
       <Section icon={TicketPercent} title="Satış ve Pazarlama">
