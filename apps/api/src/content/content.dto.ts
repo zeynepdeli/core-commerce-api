@@ -240,13 +240,33 @@ export class HeroBlockDto extends BlockBase {
 }
 
 export const PRODUCT_LIST_DISPLAYS = ['band', 'hero'] as const;
+export const PRODUCT_LIST_SOURCES = ['featured', 'new', 'bestsellers', 'rating', 'category', 'manual', 'custom'] as const;
+export type ProductListSource = (typeof PRODUCT_LIST_SOURCES)[number];
+export const MAX_CUSTOM_CARDS = 12;
+
+/** "149", "149.9", "149,90" → "149.90" (Türkçe virgül kabul). En fazla 9.999.999,99 */
+const PRICE_REGEX = /^\d{1,7}(\.\d{1,2})?$/;
+const toPrice = ({ value }: { value: unknown }) => (typeof value === 'string' ? value.trim().replace(',', '.') : value);
+
+/**
+ * Elle girilen kart (eski enfesGurme'deki "featured / bestseller cards"): ürünle bağı yok,
+ * yazılanı gösterir. Fiyat isteğe bağlı; bağlantı yoksa kart tıklanmaz.
+ */
+export class CustomCardDto {
+  @RequiredLine(80) name!: string;
+  @IsImageUrl() imageUrl!: string;
+  @Transform(toPrice) @ValidateIf(nullable) @Matches(PRICE_REGEX, { message: 'Fiyat sayı olmalı (ör. 149,90).' }) price?: string | null;
+  @Transform(toPrice) @ValidateIf(nullable) @Matches(PRICE_REGEX, { message: 'Eski fiyat sayı olmalı (ör. 189,90).' }) compareAtPrice?: string | null;
+  @ValidateIf(nullable) @IsSafeLink() link?: string | null;
+  @IsOptional() @IsBoolean() soldOut?: boolean;
+}
 export type ProductListDisplay = (typeof PRODUCT_LIST_DISPLAYS)[number];
 
 export class ProductListBlockDto extends BlockBase {
   declare type: 'PRODUCT_LIST';
   @OptionalLine(80) title?: string | null;
   @OptionalLine(200) subtitle?: string | null;
-  @IsIn(['featured', 'new', 'bestsellers', 'rating', 'category', 'manual']) source!: 'featured' | 'new' | 'bestsellers' | 'rating' | 'category' | 'manual';
+  @IsIn(PRODUCT_LIST_SOURCES) source!: ProductListSource;
   @ValidateIf((o: ProductListBlockDto) => o.source === 'category') @IsUUID('all', { message: 'Kategori seçin.' }) categoryId?: string;
   @ValidateIf((o: ProductListBlockDto) => o.source === 'manual')
   @IsArray()
@@ -255,7 +275,15 @@ export class ProductListBlockDto extends BlockBase {
   @ArrayUnique()
   @IsUUID('all', { each: true })
   productIds?: string[];
-  @IsInt() @Min(1) @Max(24) limit!: number;
+  /** Elle girilen kartlarda kullanılmaz (kart sayısı = girilen kart sayısı) */
+  @ValidateIf((o: ProductListBlockDto) => o.source !== 'custom') @IsInt() @Min(1) @Max(24) limit!: number;
+  @ValidateIf((o: ProductListBlockDto) => o.source === 'custom')
+  @IsArray()
+  @ArrayMinSize(1, { message: 'En az bir kart ekleyin.' })
+  @ArrayMaxSize(MAX_CUSTOM_CARDS, { message: `En fazla ${MAX_CUSTOM_CARDS} kart eklenebilir.` })
+  @ValidateNested({ each: true })
+  @Type(() => CustomCardDto)
+  cards?: CustomCardDto[];
   @OptionalLine(30) buttonLabel?: string | null;
   @ValidateIf(nullable) @IsSafeLink() buttonLink?: string | null;
   /**
