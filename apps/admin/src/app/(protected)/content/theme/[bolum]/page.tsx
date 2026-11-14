@@ -5,6 +5,7 @@ import { ThemeForm } from "@/components/content/ThemeForm";
 import { getContentOptions, getSite } from "@/lib/content";
 import { getMediaBaseUrl } from "@/lib/media-base-url";
 import { isThemeSection, SITE_IMAGE_SLOTS, THEME_SECTIONS, type ThemeValues } from "@/lib/theme-sections";
+import { envUrl } from "@/lib/env-url";
 
 export default async function ThemeSectionPage({ params }: { params: Promise<{ bolum: string }> }) {
   const { bolum } = await params;
@@ -21,7 +22,7 @@ export default async function ThemeSectionPage({ params }: { params: Promise<{ b
         fonts={o.fonts}
         maxHeaderLinks={o.maxHeaderLinks}
         mediaBaseUrl={getMediaBaseUrl()}
-        storefrontUrl={(process.env.STOREFRONT_URL ?? "").replace(/\/$/, "")}
+        storefrontUrl={envUrl("STOREFRONT_URL")}
         initial={{
           siteName: s.siteName,
           primaryColor: s.primaryColor,
