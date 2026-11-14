@@ -1,7 +1,8 @@
 import Link from "next/link";
-import { ArrowDownRight, ArrowUpRight, BarChart3, Download, Minus } from "lucide-react";
+import { BarChart3, Download } from "lucide-react";
 
 import { AreaCard, AreaShell } from "@/components/areas/AreaShell";
+import { Delta } from "@/components/reports/Delta";
 import { RevenueChart } from "@/components/reports/RevenueChart";
 import { DATE_RE, getSalesReport } from "@/lib/reports";
 import { formatPrice } from "@/lib/shop";
@@ -24,20 +25,6 @@ function presets(today: string) {
     { key: "gecen-ay", label: "Geçen ay", from: `${prevMonthEnd.slice(0, 7)}-01`, to: prevMonthEnd },
     { key: "bu-yil", label: "Bu yıl", from: `${y}-01-01`, to: today },
   ];
-}
-
-function Delta({ value, inverse = false }: { value: number | null; inverse?: boolean }) {
-  if (value === null) return <span className="text-xs text-muted-foreground">önceki dönemde veri yok</span>;
-  const up = value > 0;
-  const good = inverse ? !up : up;
-  const Icon = value === 0 ? Minus : up ? ArrowUpRight : ArrowDownRight;
-  return (
-    <span className={`inline-flex items-center gap-0.5 text-xs font-semibold ${value === 0 ? "text-muted-foreground" : good ? "text-emerald-700" : "text-red-700"}`}>
-      <Icon className="size-3.5" aria-hidden />
-      {up ? "+" : ""}
-      {value.toLocaleString("tr-TR")}% <span className="font-normal text-muted-foreground">önceki döneme göre</span>
-    </span>
-  );
 }
 
 function Tile({ label, value, delta, note }: { label: string; value: string; delta?: React.ReactNode; note?: string }) {
