@@ -7,7 +7,8 @@ import { isUniqueViolation } from '../common/validators.js';
 import type { Prisma } from '../generated/prisma/client.js';
 import { PrismaService } from '../prisma/prisma.service.js';
 
-import { type BlockData, type ProductListBlockDto, SOCIAL_HOSTS, type SaveBlockDto, type SaveFaqDto, type SavePageDto, type UpdateSiteDto } from './content.dto.js';
+import { type BlockData, type ProductListBlockDto, type SaveBlockDto, type SaveFaqDto, type SavePageDto, type UpdateFooterDto, type UpdateSiteDto } from './content.dto.js';
+import { normalizeFooterLink, parseFooterLinks } from './footer-links.js';
 
 const HOME = 'home';
 const CACHE_MS = 60_000;
@@ -86,40 +87,76 @@ export class ContentService {
   }
 
   async updateSite(dto: UpdateSiteDto) {
-    const { socialLinks, ...rest } = dto;
-    let social: Record<string, string> | undefined;
-    if (socialLinks !== undefined) {
-      if (typeof socialLinks !== 'object' || socialLinks === null || Array.isArray(socialLinks)) throw new BadRequestException('Sosyal medya bağlantıları geçersiz.');
-      social = {};
-      for (const [network, value] of Object.entries(socialLinks)) {
-        if (!(network in SOCIAL_HOSTS)) throw new BadRequestException(`Bilinmeyen sosyal ağ: ${network.slice(0, 20)}`);
-        if (value === '' || value === null) continue;
-        let url: URL;
-        try {
-          url = new URL(String(value));
-        } catch {
-          throw new BadRequestException(`${network} bağlantısı geçersiz.`);
-        }
-        if (url.protocol !== 'https:' || url.username || url.password || !SOCIAL_HOSTS[network].includes(url.hostname) || String(value).length > 300) {
-          throw new BadRequestException(`${network} bağlantısı https://${SOCIAL_HOSTS[network][0]}/… biçiminde olmalı.`);
-        }
-        social[network] = url.toString();
-      }
-    }
-    const data = Object.fromEntries(Object.entries(rest).map(([k, v]) => [k, v === '' ? null : v])) as Prisma.SiteThemeUpdateInput;
+    const data = Object.fromEntries(Object.entries(dto).map(([k, v]) => [k, v === '' ? null : v])) as Prisma.SiteThemeUpdateInput;
     await this.theme();
-    await this.prisma.siteTheme.update({ where: { id: 1 }, data: { ...data, ...(social ? { socialLinks: social } : {}) } });
+    await this.prisma.siteTheme.update({ where: { id: 1 }, data });
     this.invalidate();
     return this.adminSite();
+  }
+
+  // ───────────── Alt bilgi (footer) ─────────────
+
+  private async footer() {
+    return (await this.prisma.siteFooter.findUnique({ where: { id: 1 } })) ?? this.prisma.siteFooter.create({ data: { id: 1 } });
+  }
+
+  async adminFooter() {
+    const [{ id: _id, updatedAt: _u, socialLinks, ...footer }, t, pages] = await Promise.all([
+      this.footer(),
+      this.theme(),
+      this.prisma.page.findMany({
+        orderBy: [{ order: 'asc' }, { title: 'asc' }],
+        select: { id: true, title: true, slug: true, isPublished: true, showInFooter: true },
+      }),
+    ]);
+    return {
+      ...footer,
+      socialLinks: parseFooterLinks(socialLinks),
+      contactEmail: t.contactEmail,
+      contactPhone: t.contactPhone,
+      contactWhatsapp: t.contactWhatsapp,
+      contactAddress: t.contactAddress,
+      workingHours: t.workingHours,
+      pages,
+    };
+  }
+
+  async updateFooter(dto: UpdateFooterDto) {
+    const { socialLinks, footerPageIds, contactEmail, contactPhone, contactWhatsapp, contactAddress, workingHours, ...rest } = dto;
+    const links = socialLinks?.map(normalizeFooterLink);
+    if (footerPageIds?.length && (await this.prisma.page.count({ where: { id: { in: footerPageIds } } })) !== footerPageIds.length) {
+      throw new BadRequestException('Sayfa bulunamadı.');
+    }
+
+    const blankToNull = <T extends object>(o: T) => Object.fromEntries(Object.entries(o).filter(([, v]) => v !== undefined).map(([k, v]) => [k, v === '' ? null : v]));
+    const footerData = { ...blankToNull(rest), ...(links ? { socialLinks: links } : {}) } as Prisma.SiteFooterUpdateInput;
+    const contactData = blankToNull({ contactEmail, contactPhone, contactWhatsapp, contactAddress, workingHours }) as Prisma.SiteThemeUpdateInput;
+
+    await Promise.all([this.footer(), this.theme()]);
+    // Tek işlem: biri başarısız olursa hiçbiri yazılmaz (yarım kaydedilmiş footer olmaz)
+    await this.prisma.$transaction([
+      this.prisma.siteFooter.update({ where: { id: 1 }, data: footerData }),
+      this.prisma.siteTheme.update({ where: { id: 1 }, data: contactData }),
+      ...(footerPageIds
+        ? [
+            this.prisma.page.updateMany({ where: { id: { in: footerPageIds } }, data: { showInFooter: true } }),
+            this.prisma.page.updateMany({ where: { id: { notIn: footerPageIds } }, data: { showInFooter: false } }),
+          ]
+        : []),
+    ]);
+    this.invalidate();
+    return this.adminFooter();
   }
 
   /** Mağazanın her sayfada ihtiyaç duyduğu her şey (tek istek) */
   site() {
     return this.cached('site', async () => {
-      const [t, pages] = await Promise.all([
+      const [t, f, pages] = await Promise.all([
         this.theme(),
+        this.footer(),
         this.prisma.page.findMany({ where: { isPublished: true, showInFooter: true }, orderBy: [{ order: 'asc' }, { title: 'asc' }], select: { slug: true, title: true } }),
       ]);
+      const social = parseFooterLinks(f.socialLinks);
       return {
         name: t.siteName,
         theme: {
@@ -137,9 +174,20 @@ export class ContentService {
         faviconUrl: t.faviconUrl,
         announcement: t.announcementText ? { text: t.announcementText, link: t.announcementLink } : null,
         contact: { email: t.contactEmail, phone: t.contactPhone, whatsapp: t.contactWhatsapp, address: t.contactAddress, workingHours: t.workingHours },
-        social: t.socialLinks,
+        // ESKİ biçim ({ instagram: "https://…" }): mağaza sitesi `footer.social`a geçince kaldırılacak.
+        social: Object.fromEntries(social.filter((l) => l.icon !== 'web').map((l) => [l.icon, l.url])),
         seo: { title: t.metaTitle ?? t.siteName, description: t.metaDescription, ogImageUrl: t.ogImageUrl },
         footerPages: pages,
+        footer: {
+          description: f.description,
+          social,
+          pagesTitle: f.pagesTitle,
+          contactTitle: f.contactTitle,
+          campaign: f.showCampaign
+            ? { title: f.campaignTitle, text: f.campaignText, buttonLabel: f.campaignButtonLabel, buttonLink: f.campaignButtonLink }
+            : null,
+          copyright: f.copyrightText,
+        },
       };
     });
   }

@@ -806,20 +806,44 @@ model SiteTheme {
   announcementText String?
   announcementLink String?
 
-  // İletişim (alt bilgi, İletişim sayfası)
+  // İletişim (alt bilgi, İletişim sayfası, e-postalar). Admin'de Footer sayfasından düzenlenir.
   contactEmail    String?
   contactPhone    String?
   contactWhatsapp String?
   contactAddress  String?
   workingHours    String?
 
-  // { instagram, facebook, x, youtube, tiktok, pinterest, linkedin } → https adresleri
-  socialLinks Json @default("{}")
-
   // Varsayılan SEO
   metaTitle       String?
   metaDescription String?
   ogImageUrl      String?
+
+  updatedAt DateTime @updatedAt
+}
+
+// Alt bilgi (footer). Tek satır (id = 1). İletişim bilgileri SiteTheme'de kalır, footer onları okur.
+model SiteFooter {
+  id Int @id @default(1)
+
+  // Marka sütunundaki kısa tanıtım metni
+  description String?
+
+  // [{ icon, label, url }]: icon hazır listeden (FOOTER_ICONS); marka ikonlarında adres o markanın
+  // alan adında olmalı (API doğrular). Sıra = gösterim sırası.
+  socialLinks Json @default("[]")
+
+  pagesTitle   String @default("Kurumsal")
+  contactTitle String @default("İletişim")
+
+  // Üyeliğe yönlendiren kampanya kutusu (isimsiz e-posta toplanmaz: izinler üye hesabında, İYS/KVKK)
+  showCampaign        Boolean @default(true)
+  campaignTitle       String  @default("Kampanyalar")
+  campaignText        String? @default("Kampanya ve indirimlerden ilk siz haberdar olun.")
+  campaignButtonLabel String  @default("Üye Ol")
+  campaignButtonLink  String  @default("/kayit")
+
+  // Boşsa mağaza "© {yıl} {mağaza adı}" yazar
+  copyrightText String?
 
   updatedAt DateTime @updatedAt
 }
