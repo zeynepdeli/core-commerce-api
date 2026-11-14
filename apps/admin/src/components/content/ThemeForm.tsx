@@ -9,7 +9,7 @@ import { AreaCard } from "@/components/areas/AreaShell";
 import { FormField } from "@/components/forms/FormField";
 import { ImageUploadField } from "@/components/forms/ImageUploadField";
 import { Button } from "@/components/ui/button";
-import { THEME_SECTIONS, type ThemeSection, type ThemeValues } from "@/lib/theme-sections";
+import { SITE_IMAGE_FIELDS, THEME_SECTIONS, type ThemeSection, type ThemeValues } from "@/lib/theme-sections";
 
 const COLORS: { name: "primaryColor" | "secondaryColor" | "backgroundColor" | "textColor"; label: string }[] = [
   { name: "primaryColor", label: "Ana renk (butonlar, başlıklar)" },
@@ -25,12 +25,15 @@ export function ThemeForm({
   fonts,
   maxHeaderLinks,
   mediaBaseUrl,
+  storefrontUrl,
 }: {
   section: ThemeSection;
   initial: ThemeValues;
   fonts: string[];
   maxHeaderLinks: number;
   mediaBaseUrl: string;
+  /** Varsayılan görsellerin önizlemesi için mağaza adresi (boşsa önizleme gösterilmez) */
+  storefrontUrl: string;
 }) {
   const { register, control, handleSubmit, setValue, formState } = useForm<ThemeValues>({ defaultValues: initial });
   const menu = useFieldArray({ control, name: "headerLinks" });
@@ -60,7 +63,7 @@ export function ThemeForm({
             <div className="grid gap-5 @xl:grid-cols-2">
               <FormField name="siteName" label="Mağaza adı" register={register} required />
               <div />
-              <ImageUploadField name="logoUrl" label="Logo" control={control} mediaBaseUrl={mediaBaseUrl} />
+              <ImageUploadField name="logoUrl" label="Logo" control={control} mediaBaseUrl={mediaBaseUrl} fallbackSrc={storefrontUrl ? `${storefrontUrl}/images/logo.webp` : null} description="Kare, arka planı şeffaf PNG/WEBP önerilir. Boşsa varsayılan logo kullanılır." />
               <ImageUploadField name="faviconUrl" label="Sekme simgesi (favicon)" control={control} mediaBaseUrl={mediaBaseUrl} description="Kare, en az 64×64 px." />
             </div>
           </AreaCard>
@@ -152,10 +155,22 @@ export function ThemeForm({
       )}
 
       {section === "arka-plan" && (
-        <AreaCard title="Site Arka Planı (isteğe bağlı)">
+        <AreaCard
+          title="Site Görselleri"
+          hint="Sitede kullanılan tasarım görselleri. Boş bırakılan alanda mağazanın kendi (varsayılan) görseli kullanılır; kaldırınca varsayılana döner."
+        >
           <div className="grid gap-5 @xl:grid-cols-2">
-            <ImageUploadField name="backgroundImageUrl" label="Sayfa arka plan görseli" control={control} mediaBaseUrl={mediaBaseUrl} />
-            <ImageUploadField name="cardTextureUrl" label="Kart dokusu" control={control} mediaBaseUrl={mediaBaseUrl} />
+            {SITE_IMAGE_FIELDS.map((f) => (
+              <ImageUploadField
+                key={f.name}
+                name={f.name}
+                label={f.label}
+                description={f.hint}
+                control={control}
+                mediaBaseUrl={mediaBaseUrl}
+                fallbackSrc={storefrontUrl ? `${storefrontUrl}${f.fallback}` : null}
+              />
+            ))}
             <label className="flex flex-col gap-2 text-sm font-medium">
               Arka plan yerleşimi
               <select {...register("backgroundImageFit")} className={select}>

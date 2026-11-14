@@ -1,6 +1,7 @@
 import "server-only";
 
 import { adminFetch } from "@/lib/api";
+import type { SiteImageSlot } from "@/lib/theme-sections";
 
 export type SiteSettings = {
   siteName: string;
@@ -18,6 +19,8 @@ export type SiteSettings = {
   announcementText: string | null;
   announcementLink: string | null;
   headerLinks: HeaderLink[];
+  /** Yalnızca dolu alanlar gelir */
+  siteImages: Partial<Record<SiteImageSlot, string>>;
   metaTitle: string | null;
   metaDescription: string | null;
   ogImageUrl: string | null;

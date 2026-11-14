@@ -30,6 +30,11 @@ type ImageUploadFieldProps<T extends FieldValues> = {
   mediaBaseUrl: string;
   description?: string;
   required?: boolean;
+  /**
+   * Alan boşken sitede görünen varsayılan görsel (ör. mağazanın kendi tasarım görseli).
+   * Verilirse "Görsel seçilmedi" yerine bu görsel "Varsayılan" etiketiyle gösterilir.
+   */
+  fallbackSrc?: string | null;
   /** @deprecated Önizleme artık sabit yükseklikte; geriye dönük uyumluluk için */
   previewClassName?: string;
 };
@@ -50,6 +55,7 @@ export function ImageUploadField<T extends FieldValues>({
   mediaBaseUrl,
   description = "JPG, PNG veya WEBP — en fazla 5 MB.",
   required = false,
+  fallbackSrc = null,
 }: ImageUploadFieldProps<T>) {
   const inputId = useId();
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -188,6 +194,19 @@ export function ImageUploadField<T extends FieldValues>({
                   >
                     <Trash2 className="size-4" />
                   </button>
+                </>
+              ) : fallbackSrc ? (
+                <>
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img
+                    src={fallbackSrc}
+                    alt={`${label} (varsayılan)`}
+                    referrerPolicy="no-referrer"
+                    className="max-h-full max-w-full object-contain opacity-90"
+                  />
+                  <span className="absolute left-2 top-2 rounded-md bg-white/90 px-2 py-0.5 text-[11px] font-semibold text-muted-foreground shadow-sm">
+                    Varsayılan
+                  </span>
                 </>
               ) : (
                 <span className="flex flex-col items-center gap-1 text-xs text-muted-foreground">
