@@ -49,16 +49,26 @@ export const FONTS = [
   'Source Serif 4',
 ] as const;
 
-/** Sosyal ağ → izin verilen alan adları */
-export const SOCIAL_HOSTS: Record<string, string[]> = {
+/** Footer sosyal bağlantı ikonları (mağaza her biri için kendi ikonunu çizer). */
+export const FOOTER_ICONS = ['instagram', 'facebook', 'x', 'youtube', 'tiktok', 'pinterest', 'whatsapp', 'telegram', 'web'] as const;
+export type FooterIcon = (typeof FOOTER_ICONS)[number];
+
+/**
+ * Marka ikonu seçilen bağlantı o markanın alan adına gitmeli (ör. Instagram ikonu altında başka site olmaz).
+ * "web" (genel ikon) için alan adı serbest, yalnızca https.
+ */
+export const FOOTER_ICON_HOSTS: Partial<Record<FooterIcon, readonly string[]>> = {
   instagram: ['instagram.com', 'www.instagram.com'],
-  facebook: ['facebook.com', 'www.facebook.com'],
+  facebook: ['facebook.com', 'www.facebook.com', 'm.facebook.com'],
   x: ['x.com', 'twitter.com', 'www.x.com', 'www.twitter.com'],
-  youtube: ['youtube.com', 'www.youtube.com'],
+  youtube: ['youtube.com', 'www.youtube.com', 'm.youtube.com', 'youtu.be'],
   tiktok: ['tiktok.com', 'www.tiktok.com'],
   pinterest: ['pinterest.com', 'tr.pinterest.com', 'www.pinterest.com'],
-  linkedin: ['linkedin.com', 'www.linkedin.com'],
+  whatsapp: ['wa.me', 'api.whatsapp.com', 'whatsapp.com', 'www.whatsapp.com'],
+  telegram: ['t.me', 'telegram.me'],
 };
+
+export const MAX_FOOTER_LINKS = 10;
 
 /** Medya / https görseli veya mağazanın kendi statik dosyası (ör. /logo.png). "//" ve ".." yok */
 const STATIC_ASSET = /^\/(?![/\\])(?!.*\.\.)[A-Za-z0-9_\-./]{1,200}\.(png|jpg|jpeg|webp|svg|ico)$/;
@@ -104,17 +114,50 @@ export class UpdateSiteDto {
   @OptionalLine(160) announcementText?: string | null;
   @ValidateIf(nullable) @IsSafeLink() announcementLink?: string | null;
 
+  @OptionalLine(70) metaTitle?: string | null;
+  @OptionalLine(160) metaDescription?: string | null;
+}
+
+// ───────────── Alt bilgi (footer) ─────────────
+
+export class FooterLinkDto {
+  @IsIn(FOOTER_ICONS, { message: 'İkon listeden seçilmelidir.' }) icon!: FooterIcon;
+  /** Ekran okuyucunun okuyacağı ad (ör. "Instagram") */
+  @RequiredLine(40) label!: string;
+  /** Alan adı kuralı ikona göre ContentService'te denetlenir (normalizeFooterLink) */
+  @Transform(trim) @IsString() @MaxLength(300) url!: string;
+}
+
+export class UpdateFooterDto {
+  @OptionalText(300) description?: string | null;
+
+  @IsOptional()
+  @IsArray()
+  @ArrayMaxSize(MAX_FOOTER_LINKS, { message: `En fazla ${MAX_FOOTER_LINKS} sosyal medya bağlantısı eklenebilir.` })
+  @ValidateNested({ each: true })
+  @Type(() => FooterLinkDto)
+  socialLinks?: FooterLinkDto[];
+
+  @IsOptional() @RequiredLine(40) pagesTitle?: string;
+  @IsOptional() @RequiredLine(40) contactTitle?: string;
+
+  @IsOptional() @IsBoolean() showCampaign?: boolean;
+  @IsOptional() @RequiredLine(40) campaignTitle?: string;
+  @OptionalText(200) campaignText?: string | null;
+  @IsOptional() @RequiredLine(30) campaignButtonLabel?: string;
+  @IsOptional() @IsSafeLink() campaignButtonLink?: string;
+
+  @OptionalLine(160) copyrightText?: string | null;
+
+  // İletişim: SiteTheme'de saklanır (İletişim sayfası ve e-postalar da kullanır), burada düzenlenir.
   @ValidateIf(nullable) @IsEmail({}, { message: 'Geçerli bir e-posta girin.' }) @MaxLength(254) contactEmail?: string | null;
   @ValidateIf(nullable) @Matches(/^[0-9 +()-]{7,20}$/, { message: 'Telefon yalnızca rakam ve + ( ) - içerebilir.' }) contactPhone?: string | null;
   @ValidateIf(nullable) @Matches(/^\+?[0-9]{10,15}$/, { message: 'WhatsApp numarası ülke koduyla, yalnızca rakam (ör. 905321234567).' }) contactWhatsapp?: string | null;
   @OptionalText(300) contactAddress?: string | null;
   @OptionalLine(120) workingHours?: string | null;
 
-  /** { instagram: "https://instagram.com/…" } — yalnızca bilinen ağlar ve kendi alan adları */
-  @IsOptional() socialLinks?: Record<string, string>;
-
-  @OptionalLine(70) metaTitle?: string | null;
-  @OptionalLine(160) metaDescription?: string | null;
+  /** Footer'da bağlantısı görünecek sayfalar; listede olmayanlar gizlenir */
+  @IsOptional() @IsArray() @ArrayMaxSize(100) @ArrayUnique() @IsUUID('all', { each: true }) footerPageIds?: string[];
 }
 
 // ───────────── Ana sayfa bölümleri ─────────────

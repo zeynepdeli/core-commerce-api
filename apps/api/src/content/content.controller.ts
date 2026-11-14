@@ -6,7 +6,7 @@ import { RolesGuard } from '../auth/guards/roles.guard.js';
 import { ParseSlugPipe } from '../common/parse-slug.pipe.js';
 import { ReorderIdsDto } from '../common/reorder.js';
 
-import { ActiveDto, BLOCK_TYPES, FEATURE_ICONS, FONTS, SOCIAL_HOSTS, SaveBlockDto, SaveFaqDto, SavePageDto, UpdateSiteDto } from './content.dto.js';
+import { ActiveDto, BLOCK_TYPES, FEATURE_ICONS, FONTS, FOOTER_ICONS, MAX_FOOTER_LINKS, SaveBlockDto, SaveFaqDto, SavePageDto, UpdateFooterDto, UpdateSiteDto } from './content.dto.js';
 import { ContentService } from './content.service.js';
 
 /** Mağaza (herkese açık) */
@@ -44,7 +44,7 @@ export class AdminContentController {
   /** Formlar için seçenekler */
   @Get('options')
   options() {
-    return { fonts: FONTS, blockTypes: BLOCK_TYPES, featureIcons: FEATURE_ICONS, socialNetworks: Object.keys(SOCIAL_HOSTS) };
+    return { fonts: FONTS, blockTypes: BLOCK_TYPES, featureIcons: FEATURE_ICONS, footerIcons: FOOTER_ICONS, maxFooterLinks: MAX_FOOTER_LINKS };
   }
 
   @Get('site')
@@ -55,6 +55,16 @@ export class AdminContentController {
   @Put('site')
   updateSite(@Body() dto: UpdateSiteDto) {
     return this.content.updateSite(dto);
+  }
+
+  @Get('footer')
+  footer() {
+    return this.content.adminFooter();
+  }
+
+  @Put('footer')
+  updateFooter(@Body() dto: UpdateFooterDto) {
+    return this.content.updateFooter(dto);
   }
 
   // Ana sayfa bölümleri
