@@ -17,12 +17,15 @@ export type SiteSettings = {
   faviconUrl: string;
   announcementText: string | null;
   announcementLink: string | null;
+  headerLinks: HeaderLink[];
   metaTitle: string | null;
   metaDescription: string | null;
   ogImageUrl: string | null;
 };
 
-export type ContentOptions = { fonts: string[]; blockTypes: string[]; featureIcons: string[]; footerIcons: string[]; maxFooterLinks: number };
+export type HeaderLink = { label: string; href: string };
+
+export type ContentOptions = { fonts: string[]; blockTypes: string[]; featureIcons: string[]; footerIcons: string[]; maxFooterLinks: number; maxHeaderLinks: number };
 export type FooterSettings = {
   description: string | null;
   socialLinks: { icon: string; label: string; url: string }[];

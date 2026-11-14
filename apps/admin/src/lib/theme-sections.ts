@@ -18,6 +18,7 @@ export type ThemeValues = {
   ogImageUrl: string;
   announcementText: string;
   announcementLink: string;
+  headerLinks: { label: string; href: string }[];
   metaTitle: string;
   metaDescription: string;
 };
@@ -30,9 +31,9 @@ export type ThemeValues = {
 export const THEME_SECTIONS = {
   header: {
     title: "Header",
-    description: "Mağaza adı, logo, sekme simgesi, duyuru şeridi",
+    description: "Mağaza adı, logo, menü linkleri, duyuru şeridi",
     icon: PanelTop,
-    fields: ["siteName", "logoUrl", "faviconUrl", "announcementText", "announcementLink"],
+    fields: ["siteName", "logoUrl", "faviconUrl", "headerLinks", "announcementText", "announcementLink"],
   },
   renkler: {
     title: "Renkler ve Yazı Tipleri",

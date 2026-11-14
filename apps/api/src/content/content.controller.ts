@@ -7,6 +7,7 @@ import { ParseSlugPipe } from '../common/parse-slug.pipe.js';
 import { ReorderIdsDto } from '../common/reorder.js';
 
 import { ActiveDto, BLOCK_TYPES, FEATURE_ICONS, FONTS, FOOTER_ICONS, MAX_FOOTER_LINKS, SaveBlockDto, SaveFaqDto, SavePageDto, UpdateFooterDto, UpdateSiteDto } from './content.dto.js';
+import { MAX_HEADER_LINKS } from './header-links.js';
 import { ContentService } from './content.service.js';
 
 /** Mağaza (herkese açık) */
@@ -44,7 +45,7 @@ export class AdminContentController {
   /** Formlar için seçenekler */
   @Get('options')
   options() {
-    return { fonts: FONTS, blockTypes: BLOCK_TYPES, featureIcons: FEATURE_ICONS, footerIcons: FOOTER_ICONS, maxFooterLinks: MAX_FOOTER_LINKS };
+    return { fonts: FONTS, blockTypes: BLOCK_TYPES, featureIcons: FEATURE_ICONS, footerIcons: FOOTER_ICONS, maxFooterLinks: MAX_FOOTER_LINKS, maxHeaderLinks: MAX_HEADER_LINKS };
   }
 
   @Get('site')

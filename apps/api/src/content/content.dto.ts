@@ -24,6 +24,8 @@ import {
 
 import { HEX_COLOR_MESSAGE, HEX_COLOR_REGEX, IsImageUrl, IsSafeLink, isImageUrl, SINGLE_LINE_REGEX, SLUG_MESSAGE, SLUG_REGEX } from '../common/validators.js';
 
+import { MAX_HEADER_LABEL, MAX_HEADER_LINKS } from './header-links.js';
+
 const trim = ({ value }: { value: unknown }) => (typeof value === 'string' ? value.trim() : value);
 const nullable = (_: unknown, v: unknown) => v != null && v !== '';
 const ONE_LINE = { message: 'Tek satır olmalı.' };
@@ -93,6 +95,12 @@ const OptionalText = (max: number) => apply(ValidateIf(nullable), Transform(trim
 
 // ───────────── Görünüm ─────────────
 
+export class HeaderLinkDto {
+  @RequiredLine(MAX_HEADER_LABEL) label!: string;
+  /** "/" ile başlayan site içi adres veya https:// adresi (javascript:, //kotu.site vb. reddedilir) */
+  @Transform(trim) @IsSafeLink() href!: string;
+}
+
 export class UpdateSiteDto {
   @IsOptional() @RequiredLine(80) siteName?: string;
 
@@ -113,6 +121,14 @@ export class UpdateSiteDto {
 
   @OptionalLine(160) announcementText?: string | null;
   @ValidateIf(nullable) @IsSafeLink() announcementLink?: string | null;
+
+  /** Header menüsü (sıra = menüdeki sıra). Boş liste: mağaza kategorileri gösterir. */
+  @IsOptional()
+  @IsArray()
+  @ArrayMaxSize(MAX_HEADER_LINKS, { message: `Menüye en fazla ${MAX_HEADER_LINKS} link eklenebilir.` })
+  @ValidateNested({ each: true })
+  @Type(() => HeaderLinkDto)
+  headerLinks?: HeaderLinkDto[];
 
   @OptionalLine(70) metaTitle?: string | null;
   @OptionalLine(160) metaDescription?: string | null;

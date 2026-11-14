@@ -1,8 +1,8 @@
 "use client";
 
 import { useState } from "react";
-import { useForm, useWatch } from "react-hook-form";
-import { CheckCircle2, Loader2 } from "lucide-react";
+import { useFieldArray, useForm, useWatch } from "react-hook-form";
+import { ArrowDown, ArrowUp, CheckCircle2, Loader2, Plus, Trash2 } from "lucide-react";
 
 import { saveSiteAction } from "@/app/actions/content";
 import { AreaCard } from "@/components/areas/AreaShell";
@@ -19,8 +19,21 @@ const COLORS: { name: "primaryColor" | "secondaryColor" | "backgroundColor" | "t
 ];
 const select = "min-h-11 w-full rounded-xl border border-border bg-surface px-3 text-sm";
 
-export function ThemeForm({ section, initial, fonts, mediaBaseUrl }: { section: ThemeSection; initial: ThemeValues; fonts: string[]; mediaBaseUrl: string }) {
+export function ThemeForm({
+  section,
+  initial,
+  fonts,
+  maxHeaderLinks,
+  mediaBaseUrl,
+}: {
+  section: ThemeSection;
+  initial: ThemeValues;
+  fonts: string[];
+  maxHeaderLinks: number;
+  mediaBaseUrl: string;
+}) {
   const { register, control, handleSubmit, setValue, formState } = useForm<ThemeValues>({ defaultValues: initial });
+  const menu = useFieldArray({ control, name: "headerLinks" });
   const [error, setError] = useState<string | null>(null);
   const [done, setDone] = useState(false);
   // useWatch: renk önizlemesi yalnızca renkler değişince yeniden çizilir (watch() React Compiler ile uyumsuz)
@@ -49,6 +62,45 @@ export function ThemeForm({ section, initial, fonts, mediaBaseUrl }: { section: 
               <div />
               <ImageUploadField name="logoUrl" label="Logo" control={control} mediaBaseUrl={mediaBaseUrl} />
               <ImageUploadField name="faviconUrl" label="Sekme simgesi (favicon)" control={control} mediaBaseUrl={mediaBaseUrl} description="Kare, en az 64×64 px." />
+            </div>
+          </AreaCard>
+          <AreaCard
+            title="Menü Linkleri"
+            hint={`Logonun altındaki menü. Sıralama menüdeki sıradır; en fazla ${maxHeaderLinks} link. Hiç link yoksa menüde ürünü olan kategoriler gösterilir.`}
+          >
+            <div className="grid gap-3">
+              {menu.fields.length === 0 && <p className="text-sm text-muted-foreground">Henüz link yok: menüde kategoriler gösteriliyor.</p>}
+              {menu.fields.map((f, i) => (
+                <div key={f.id} className="grid items-end gap-3 rounded-2xl border border-border p-3 @3xl:grid-cols-[220px_1fr_auto]">
+                  <label className="flex flex-col gap-2 text-sm font-medium">
+                    Ad
+                    <input {...register(`headerLinks.${i}.label`)} maxLength={30} placeholder="Ürünlerimiz" className={select} />
+                  </label>
+                  <label className="flex flex-col gap-2 text-sm font-medium">
+                    Adres
+                    <input {...register(`headerLinks.${i}.href`)} maxLength={300} inputMode="url" placeholder="/urunler" className={select} />
+                  </label>
+                  <div className="flex gap-1">
+                    <Button type="button" variant="ghost" size="icon" aria-label={`${i + 1}. linki yukarı taşı`} disabled={i === 0} onClick={() => menu.move(i, i - 1)}>
+                      <ArrowUp className="size-4" />
+                    </Button>
+                    <Button type="button" variant="ghost" size="icon" aria-label={`${i + 1}. linki aşağı taşı`} disabled={i === menu.fields.length - 1} onClick={() => menu.move(i, i + 1)}>
+                      <ArrowDown className="size-4" />
+                    </Button>
+                    <Button type="button" variant="ghost" size="icon" aria-label={`${i + 1}. linki kaldır`} onClick={() => menu.remove(i)} className="text-destructive">
+                      <Trash2 className="size-4" />
+                    </Button>
+                  </div>
+                </div>
+              ))}
+              {menu.fields.length < maxHeaderLinks && (
+                <div>
+                  <Button type="button" variant="outline" onClick={() => menu.append({ label: "", href: "/" })} className="gap-2">
+                    <Plus className="size-4" /> Link ekle
+                  </Button>
+                </div>
+              )}
+              <p className="text-xs text-muted-foreground">Adres / ile başlayan site içi bir adres (ör. /kategori/baklava) veya https:// ile başlayan bir adres olmalı.</p>
             </div>
           </AreaCard>
           <AreaCard title="Duyuru Şeridi" hint="Sitenin en üstünde görünür. Boş bırakılırsa gösterilmez.">
