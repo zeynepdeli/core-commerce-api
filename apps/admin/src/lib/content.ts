@@ -81,3 +81,24 @@ export const BLOCK_LABEL: Record<string, string> = {
   TEXT: "Metin",
   FEATURES: "Avantajlar (ikonlu)",
 };
+
+/** Dashboard kutusu için bölümün adı: yöneticinin verdiği başlık, yoksa türün adı */
+export function blockTitle(d: Block["data"]): string {
+  const own = (k: string) => (typeof d[k] === "string" && (d[k] as string).trim() ? (d[k] as string) : null);
+  switch (d.type) {
+    case "HERO":
+      return "Slider";
+    case "BANNER":
+      return own("heading") ?? "Banner";
+    case "PRODUCT_LIST":
+      return own("title") ?? "Ürün listesi";
+    case "CATEGORY_GRID":
+      return own("title") ?? "Kategoriler";
+    case "TEXT":
+      return own("title") ?? "Metin";
+    case "FEATURES":
+      return own("title") ?? "Avantajlar";
+    default:
+      return BLOCK_LABEL[d.type] ?? d.type;
+  }
+}
