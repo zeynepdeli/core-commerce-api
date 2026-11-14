@@ -230,12 +230,17 @@ export class HeroBlockDto extends BlockBase {
   declare type: 'HERO';
   @IsArray() @ArrayMinSize(1, { message: 'En az bir slayt ekleyin.' }) @ArrayMaxSize(5) @ValidateNested({ each: true }) @Type(() => HeroSlideDto) slides!: HeroSlideDto[];
   @IsOptional() @IsBoolean() autoplay?: boolean;
+  /** Başlığın üstündeki küçük yazı (eski sitede "Anadolu'nun En Özel Lezzetleri"); boşsa mağaza varsayılanı */
+  @OptionalLine(60) eyebrow?: string | null;
   @IsOptional()
   @IsInt({ message: 'Slayt süresi tam sayı (saniye) olmalı.' })
   @Min(HERO_INTERVAL.min, { message: `Slayt süresi en az ${HERO_INTERVAL.min} saniye olmalı.` })
   @Max(HERO_INTERVAL.max, { message: `Slayt süresi en fazla ${HERO_INTERVAL.max} saniye olabilir.` })
   intervalSeconds?: number;
 }
+
+export const PRODUCT_LIST_DISPLAYS = ['band', 'hero'] as const;
+export type ProductListDisplay = (typeof PRODUCT_LIST_DISPLAYS)[number];
 
 export class ProductListBlockDto extends BlockBase {
   declare type: 'PRODUCT_LIST';
@@ -253,6 +258,14 @@ export class ProductListBlockDto extends BlockBase {
   @IsInt() @Min(1) @Max(24) limit!: number;
   @OptionalLine(30) buttonLabel?: string | null;
   @ValidateIf(nullable) @IsSafeLink() buttonLink?: string | null;
+  /**
+   * Görünüm: "band" = ürün bandı (tabaklı kartlar, eski "En Çok Satanlar");
+   * "hero" = slider'ın içinde kartlar (eski "Günün Öne Çıkanları"; slider'ın hemen altındaysa).
+   * Verilmezse mağaza: slider'ın hemen altındaki "öne çıkanlar" listesi → hero, diğerleri → band.
+   */
+  @IsOptional() @IsIn(PRODUCT_LIST_DISPLAYS, { message: 'Görünüm listeden seçilmelidir.' }) display?: ProductListDisplay;
+  /** Her kartın üzerindeki hap yazısı (eski sitede "Sepete Ekle" / "KEŞFET"); boşsa mağaza varsayılanı */
+  @OptionalLine(20) cardButtonLabel?: string | null;
 }
 
 export class CategoryGridBlockDto extends BlockBase {

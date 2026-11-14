@@ -56,6 +56,8 @@ export function BlockEditor({ id, type, initial, initialKey, categories, product
       visibleUntil: toLocal(initial.visibleUntil),
       // Süresi kaydedilmemiş eski slider'lar mağazadaki gibi 5 sn görünsün (seçim kutusu ilk seçeneğe düşmesin)
       ...(type === "HERO" && { intervalSeconds: String(initial.intervalSeconds ?? HERO_INTERVAL_DEFAULT) }),
+      // Görünümü kaydedilmemiş eski listeler: mağazanın bugünkü davranışı (öne çıkanlar → slider içi)
+      ...(type === "PRODUCT_LIST" && { display: initial.display ?? (initial.source === "featured" ? "hero" : "band") }),
     },
   });
   const [error, setError] = useState<string | null>(null);
@@ -200,6 +202,16 @@ function HeroFields({ control, register, mediaBaseUrl }: { control: Control<Data
             </Button>
           </div>
         )}
+        <div className="max-w-xl">
+          <Text
+            label="Başlığın üstündeki küçük yazı"
+            name="eyebrow"
+            register={register}
+            max={60}
+            placeholder="Anadolu'nun En Özel Lezzetleri"
+            hint="Tüm slaytlarda başlığın üstünde görünür. Boş bırakılırsa örnekteki yazı kullanılır."
+          />
+        </div>
         <div className="flex flex-wrap items-end gap-x-8 gap-y-4">
           <label className="flex min-h-11 items-center gap-2 text-sm">
             <input type="checkbox" {...register("autoplay")} className="size-4" /> Otomatik geçiş
@@ -308,9 +320,30 @@ function ProductListFields({ register, watch, setValue, categories, productNames
               </select>
             </label>
           )}
-          <Text label="Buton yazısı" name="buttonLabel" register={register} max={30} placeholder="Tümünü gör" />
-          <Text label="Buton bağlantısı" name="buttonLink" register={register} max={500} hint={LINK_HINT} />
+          <label className="flex flex-col gap-2 text-sm font-medium">
+            Görünüm
+            <select {...register("display")} className={input}>
+              <option value="band">Ürün bandı (tabaklı kartlar, ör. En Çok Satanlar)</option>
+              <option value="hero">Slider&apos;ın içinde kartlar (ör. Günün Öne Çıkanları)</option>
+            </select>
+            <span className="text-xs font-normal text-muted-foreground">
+              &quot;Slider&apos;ın içinde&quot; seçilen liste, Ana Sayfa Düzeni&apos;nde slider&apos;ın hemen altındaysa slider&apos;ın içinde en fazla 4 kart olarak görünür; değilse ürün bandı olarak.
+            </span>
+          </label>
+          <Text label="Kart düğmesi yazısı" name="cardButtonLabel" register={register} max={20} placeholder="Sepete Ekle / Keşfet" hint="Her ürün kartının üstündeki hap yazısı. Stokta olmayan üründe &quot;Tükendi&quot; yazar." />
+          <Text label="Alttaki buton yazısı" name="buttonLabel" register={register} max={30} placeholder="Tümünü gör" />
+          <Text label="Alttaki buton bağlantısı" name="buttonLink" register={register} max={500} hint={`Boşsa buton görünmez. ${LINK_HINT}`} />
         </div>
+        {source === "featured" && (
+          <p className="rounded-xl bg-surface-muted p-3 text-sm text-muted-foreground">
+            Ürünler sayfasında <strong>&quot;Öne çıkan ürün&quot;</strong> işaretli ürünler gösterilir. Hiçbiri işaretli değilse en yeni ürünler gösterilir. Kartları tek tek seçmek için &quot;Elle seçilenler&quot;i kullanın.
+          </p>
+        )}
+        {source === "bestsellers" && (
+          <p className="rounded-xl bg-surface-muted p-3 text-sm text-muted-foreground">
+            Son 30 günde en çok satan ürünler. Yeterli satış yoksa liste en yeni ürünlerle tamamlanır.
+          </p>
+        )}
         {source === "manual" && (
           <div className="grid gap-3">
             <p className="text-sm font-medium">Seçilen ürünler (sırasıyla, en fazla 24)</p>

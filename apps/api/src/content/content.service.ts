@@ -354,6 +354,10 @@ export class ContentService {
     const where: Prisma.ProductWhereInput = { ...VISIBLE_PRODUCT, ...(d.source === 'featured' ? { featured: true } : {}), ...(d.source === 'category' ? { categoryId: d.categoryId } : {}) };
     const orderBy: Prisma.ProductOrderByWithRelationInput[] = d.source === 'rating' ? [{ ratingAvg: 'desc' }, { ratingCount: 'desc' }] : [{ createdAt: 'desc' }];
     const rows = await this.prisma.product.findMany({ where, orderBy: [...orderBy, { id: 'asc' }], take, select: CARD_SELECT });
+    // Hiç ürün "öne çıkan" işaretli değilse bölüm boş kalmasın: en yeni ürünler (çok satanlardaki gibi)
+    if (d.source === 'featured' && rows.length === 0) {
+      return (await this.prisma.product.findMany({ where: VISIBLE_PRODUCT, orderBy: [{ createdAt: 'desc' }, { id: 'asc' }], take, select: CARD_SELECT })).map(card);
+    }
     return rows.map(card);
   }
 
