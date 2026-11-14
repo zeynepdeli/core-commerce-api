@@ -11,7 +11,7 @@ import { getAdminCategories } from "@/lib/shop";
 
 const DEFAULTS: Record<string, Record<string, unknown>> = {
   HERO: { slides: [{ imageUrl: "" }], autoplay: true, intervalSeconds: 5 },
-  PRODUCT_LIST: { source: "featured", limit: 8, productIds: [] },
+  PRODUCT_LIST: { source: "bestsellers", limit: 4, productIds: [], display: "band", cardButtonLabel: "Sepete Ekle" },
   CATEGORY_GRID: { categoryIds: [] },
   BANNER: { imageUrl: "" },
   TEXT: { body: "" },

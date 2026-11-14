@@ -38,3 +38,35 @@ describe('slider süresi', () => {
     },
   );
 });
+
+describe('slider üst yazısı ve ürün listesi görünümü', () => {
+  it('slider üst yazısı tek satır, en fazla 60 karakter', async () => {
+    expect(await errors({ eyebrow: "Anadolu'nun En Özel Lezzetleri" })).toEqual(
+      [],
+    );
+    expect(await errors({ eyebrow: 'a\nb' })).toEqual(['data']);
+    expect(await errors({ eyebrow: 'x'.repeat(61) })).toEqual(['data']);
+  });
+
+  const list = async (data: object) =>
+    (
+      await validate(
+        plainToInstance(SaveBlockDto, {
+          data: { type: 'PRODUCT_LIST', source: 'featured', limit: 4, ...data },
+        }),
+        {
+          whitelist: true,
+          forbidNonWhitelisted: true,
+        },
+      )
+    ).map((e) => e.property);
+
+  it.each(['band', 'hero'])('görünüm %s kabul edilir', async (display) => {
+    expect(await list({ display, cardButtonLabel: 'Keşfet' })).toEqual([]);
+  });
+
+  it('bilinmeyen görünüm ve uzun kart yazısı reddedilir', async () => {
+    expect(await list({ display: 'carousel' })).toEqual(['data']);
+    expect(await list({ cardButtonLabel: 'x'.repeat(21) })).toEqual(['data']);
+  });
+});
