@@ -6,7 +6,7 @@ import { RolesGuard } from '../auth/guards/roles.guard.js';
 import { ParseSlugPipe } from '../common/parse-slug.pipe.js';
 import { ReorderIdsDto } from '../common/reorder.js';
 
-import { ActiveDto, BLOCK_TYPES, FEATURE_ICONS, FONTS, FOOTER_ICONS, MAX_FOOTER_LINKS, SaveBlockDto, SaveFaqDto, SavePageDto, UpdateFooterDto, UpdateSiteDto } from './content.dto.js';
+import { ActiveDto, BLOCK_TYPES, FEATURE_ICONS, FONTS, FOOTER_ICONS, MAX_FOOTER_LINKS, SaveBlockDto, SaveFaqDto, SavePageDto, UpdateAboutDto, UpdateFooterDto, UpdateSiteDto } from './content.dto.js';
 import { MAX_HEADER_LINKS } from './header-links.js';
 import { ContentService } from './content.service.js';
 
@@ -33,6 +33,11 @@ export class ShopContentController {
   @Get('faq')
   faq() {
     return this.content.faq();
+  }
+
+  @Get('about')
+  about() {
+    return this.content.publicAbout();
   }
 }
 
@@ -66,6 +71,16 @@ export class AdminContentController {
   @Put('footer')
   updateFooter(@Body() dto: UpdateFooterDto) {
     return this.content.updateFooter(dto);
+  }
+
+  @Get('about')
+  about() {
+    return this.content.adminAbout();
+  }
+
+  @Put('about')
+  updateAbout(@Body() dto: UpdateAboutDto) {
+    return this.content.updateAbout(dto);
   }
 
   // Ana sayfa bölümleri

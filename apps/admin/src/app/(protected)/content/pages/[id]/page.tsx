@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { notFound } from "next/navigation";
 import { FileText } from "lucide-react";
 import { z } from "zod";
@@ -16,6 +17,15 @@ export default async function EditPage({ params }: { params: Promise<{ id: strin
   const storefrontUrl = envUrl("STOREFRONT_URL");
   return (
     <AreaShell icon={FileText} title={page ? page.title : "Yeni Sayfa"} description="Markdown ile yazın; mağaza güvenli biçimde (HTML'siz) gösterir." back={{ href: "/content/pages", label: "Sayfalar" }}>
+      {page?.slug === "hakkimizda" && (
+        <p className="rounded-2xl border border-(--brand-accent)/30 bg-(--brand-accent)/5 p-4 text-sm">
+          Mağazadaki Hakkımızda sayfası (vizyon, misyon, hikaye, değerler) kendi düzenleyicisinden yönetilir:{" "}
+          <Link href="/content/about" className="font-semibold text-(--brand-accent) hover:underline">
+            Hakkımızda düzenleyicisini aç →
+          </Link>{" "}
+          Buradaki başlık yalnızca footer bağlantısında kullanılır.
+        </p>
+      )}
       <PageForm
         id={page?.id ?? null}
         storefrontUrl={storefrontUrl}

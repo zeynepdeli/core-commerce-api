@@ -23,6 +23,12 @@ export async function saveFooterAction(values: unknown): Promise<ActionResult> {
   return sendToApi("/admin/content/footer", "PUT", v.data, "Footer kaydedilemedi.", "/content/footer");
 }
 
+export async function saveAboutAction(values: unknown): Promise<ActionResult> {
+  const v = payload.safeParse(values);
+  if (!v.success) return invalid();
+  return sendToApi("/admin/content/about", "PUT", v.data, "Hakkımızda kaydedilemedi.", "/content/about");
+}
+
 // ───── Ana sayfa bölümleri ─────
 
 export async function saveBlockAction(blockId: string | null, values: unknown): Promise<ActionResult> {

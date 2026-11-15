@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { ArrowUpDown, BarChart3, ChevronRight, CircleHelp, Clock, FilePlus2, FileText, FolderTree, GalleryHorizontal, Grid3x3, Image as ImageIcon, Images, Info, LayoutDashboard, LayoutTemplate, Megaphone, MessageSquareText, Package, PackageCheck, PanelBottom, Phone, Plus, RotateCcw, Scale, Search, ShieldCheck, ShoppingBag, ShoppingBasket, Sparkles, Store, TicketPercent, Truck, Type, UserCog, Users } from "lucide-react";
+import { ArrowUpDown, BarChart3, BookOpenText, ChevronRight, CircleHelp, Clock, FilePlus2, FileText, FolderTree, GalleryHorizontal, Grid3x3, Image as ImageIcon, Images, Info, LayoutDashboard, LayoutTemplate, Megaphone, MessageSquareText, Package, PackageCheck, PanelBottom, Phone, Plus, RotateCcw, Scale, Search, ShieldCheck, ShoppingBag, ShoppingBasket, Sparkles, Store, TicketPercent, Truck, Type, UserCog, Users } from "lucide-react";
 
 import { AreaHeader } from "@/components/areas/AreaShell";
 import { Delta } from "@/components/reports/Delta";
@@ -126,7 +126,9 @@ export default async function DashboardPage() {
           badge={lowStock.total > 0 && <Badge tone="danger">{lowStock.total} stok azaldı</Badge>}
         />
         <Tile href="/shop/categories" icon={FolderTree} title="Kategoriler" description="Kategoriler ve sıralaması" />
-        {pages.map((p) => (
+        <Tile href="/content/about" icon={BookOpenText} title="Hakkımızda" description="Vizyon, misyon, hikaye, değerler" />
+        {/* Hakkımızda'nın kendi düzenleyicisi var (yukarıda); düz metin sayfası burada ayrıca gösterilmez */}
+        {pages.filter((p) => p.slug !== "hakkimizda").map((p) => (
           <Tile
             key={p.id}
             href={`/content/pages/${p.id}`}

@@ -1,6 +1,7 @@
 import { ConflictException, Inject, Injectable, Logger, NotFoundException } from '@nestjs/common';
 import { randomUUID } from 'node:crypto';
 
+import { ABOUT_IMAGE_FIELDS, type AboutImageField } from '../content/about.js';
 import { blockImageUrls } from '../content/content.service.js';
 import { parseSiteImages } from '../content/site-images.js';
 import { PrismaService } from '../prisma/prisma.service.js';
@@ -52,12 +53,13 @@ export class MediaService {
    */
   async usedAmong(urls: string[]): Promise<Set<string>> {
     if (urls.length === 0) return new Set();
-    const [productImages, categories, themes, blocks] = await Promise.all([
+    const [productImages, categories, themes, blocks, abouts] = await Promise.all([
       this.prisma.productImage.findMany({ where: { url: { in: urls } }, select: { url: true }, distinct: ['url'] }),
       this.prisma.category.findMany({ where: { image: { in: urls }, deletedAt: null }, select: { image: true } }),
       this.prisma.siteTheme.findMany({ select: { backgroundImageUrl: true, cardTextureUrl: true, logoUrl: true, faviconUrl: true, ogImageUrl: true, deliveryIconUrl: true, siteImages: true } }),
       // İçerik bölümleri az sayıda (en fazla 30): JSON içindeki görseller uygulamada toplanır
       this.prisma.contentBlock.findMany({ select: { data: true } }),
+      this.prisma.aboutPage.findMany({ select: Object.fromEntries(ABOUT_IMAGE_FIELDS.map((f) => [f, true])) as Record<AboutImageField, true> }),
     ]);
     const wanted = new Set(urls);
     const used = [
@@ -65,6 +67,7 @@ export class MediaService {
       ...categories.map((c) => c.image),
       ...themes.flatMap((t) => [t.backgroundImageUrl, t.cardTextureUrl, t.logoUrl, t.faviconUrl, t.ogImageUrl, t.deliveryIconUrl, ...Object.values(parseSiteImages(t.siteImages))]),
       ...blocks.flatMap((b) => blockImageUrls(b.data)),
+      ...abouts.flatMap((a) => ABOUT_IMAGE_FIELDS.map((f) => a[f])),
     ].filter((url): url is string => !!url && wanted.has(url));
     return new Set(used);
   }

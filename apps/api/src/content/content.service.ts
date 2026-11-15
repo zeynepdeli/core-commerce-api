@@ -8,10 +8,14 @@ import type { Prisma } from '../generated/prisma/client.js';
 import { PrismaService } from '../prisma/prisma.service.js';
 import { maskName } from '../reviews/reviews.service.js';
 
-import { type BlockData, type ProductListBlockDto, type SaveBlockDto, type SaveFaqDto, type SavePageDto, type UpdateFooterDto, type UpdateSiteDto } from './content.dto.js';
+import { type BlockData, type ProductListBlockDto, type SaveBlockDto, type SaveFaqDto, type SavePageDto, type UpdateAboutDto, type UpdateFooterDto, type UpdateSiteDto } from './content.dto.js';
+import { hasAboutContent } from './about.js';
 import { normalizeFooterLink, parseFooterLinks } from './footer-links.js';
 import { parseHeaderLinks } from './header-links.js';
 import { mergeSiteImages, parseSiteImages } from './site-images.js';
+
+/** Gönderilmeyen alanı atla, boş metni null yap (formda temizlenen alan varsayılana döner) */
+const blankToNull = <T extends object>(o: T) => Object.fromEntries(Object.entries(o).filter(([, v]) => v !== undefined).map(([k, v]) => [k, v === '' ? null : v]));
 
 const HOME = 'home';
 const CACHE_MS = 60_000;
@@ -154,6 +158,31 @@ export class ContentService {
     return this.adminSite();
   }
 
+  // ───────────── Hakkımızda ─────────────
+
+  private async about() {
+    return (await this.prisma.aboutPage.findUnique({ where: { id: 1 } })) ?? this.prisma.aboutPage.upsert({ where: { id: 1 }, create: { id: 1 }, update: {} });
+  }
+
+  async adminAbout() {
+    const { id: _id, updatedAt: _u, ...about } = await this.about();
+    return about;
+  }
+
+  async updateAbout(dto: UpdateAboutDto) {
+    await this.about();
+    const { isPublished, ...rest } = dto;
+    await this.prisma.aboutPage.update({ where: { id: 1 }, data: { ...blankToNull(rest), ...(isPublished === undefined ? {} : { isPublished }) } as Prisma.AboutPageUpdateInput });
+    return this.adminAbout();
+  }
+
+  /** Mağaza: yayında değilse ya da hiç içerik girilmemişse 404 (boş sayfa yayınlanmaz) */
+  async publicAbout() {
+    const { id: _id, isPublished, updatedAt: _u, ...about } = await this.about();
+    if (!isPublished || !hasAboutContent(about)) throw new NotFoundException('Sayfa bulunamadı.');
+    return about;
+  }
+
   // ───────────── Alt bilgi (footer) ─────────────
 
   private async footer() {
@@ -188,7 +217,6 @@ export class ContentService {
       throw new BadRequestException('Sayfa bulunamadı.');
     }
 
-    const blankToNull = <T extends object>(o: T) => Object.fromEntries(Object.entries(o).filter(([, v]) => v !== undefined).map(([k, v]) => [k, v === '' ? null : v]));
     const footerData = { ...blankToNull(rest), ...(links ? { socialLinks: links } : {}) } as Prisma.SiteFooterUpdateInput;
     const contactData = blankToNull({ contactEmail, contactPhone, contactWhatsapp, contactAddress, workingHours }) as Prisma.SiteThemeUpdateInput;
 

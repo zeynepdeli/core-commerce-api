@@ -68,6 +68,9 @@ async function json<T>(path: string, what: string): Promise<T> {
 }
 
 export const getSite = () => json<SiteSettings>("/admin/content/site", "Görünüm");
+/** Hakkımızda: metin alanları boşsa null gelir */
+export type AboutSettings = { isPublished: boolean } & Record<Exclude<keyof import("@/components/content/AboutForm").AboutValues, "isPublished">, string | null>;
+export const getAbout = () => json<AboutSettings>("/admin/content/about", "Hakkımızda");
 export const getFooter = () => json<FooterSettings>("/admin/content/footer", "Footer");
 export const getContentOptions = () => json<ContentOptions>("/admin/content/options", "Seçenekler");
 export const getBlocks = () => json<Block[]>("/admin/content/home", "Ana sayfa");

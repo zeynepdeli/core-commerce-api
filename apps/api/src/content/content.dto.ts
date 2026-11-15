@@ -201,6 +201,47 @@ export class UpdateFooterDto {
   @IsOptional() @IsArray() @ArrayMaxSize(100) @ArrayUnique() @IsUUID('all', { each: true }) footerPageIds?: string[];
 }
 
+// ───────────── Hakkımızda ─────────────
+
+/** Hakkımızda sayfası (eski enfesGurme düzeni). Gönderilmeyen alan değişmez; boş görsel = mağaza varsayılanı. */
+export class UpdateAboutDto {
+  @IsOptional() @IsBoolean() isPublished?: boolean;
+  @IsOptional() @Matches(HEX_COLOR_REGEX, { message: HEX_COLOR_MESSAGE }) backgroundColor?: string;
+
+  @ValidateIf(nullable) @IsImageUrl() cardImage?: string | null;
+  @ValidateIf(nullable) @IsImageUrl() textureImage?: string | null;
+  @ValidateIf(nullable) @IsImageUrl() sketchImage1?: string | null;
+  @ValidateIf(nullable) @IsImageUrl() sketchImage2?: string | null;
+  @ValidateIf(nullable) @IsImageUrl() sketchImage3?: string | null;
+  @ValidateIf(nullable) @IsImageUrl() sketchImage4?: string | null;
+
+  @IsOptional() @RequiredLine(60) visionTitle?: string;
+  @OptionalText(600) visionText?: string | null;
+  @ValidateIf(nullable) @IsImageUrl() visionImage?: string | null;
+  @ValidateIf(nullable) @IsImageUrl() visionMiniImage?: string | null;
+
+  @IsOptional() @RequiredLine(60) missionHeading?: string;
+  @OptionalText(120) missionTitle?: string | null;
+  @OptionalText(600) missionText?: string | null;
+  @ValidateIf(nullable) @IsImageUrl() missionImage?: string | null;
+
+  @IsOptional() @RequiredLine(60) storyHeading?: string;
+  @OptionalText(120) storyTitle?: string | null;
+  @OptionalText(600) storyText?: string | null;
+  @ValidateIf(nullable) @IsImageUrl() storyImage?: string | null;
+  @ValidateIf(nullable) @IsImageUrl() miniImage1?: string | null;
+  @ValidateIf(nullable) @IsImageUrl() miniImage2?: string | null;
+  @ValidateIf(nullable) @IsImageUrl() miniImage3?: string | null;
+
+  @IsOptional() @RequiredLine(60) valuesHeading?: string;
+  @OptionalText(120) valuesTitle?: string | null;
+  @OptionalText(600) valuesText?: string | null;
+  @ValidateIf(nullable) @IsImageUrl() valuesImage?: string | null;
+
+  @OptionalLine(70) metaTitle?: string | null;
+  @OptionalLine(160) metaDescription?: string | null;
+}
+
 // ───────────── Ana sayfa bölümleri ─────────────
 
 export const BLOCK_TYPES = ['HERO', 'PRODUCT_LIST', 'CATEGORY_GRID', 'BANNER', 'TEXT', 'FEATURES', 'REVIEWS'] as const;
