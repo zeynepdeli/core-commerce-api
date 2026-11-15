@@ -1,13 +1,15 @@
 "use client";
 
 import { useState } from "react";
-import { useFieldArray, useForm, type Control, type UseFormRegister } from "react-hook-form";
+import { useFieldArray, useForm, useWatch, type Control, type UseFormRegister } from "react-hook-form";
 import { Loader2, Plus, Search, Trash2, X } from "lucide-react";
 
 import { saveBlockAction, searchProductsAction } from "@/app/actions/content";
 import { AreaCard } from "@/components/areas/AreaShell";
 import { CustomCardsEditor } from "@/components/content/CustomCardsEditor";
 import { ReviewCardsEditor } from "@/components/content/ReviewCardsEditor";
+import { DEFAULT_VIDEO_BOX, VideoBoxEditor } from "@/components/content/VideoBoxEditor";
+import { VideoUploadField } from "@/components/forms/VideoUploadField";
 import { ImageUploadField } from "@/components/forms/ImageUploadField";
 import { Button } from "@/components/ui/button";
 
@@ -22,6 +24,8 @@ type Props = {
   productNames: Record<string, string>;
   icons: string[];
   mediaBaseUrl: string;
+  /** Mağaza adresi: varsayılan arka plan / video önizlemesi için (boşsa önizlemede gösterilmez) */
+  storefrontUrl: string;
 };
 
 const input = "min-h-11 w-full rounded-xl border border-border bg-surface px-3 text-sm";
@@ -54,7 +58,7 @@ function clean(v: unknown): unknown {
   return typeof v === "string" ? v.trim() : v;
 }
 
-export function BlockEditor({ id, type, initial, initialKey, categories, productNames, icons, mediaBaseUrl }: Props) {
+export function BlockEditor({ id, type, initial, initialKey, categories, productNames, icons, mediaBaseUrl, storefrontUrl }: Props) {
   const { register, control, handleSubmit, watch, setValue, formState } = useForm<Data>({
     defaultValues: {
       key: initialKey,
@@ -65,10 +69,16 @@ export function BlockEditor({ id, type, initial, initialKey, categories, product
       ...(type === "HERO" && { intervalSeconds: String(initial.intervalSeconds ?? HERO_INTERVAL_DEFAULT) }),
       // Görünümü kaydedilmemiş eski listeler: mağazanın bugünkü davranışı (öne çıkanlar → slider içi)
       ...(type === "PRODUCT_LIST" && { display: initial.display ?? (initial.source === "featured" ? "hero" : "band") }),
+      // Video yeri kaydedilmemişse mağazadaki varsayılan kapıya göre yer
+      ...(type === "CATEGORY_GRID" && { videoBox: initial.videoBox ?? DEFAULT_VIDEO_BOX }),
+      ...(type === "REVIEWS" && { approvedLimit: String(initial.approvedLimit ?? 6) }),
     },
   });
   const [error, setError] = useState<string | null>(null);
   const [saved, setSaved] = useState(false);
+  // Kategoriler: video yeri önizlemesi seçili arka plan ve videoyu izler (useWatch: React Compiler ile uyumlu)
+  const desktopBackground = useWatch({ control, name: "desktopBackground" }) as string | undefined;
+  const videoUrl = useWatch({ control, name: "videoUrl" }) as string | undefined;
 
   async function submit(v: Data) {
     setError(null);
@@ -76,6 +86,8 @@ export function BlockEditor({ id, type, initial, initialKey, categories, product
     const { key, ...data } = v;
     // Tek kategori varsa onay kutusu dizi yerine değer/boolean döner: her zaman diziye çevir
     if (type === "CATEGORY_GRID") data.categoryIds = (Array.isArray(data.categoryIds) ? data.categoryIds : typeof data.categoryIds === "string" ? [data.categoryIds] : []).filter((x: unknown) => typeof x === "string" && x);
+    // Seçim kutusu metin döndürür; API tam sayı bekler
+    if (type === "REVIEWS") data.approvedLimit = Number(data.approvedLimit) || 6;
     // Elle kartlar: ürün sayısı ve ürün seçimi gönderilmez (API de saklamaz)
     if (type === "PRODUCT_LIST" && data.source === "custom") {
       delete data.limit;
@@ -122,19 +134,42 @@ export function BlockEditor({ id, type, initial, initialKey, categories, product
         </AreaCard>
         <AreaCard title="Video ve arka plan" hint="Soldaki kemerli kapının içinde video oynar. Boş bırakılırsa mağazanın varsayılan videosu ve kemerli duvar görseli kullanılır.">
           <div className="grid gap-5">
-            <Text
-              label="Video adresi (isteğe bağlı)"
+            <VideoUploadField
               name="videoUrl"
-              register={register}
-              max={500}
-              placeholder="https://res.cloudinary.com/…/video/upload/…/kapi.mp4"
-              hint="https:// ile başlayan .mp4 ya da .webm dosyası (ör. Cloudinary'ye yüklediğin videonun bağlantısı). Sessiz ve döngüde oynar; 10 MB altı önerilir."
+              label="Kapıdaki video"
+              control={control}
+              mediaBaseUrl={mediaBaseUrl}
+              fallbackSrc={storefrontUrl ? `${storefrontUrl}/videos/kategori-kapi.mp4` : null}
+              description="MP4 ya da WebM, en fazla 25 MB (10–15 saniyelik, 1280px genişliğinde bir video yeterli). Sessiz ve döngüde oynar. Cloudinary video bağlantısı da yapıştırılabilir."
             />
             <div className="grid gap-5 @xl:grid-cols-2">
-              <ImageUploadField name="desktopBackground" label="Masaüstü arka plan" control={control} mediaBaseUrl={mediaBaseUrl} description="Solunda kemerli kapı olan duvar görseli." />
-              <ImageUploadField name="mobileBackground" label="Telefon arka planı" control={control} mediaBaseUrl={mediaBaseUrl} description="Boşsa masaüstü görseli kullanılır." />
+              <ImageUploadField
+                name="desktopBackground"
+                label="Masaüstü arka plan"
+                control={control}
+                mediaBaseUrl={mediaBaseUrl}
+                fallbackSrc={storefrontUrl ? `${storefrontUrl}/images/kategori-kemer.webp` : null}
+                description="Solunda kemerli kapı olan duvar görseli. Değiştirirsen videonun yerini aşağıdan kapıya göre ayarla."
+              />
+              <ImageUploadField
+                name="mobileBackground"
+                label="Telefon arka planı"
+                control={control}
+                mediaBaseUrl={mediaBaseUrl}
+                fallbackSrc={storefrontUrl ? `${storefrontUrl}/images/duvar-zemin.webp` : null}
+                description="Boşsa masaüstü görseli kullanılır."
+              />
             </div>
           </div>
+        </AreaCard>
+        <AreaCard title="Videonun yeri" hint="Video, masaüstü arka plandaki kapının boşluğuna yerleşir. Kaydırıcılarla kapıya oturt; önizleme mağazadaki oranla çizilir.">
+          <VideoBoxEditor
+            control={control}
+            setValue={setValue}
+            mediaBaseUrl={mediaBaseUrl}
+            background={desktopBackground || (storefrontUrl ? `${storefrontUrl}/images/kategori-kemer.webp` : null)}
+            video={videoUrl || (storefrontUrl ? `${storefrontUrl}/videos/kategori-kapi.mp4` : null)}
+          />
         </AreaCard>
         <AreaCard title="Kategoriler" hint="Hiçbiri seçilmezse admin'deki sırayla ilk kategoriler gösterilir. Ana sayfada en fazla 4 kategori görünür (eski sitedeki gibi); görselleri Kategoriler sayfasından gelir.">
           <div className="grid gap-5">
@@ -159,6 +194,25 @@ export function BlockEditor({ id, type, initial, initialKey, categories, product
                 <Text label="Açıklama" name="description" register={register} max={300} placeholder="Anadolu'nun eşsiz lezzetlerini deneyimleyen müşterilerimizin gerçek yorumları." />
               </div>
               <ReviewCardsEditor control={control} mediaBaseUrl={mediaBaseUrl} />
+              <div className="flex flex-wrap items-end gap-x-8 gap-y-3 rounded-2xl border border-border p-4">
+                <label className="flex min-h-11 items-center gap-2 text-sm font-medium">
+                  <input type="checkbox" {...register("includeApproved")} className="size-4" />
+                  Sitedeki onaylı müşteri yorumlarını da göster
+                </label>
+                <label className="flex flex-col gap-2 text-sm font-medium">
+                  En fazla
+                  <select {...register("approvedLimit")} className={`${input} w-32`}>
+                    {[3, 6, 9, 12].map((n) => (
+                      <option key={n} value={n}>
+                        {n} yorum
+                      </option>
+                    ))}
+                  </select>
+                </label>
+                <p className="w-full text-xs text-muted-foreground">
+                  Ürün sayfalarında müşterilerin yazdığı ve Yorumlar&apos;da onayladığın 4–5 yıldızlı yorumlar, en yeniden başlayarak senin eklediklerinden sonra gösterilir. Müşterinin adı kısaltılır (ör. &quot;Ayşe Y.&quot;), kartın arka planında yorumlanan ürünün fotoğrafı olur.
+                </p>
+              </div>
             </div>
           </AreaCard>
           <AreaCard title="Görseller" hint="Boş bırakılırsa eski sitedeki taş duvar ve haki çerçeve kullanılır.">

@@ -50,8 +50,10 @@ export async function proxy(request: NextRequest) {
 }
 
 export const config = {
-  // Statik dosyalar, giriş ve şifre sıfırlama sayfaları hariç
+  // Statik dosyalar, giriş ve şifre sıfırlama sayfaları hariç.
+  // api/media/video da hariç: proxy, eşleştiği isteğin gövdesini bellekte tamponlar ve 10 MB'tan sonrasını
+  // keser (proxyClientMaxBodySize); 25 MB'a kadar video bu yüzden doğrudan route'a akar.
   matcher: [
-    "/((?!_next/static|_next/image|favicon.ico|login|forgot-password|reset-password|.*\\.(?:png|jpg|svg|webp|ico)$).*)",
+    "/((?!_next/static|_next/image|favicon.ico|login|forgot-password|reset-password|api/media/video|.*\\.(?:png|jpg|svg|webp|ico)$).*)",
   ],
 };

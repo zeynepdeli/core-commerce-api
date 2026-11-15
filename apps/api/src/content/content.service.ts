@@ -6,6 +6,7 @@ import { assertSameIds } from '../common/reorder.js';
 import { isUniqueViolation } from '../common/validators.js';
 import type { Prisma } from '../generated/prisma/client.js';
 import { PrismaService } from '../prisma/prisma.service.js';
+import { maskName } from '../reviews/reviews.service.js';
 
 import { type BlockData, type ProductListBlockDto, type SaveBlockDto, type SaveFaqDto, type SavePageDto, type UpdateFooterDto, type UpdateSiteDto } from './content.dto.js';
 import { normalizeFooterLink, parseFooterLinks } from './footer-links.js';
@@ -88,6 +89,7 @@ export function blockImageUrls(data: unknown): string[] {
     mobileBackground?: string;
     backgroundImage?: string;
     frameImage?: string;
+    videoUrl?: string;
   };
   return [
     ...(d.slides ?? []).flatMap((s) => [s.imageUrl, s.mobileImageUrl]),
@@ -99,6 +101,8 @@ export function blockImageUrls(data: unknown): string[] {
     d.mobileBackground,
     d.backgroundImage,
     d.frameImage,
+    // Kategoriler bölümündeki kapı videosu (medya kütüphanesinden ise silinemesin)
+    d.videoUrl,
   ].filter((u): u is string => typeof u === 'string' && u.length > 0);
 }
 
@@ -368,6 +372,11 @@ export class ContentService {
             const categories = ids.length ? ids.map((id) => rows.find((r) => r.id === id)).filter((r) => !!r) : rows;
             return { key: b.key, ...data, categories };
           }
+          if (d.type === 'REVIEWS') {
+            // Elle girilen yorumlar önce, sonra (seçildiyse) sitedeki onaylı yorumlar
+            const approved = d.includeApproved ? await this.approvedReviewCards(d.approvedLimit ?? 6) : [];
+            return { key: b.key, ...data, cards: [...d.cards, ...approved] };
+          }
           return { key: b.key, ...data };
         }),
       );
@@ -375,6 +384,32 @@ export class ContentService {
       return {
         sections: sections.filter((s) => (!('products' in s) || (s.products as unknown[]).length > 0) && (!('cards' in s) || (s.cards as unknown[]).length > 0)),
       };
+    });
+  }
+
+  /**
+   * Ana sayfa yorum kartı için sitedeki onaylı ürün yorumları: 4–5 yıldız, yorumu olan, yayındaki ürünler,
+   * en yeniler. Müşterinin adı kısaltılır ("Ayşe Y."; kişisel veri en aza), müşteri fotoğrafı yok.
+   * Ürün görseli olmayan yorum kartın arka planı olamayacağı için atlanır.
+   */
+  private async approvedReviewCards(limit: number) {
+    const rows = await this.prisma.review.findMany({
+      where: { status: 'APPROVED', rating: { gte: 4 }, comment: { not: '' }, user: { deletedAt: null }, product: { ...VISIBLE_PRODUCT, images: { some: {} } } },
+      orderBy: [{ createdAt: 'desc' }, { id: 'asc' }],
+      take: limit,
+      select: {
+        rating: true,
+        comment: true,
+        user: { select: { name: true } },
+        product: { select: { images: { orderBy: { order: 'asc' }, take: 1, select: { url: true } } } },
+      },
+    });
+    return rows.flatMap((r) => {
+      const image = r.product.images[0]?.url;
+      if (!image) return [];
+      // Kart en fazla 300 karakter gösterir (elle girilenle aynı sınır)
+      const comment = r.comment.trim().length > 300 ? `${r.comment.trim().slice(0, 297)}…` : r.comment.trim();
+      return [{ name: maskName(r.user.name), rating: r.rating, comment, productImage: image, userImage: null }];
     });
   }
 

@@ -25,6 +25,7 @@ import { RolesGuard } from '../auth/guards/roles.guard.js';
 
 import { UpdateMediaDto } from './dto/update-media.dto.js';
 import { MediaService } from './media.service.js';
+import { MAX_VIDEO_BYTES } from './video-file-validator.js';
 
 @Controller('admin/media')
 @UseGuards(JwtAuthGuard, RolesGuard)
@@ -33,9 +34,10 @@ export class AdminMediaController {
   constructor(private readonly media: MediaService) {}
 
   @Get()
-  list(@Query('page', new DefaultValuePipe(1), ParseIntPipe) page: number) {
+  list(@Query('page', new DefaultValuePipe(1), ParseIntPipe) page: number, @Query('type') type?: string) {
     if (page < 1 || page > 10_000) throw new BadRequestException('Geçersiz sayfa.');
-    return this.media.findPage(page);
+    if (type !== undefined && type !== 'image' && type !== 'video') throw new BadRequestException('Geçersiz tür.');
+    return this.media.findPage(page, type);
   }
 
   // Görsel işleme CPU harcar: yükleme ayrıca sınırlı
@@ -50,6 +52,20 @@ export class AdminMediaController {
   upload(@UploadedFile() file?: Express.Multer.File) {
     if (!file) throw new BadRequestException('Yüklenecek görsel bulunamadı.');
     return this.media.upload({ originalName: file.originalname, buffer: file.buffer });
+  }
+
+  // Video büyük: daha sıkı sınır (dakikada 10)
+  @Post('upload-video')
+  @Throttle({ default: { limit: 10, ttl: 60_000 } })
+  @UseInterceptors(
+    FileInterceptor('file', {
+      storage: memoryStorage(),
+      limits: { fileSize: MAX_VIDEO_BYTES, files: 1, fields: 0, parts: 1 },
+    }),
+  )
+  uploadVideo(@UploadedFile() file?: Express.Multer.File) {
+    if (!file) throw new BadRequestException('Yüklenecek video bulunamadı.');
+    return this.media.uploadVideo({ originalName: file.originalname, buffer: file.buffer });
   }
 
   @Patch(':id')

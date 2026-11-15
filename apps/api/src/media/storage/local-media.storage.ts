@@ -3,7 +3,7 @@ import { join } from 'node:path';
 
 import type { MediaStorage } from './media-storage.js';
 
-const KEY_REGEX = /^[0-9a-f-]{36}\.(jpg|png|webp)$/;
+const KEY_REGEX = /^[0-9a-f-]{36}\.(jpg|png|webp|mp4|webm)$/;
 
 /** Sunucu diski: storage/media klasörü, /media/<anahtar> adresinden sunulur */
 export class LocalMediaStorage implements MediaStorage {

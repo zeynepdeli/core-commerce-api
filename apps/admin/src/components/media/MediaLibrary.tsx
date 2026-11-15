@@ -11,7 +11,8 @@ import { ConfirmDeleteDialog } from "@/components/common/ConfirmDeleteDialog";
 
 import { deleteMediaAction, uploadImageAction } from "@/app/actions/media";
 import type { MediaFile } from "@/lib/media";
-import { IMAGE_ACCEPT, validateImageFile } from "@/lib/validations/media";
+import { IMAGE_ACCEPT, VIDEO_ACCEPT, validateImageFile } from "@/lib/validations/media";
+import { uploadVideo } from "@/lib/upload-video";
 
 type MediaLibraryProps = {
   files: MediaFile[];
@@ -49,6 +50,13 @@ export function MediaLibrary({ files, mediaBaseUrl }: MediaLibraryProps) {
     for (const [index, file] of selected.entries()) {
       setUploading(`${index + 1}/${selected.length}`);
 
+      // Video ayrı uçtan (25 MB, akışlı); görsel Server Action ile (5 MB, API'de yeniden işlenir)
+      if (file.type.startsWith("video/")) {
+        const result = await uploadVideo(file);
+        if (!result.success) nextErrors.push(`${file.name}: ${result.error}`);
+        continue;
+      }
+
       const clientError = validateImageFile(file);
       if (clientError) {
         nextErrors.push(`${file.name}: ${clientError}`);
@@ -83,7 +91,7 @@ export function MediaLibrary({ files, mediaBaseUrl }: MediaLibraryProps) {
         <input
           ref={inputRef}
           type="file"
-          accept={IMAGE_ACCEPT}
+          accept={`${IMAGE_ACCEPT},${VIDEO_ACCEPT}`}
           multiple
           className="sr-only"
           onChange={(event) => {
@@ -102,11 +110,11 @@ export function MediaLibrary({ files, mediaBaseUrl }: MediaLibraryProps) {
           ) : (
             <Upload className="size-4" />
           )}
-          {uploading ? `Yükleniyor ${uploading}` : "Görsel Yükle"}
+          {uploading ? `Yükleniyor ${uploading}` : "Görsel / Video Yükle"}
         </Button>
         <p className="text-xs text-muted-foreground">
-          JPG, PNG veya WEBP — en fazla 5 MB. Tek seferde {MAX_FILES_PER_BATCH}{" "}
-          dosya.
+          Görsel: JPG, PNG veya WEBP, en fazla 5 MB. Video: MP4 veya WebM, en fazla 25 MB. Tek
+          seferde {MAX_FILES_PER_BATCH} dosya.
         </p>
       </div>
 
@@ -124,7 +132,7 @@ export function MediaLibrary({ files, mediaBaseUrl }: MediaLibraryProps) {
       {files.length === 0 ? (
         <div className="flex flex-col items-center gap-3 rounded-2xl border border-dashed border-border p-12 text-center text-muted-foreground">
           <ImageIcon className="size-8" />
-          <p>Henüz görsel yüklenmedi.</p>
+          <p>Henüz dosya yüklenmedi.</p>
         </div>
       ) : (
         <ul className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5">
@@ -134,13 +142,31 @@ export function MediaLibrary({ files, mediaBaseUrl }: MediaLibraryProps) {
               className="overflow-hidden rounded-2xl border border-border bg-card"
             >
               <div className="relative flex aspect-square items-center justify-center bg-surface-muted">
-                {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img
-                  src={mediaSrc(file.url, mediaBaseUrl)}
-                  alt={file.alt || file.originalName}
-                  loading="lazy"
-                  className="size-full object-contain"
-                />
+                {file.mimeType.startsWith("video/") ? (
+                  <>
+                    <video
+                      src={mediaSrc(file.url, mediaBaseUrl)}
+                      muted
+                      loop
+                      playsInline
+                      preload="metadata"
+                      controls
+                      aria-label={file.originalName}
+                      className="size-full bg-black object-contain"
+                    />
+                    <span className="absolute right-2 top-2 rounded-full bg-black/70 px-2 py-0.5 text-[11px] font-semibold text-white">
+                      Video
+                    </span>
+                  </>
+                ) : (
+                  // eslint-disable-next-line @next/next/no-img-element
+                  <img
+                    src={mediaSrc(file.url, mediaBaseUrl)}
+                    alt={file.alt || file.originalName}
+                    loading="lazy"
+                    className="size-full object-contain"
+                  />
+                )}
                 {file.inUse && (
                   <span className="absolute left-2 top-2 rounded-full bg-emerald-600 px-2 py-0.5 text-[11px] font-semibold text-white">
                     Kullanımda
@@ -159,7 +185,8 @@ export function MediaLibrary({ files, mediaBaseUrl }: MediaLibraryProps) {
                 <p className="text-xs text-muted-foreground">
                   {formatSize(file.size)}
                 </p>
-                <MediaAltField id={file.id} initial={file.alt ?? ""} />
+                {/* Açıklama (alt) yalnızca görsellerde anlamlı */}
+                {!file.mimeType.startsWith("video/") && <MediaAltField id={file.id} initial={file.alt ?? ""} />}
 
                 <div className="flex items-center gap-2">
                   <Button

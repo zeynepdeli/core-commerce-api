@@ -6,7 +6,8 @@ import { parseSiteImages } from '../content/site-images.js';
 import { PrismaService } from '../prisma/prisma.service.js';
 
 import { MediaFileValidatorService } from './media-file-validator.service.js';
-import { MEDIA_STORAGE, type MediaStorage } from './storage/media-storage.js';
+import { MEDIA_STORAGE, type MediaResource, type MediaStorage } from './storage/media-storage.js';
+import { validateVideo } from './video-file-validator.js';
 
 const PAGE_SIZE = 60;
 
@@ -20,11 +21,16 @@ export class MediaService {
     @Inject(MEDIA_STORAGE) private readonly storage: MediaStorage,
   ) {}
 
-  /** Sayfalı liste; her görsel için "kullanımda mı" bilgisi (yalnızca o sayfadaki adresler sorgulanır) */
-  async findPage(page = 1) {
+  /**
+   * Sayfalı liste; her dosya için "kullanımda mı" bilgisi (yalnızca o sayfadaki adresler sorgulanır).
+   * type: yalnızca görseller (görsel seçici) ya da yalnızca videolar (video seçici); yoksa hepsi.
+   */
+  async findPage(page = 1, type?: MediaResource) {
+    const where = type ? { mimeType: { startsWith: `${type}/` } } : {};
     const [total, items] = await this.prisma.$transaction([
-      this.prisma.media.count(),
+      this.prisma.media.count({ where }),
       this.prisma.media.findMany({
+        where,
         orderBy: [{ createdAt: 'desc' }, { id: 'desc' }],
         skip: (page - 1) * PAGE_SIZE,
         take: PAGE_SIZE,
@@ -92,6 +98,38 @@ export class MediaService {
     }
   }
 
+  /**
+   * Video yükleme (ör. ana sayfa kategoriler bölümündeki kapı videosu). Video yeniden kodlanamadığı
+   * için içerik yapısı denetlenir (video-file-validator). Boyutları ölçülmez (0).
+   */
+  async uploadVideo(input: { originalName: string; buffer: Buffer }) {
+    const validated = await validateVideo(input.buffer);
+    const { storageKey, url } = await this.storage.save({
+      id: randomUUID(),
+      extension: validated.extension,
+      buffer: validated.buffer,
+      mimeType: validated.mimeType,
+      resource: 'video',
+    });
+
+    try {
+      return await this.prisma.media.create({
+        data: {
+          originalName: input.originalName.replace(/[\u0000-\u001f\u007f]/g, '').slice(0, 255) || 'video',
+          storageKey,
+          mimeType: validated.mimeType,
+          size: validated.size,
+          width: 0,
+          height: 0,
+          url,
+        },
+      });
+    } catch (error) {
+      await this.storage.remove(storageKey, 'video').catch(() => this.logger.error(`Yükleme geri alınamadı: ${storageKey}`));
+      throw error;
+    }
+  }
+
   async updateAlt(id: string, alt: string | null) {
     const media = await this.prisma.media.findUnique({ where: { id }, select: { id: true } });
     if (!media) throw new NotFoundException('Görsel bulunamadı.');
@@ -102,15 +140,16 @@ export class MediaService {
     const media = await this.prisma.media.findUnique({ where: { id } });
     if (!media) throw new NotFoundException('Görsel bulunamadı.');
 
-    // Kullanımdaki görsel silinirse mağazada kırık görsel oluşur
+    // Kullanımdaki dosya silinirse mağazada kırık görsel / video oluşur
     if ((await this.usedAmong([media.url])).size > 0) {
-      throw new ConflictException('Bu görsel kullanılıyor (ürün, kategori veya tema). Önce kullanıldığı yerden kaldırın.');
+      throw new ConflictException('Bu dosya kullanılıyor (ürün, kategori, tema ya da ana sayfa). Önce kullanıldığı yerden kaldırın.');
     }
+    const resource: MediaResource = media.mimeType.startsWith('video/') ? 'video' : 'image';
 
     // Önce kayıt: dosya silinemezse kırık kayıt kalmaz, yalnızca sahipsiz dosya kalır (loglanır)
     await this.prisma.media.delete({ where: { id } });
     try {
-      await this.storage.remove(media.storageKey);
+      await this.storage.remove(media.storageKey, resource);
     } catch {
       this.logger.error(`Görsel kaydı silindi ama dosya silinemedi: ${media.storageKey}`);
     }
