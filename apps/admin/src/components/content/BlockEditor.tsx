@@ -6,6 +6,7 @@ import { Loader2, Plus, Search, Trash2, X } from "lucide-react";
 
 import { saveBlockAction, searchProductsAction } from "@/app/actions/content";
 import { AreaCard } from "@/components/areas/AreaShell";
+import { CustomCardsEditor } from "@/components/content/CustomCardsEditor";
 import { ImageUploadField } from "@/components/forms/ImageUploadField";
 import { Button } from "@/components/ui/button";
 
@@ -43,8 +44,6 @@ const CARD_MODES = [
   { custom: true, title: "Kendi kartlarım", text: "Fotoğraf, isim, fiyat ve bağlantıyı ben girerim (eski sitedeki gibi)." },
   { custom: false, title: "Ürünlerimden otomatik", text: "Öne çıkan, çok satan, en yeni ya da seçtiğim ürünler; fiyat ve stok hep güncel." },
 ] as const;
-/** API sınırıyla aynı (MAX_CUSTOM_CARDS) */
-const MAX_CUSTOM_CARDS = 12;
 const LINK_HINT = "/ ile başlayan site içi adres (ör. /kategori/peynir) veya https:// adresi.";
 
 /** Boş metinleri kaldır, tarihleri ISO'ya çevir (API boş alanı "yok" sayar) */
@@ -340,7 +339,7 @@ function ProductListFields({
           </div>
         </fieldset>
 
-        {custom && <CustomCardsFields control={control} register={register} mediaBaseUrl={mediaBaseUrl} />}
+        {custom && <CustomCardsEditor control={control} mediaBaseUrl={mediaBaseUrl} />}
 
         <div className="grid gap-5 @xl:grid-cols-2">
           <Text label="Başlık" name="title" register={register} max={80} placeholder="Çok satanlar" />
@@ -461,56 +460,3 @@ function ProductListFields({
   );
 }
 
-/** Eski enfesGurme'deki gibi elle girilen kartlar: fotoğraf, isim, fiyat, bağlantı (en fazla 12) */
-function CustomCardsFields({ control, register, mediaBaseUrl }: { control: Control<Data>; register: UseFormRegister<Data>; mediaBaseUrl: string }) {
-  const { fields, append, remove, move } = useFieldArray({ control, name: "cards" });
-  return (
-    <div className="grid gap-4">
-      <p className="rounded-xl bg-surface-muted p-3 text-sm text-muted-foreground">
-        Kartlar ürünlerden bağımsızdır: yazdığın fiyat gösterilir. Fiyat değişince buradan da güncellemeyi unutma. Kartı ürün sayfasına bağlamak için bağlantıya ürünün adresini yaz (ör. /urun/antep-fistikli-helva).
-      </p>
-      {fields.length === 0 && (
-        <p className="rounded-2xl border-2 border-dashed border-border p-6 text-center text-sm text-muted-foreground">Henüz kart yok. Aşağıdaki &quot;Kart ekle&quot; ile fotoğraf, isim ve fiyatla ilk kartını ekle.</p>
-      )}
-      {fields.map((f, i) => (
-        <fieldset key={f.id} className="grid gap-4 rounded-2xl border border-border p-4">
-          <legend className="px-1 text-sm font-semibold">{i + 1}. kart</legend>
-          <div className="grid gap-4 @3xl:grid-cols-[minmax(0,1fr)_minmax(0,1.4fr)]">
-            <ImageUploadField name={`cards.${i}.imageUrl`} label="Fotoğraf" control={control} mediaBaseUrl={mediaBaseUrl} required description="Arka planı şeffaf PNG/WEBP, eski sitedeki gibi en iyi görünür." />
-            <div className="grid content-start gap-4 @xl:grid-cols-2">
-              <div className="@xl:col-span-2">
-                <Text label="İsim" name={`cards.${i}.name`} register={register} max={80} placeholder="Antep Fıstıklı Helva" />
-              </div>
-              <Text label="Fiyat (₺, isteğe bağlı)" name={`cards.${i}.price`} register={register} max={12} placeholder="149,90" />
-              <Text label="Eski fiyat (indirim için, isteğe bağlı)" name={`cards.${i}.compareAtPrice`} register={register} max={12} placeholder="189,90" />
-              <div className="@xl:col-span-2">
-                <Text label="Bağlantı (isteğe bağlı)" name={`cards.${i}.link`} register={register} max={500} hint={`Boşsa kart tıklanmaz. ${LINK_HINT}`} />
-              </div>
-              <label className="flex items-center gap-2 text-sm">
-                <input type="checkbox" {...register(`cards.${i}.soldOut`)} className="size-4" /> Tükendi olarak göster
-              </label>
-            </div>
-          </div>
-          <div className="flex gap-1">
-            <Button type="button" variant="ghost" size="sm" disabled={i === 0} onClick={() => move(i, i - 1)} aria-label={`${i + 1}. kartı yukarı taşı`}>
-              ↑
-            </Button>
-            <Button type="button" variant="ghost" size="sm" disabled={i === fields.length - 1} onClick={() => move(i, i + 1)} aria-label={`${i + 1}. kartı aşağı taşı`}>
-              ↓
-            </Button>
-            <Button type="button" variant="ghost" size="sm" onClick={() => remove(i)} className="gap-1.5 text-destructive">
-              <Trash2 className="size-4" /> Kartı kaldır
-            </Button>
-          </div>
-        </fieldset>
-      ))}
-      {fields.length < MAX_CUSTOM_CARDS && (
-        <div>
-          <Button type="button" variant="outline" onClick={() => append({ name: "", imageUrl: "", price: "", compareAtPrice: "", link: "", soldOut: false })} className="gap-2">
-            <Plus className="size-4" /> Kart ekle
-          </Button>
-        </div>
-      )}
-    </div>
-  );
-}
