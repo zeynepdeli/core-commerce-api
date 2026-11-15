@@ -869,6 +869,52 @@ model SiteFooter {
   updatedAt DateTime @updatedAt
 }
 
+// Hakkımızda sayfası (eski enfesGurme düzeni: Vizyon, Misyon, Hikaye, Değerler). Tek satır (id = 1).
+// Görseller medya kütüphanesinden (/media/…) ya da https; boş görselde mağaza varsayılanı kullanır.
+model AboutPage {
+  id Int @id @default(1)
+
+  isPublished     Boolean @default(true)
+  backgroundColor String  @default("#efe3cc")
+  // Görsel kartların zemini ve üstündeki hafif doku
+  cardImage       String?
+  textureImage    String?
+  // Arka plandaki silik çizimler (4 adet)
+  sketchImage1    String?
+  sketchImage2    String?
+  sketchImage3    String?
+  sketchImage4    String?
+
+  visionTitle     String  @default("Vizyonumuz")
+  visionText      String?
+  visionImage     String?
+  visionMiniImage String?
+
+  missionHeading String  @default("Misyonumuz")
+  missionTitle   String?
+  missionText    String?
+  missionImage   String?
+
+  storyHeading String  @default("Hikayemiz")
+  storyTitle   String?
+  storyText    String?
+  storyImage   String?
+  // Hikaye bölümünün solundaki küçük görseller
+  miniImage1   String?
+  miniImage2   String?
+  miniImage3   String?
+
+  valuesHeading String  @default("Değerlerimiz")
+  valuesTitle   String?
+  valuesText    String?
+  valuesImage   String?
+
+  metaTitle       String?
+  metaDescription String?
+
+  updatedAt DateTime @updatedAt
+}
+
 // Sayfa bölümleri (ör. page = "home"). data.type: HERO | PRODUCT_LIST | CATEGORY_GRID |
 // BANNER | TEXT | FEATURES — her türün alanları API'de ayrı ayrı doğrulanır.
 model ContentBlock {
