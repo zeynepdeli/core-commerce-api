@@ -78,6 +78,41 @@ export function IsImageUrl(validationOptions?: ValidationOptions) {
   );
 }
 
+/**
+ * Arka plan videosu (ör. ana sayfa kategoriler bölümündeki kemer içi video): yalnızca https ile,
+ * doğrudan .mp4 / .webm dosyası (ör. Cloudinary). Kullanıcı adı/şifre içeremez. Medya kütüphanesi
+ * şimdilik video kabul etmediği için yerel adres yok.
+ */
+export function isVideoUrl(value: unknown): boolean {
+  if (typeof value !== 'string' || value.length > 500) return false;
+  if (
+    !isURL(value, {
+      protocols: ['https'],
+      require_protocol: true,
+      require_tld: true,
+      allow_underscores: false,
+      disallow_auth: true,
+    })
+  ) {
+    return false;
+  }
+  return /\.(mp4|webm)$/i.test(new URL(value).pathname);
+}
+
+export function IsVideoUrl(validationOptions?: ValidationOptions) {
+  return ValidateBy(
+    {
+      name: 'isVideoUrl',
+      validator: {
+        validate: (value: unknown) => isVideoUrl(value),
+        defaultMessage: () =>
+          'Video adresi https:// ile başlamalı ve .mp4 ya da .webm dosyası olmalıdır (ör. Cloudinary video bağlantısı).',
+      },
+    },
+    validationOptions,
+  );
+}
+
 /** Tema renkleri için tek format: #RRGGBB (ör. #1a2b3c) */
 export const HEX_COLOR_REGEX = /^#[0-9a-fA-F]{6}$/;
 

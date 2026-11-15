@@ -7,6 +7,7 @@ import { Loader2, Plus, Search, Trash2, X } from "lucide-react";
 import { saveBlockAction, searchProductsAction } from "@/app/actions/content";
 import { AreaCard } from "@/components/areas/AreaShell";
 import { CustomCardsEditor } from "@/components/content/CustomCardsEditor";
+import { ReviewCardsEditor } from "@/components/content/ReviewCardsEditor";
 import { ImageUploadField } from "@/components/forms/ImageUploadField";
 import { Button } from "@/components/ui/button";
 
@@ -108,11 +109,37 @@ export function BlockEditor({ id, type, initial, initialKey, categories, product
       )}
       {type === "PRODUCT_LIST" && <ProductListFields control={control} register={register} watch={watch} setValue={setValue} categories={categories} productNames={productNames} mediaBaseUrl={mediaBaseUrl} />}
       {type === "CATEGORY_GRID" && (
-        <AreaCard title="Kategoriler" hint="Hiçbiri seçilmezse tüm aktif kategoriler (en fazla 12) gösterilir.">
+        <>
+        <AreaCard title="Yazılar" hint="Boş bırakılan alanda örnekteki yazı kullanılır.">
+          <div className="grid gap-5 @xl:grid-cols-2">
+            <Text label="Başlığın üstündeki küçük yazı" name="eyebrow" register={register} max={60} placeholder="Keşfetmeye Devam Edin" />
+            <Text label="Başlık" name="title" register={register} max={80} placeholder="Kategoriler" />
+            <div className="@xl:col-span-2">
+              <Text label="Açıklama (masaüstünde görünür)" name="description" register={register} max={300} area placeholder="Anadolu'nun en özel lezzetlerini keşfedin. Her kategori, geleneksel üretimin izlerini taşır." />
+            </div>
+            <Text label="Kart yazısı" name="buttonLabel" register={register} max={20} placeholder="İncele" />
+          </div>
+        </AreaCard>
+        <AreaCard title="Video ve arka plan" hint="Soldaki kemerli kapının içinde video oynar. Boş bırakılırsa mağazanın varsayılan videosu ve kemerli duvar görseli kullanılır.">
           <div className="grid gap-5">
-            <Text label="Başlık" name="title" register={register} max={80} />
+            <Text
+              label="Video adresi (isteğe bağlı)"
+              name="videoUrl"
+              register={register}
+              max={500}
+              placeholder="https://res.cloudinary.com/…/video/upload/…/kapi.mp4"
+              hint="https:// ile başlayan .mp4 ya da .webm dosyası (ör. Cloudinary'ye yüklediğin videonun bağlantısı). Sessiz ve döngüde oynar; 10 MB altı önerilir."
+            />
+            <div className="grid gap-5 @xl:grid-cols-2">
+              <ImageUploadField name="desktopBackground" label="Masaüstü arka plan" control={control} mediaBaseUrl={mediaBaseUrl} description="Solunda kemerli kapı olan duvar görseli." />
+              <ImageUploadField name="mobileBackground" label="Telefon arka planı" control={control} mediaBaseUrl={mediaBaseUrl} description="Boşsa masaüstü görseli kullanılır." />
+            </div>
+          </div>
+        </AreaCard>
+        <AreaCard title="Kategoriler" hint="Hiçbiri seçilmezse admin'deki sırayla ilk kategoriler gösterilir. Ana sayfada en fazla 4 kategori görünür (eski sitedeki gibi); görselleri Kategoriler sayfasından gelir.">
+          <div className="grid gap-5">
             <fieldset className="grid gap-2 sm:grid-cols-2 xl:grid-cols-3">
-              <legend className="mb-2 text-sm font-medium">Gösterilecek kategoriler (en fazla 12)</legend>
+              <legend className="mb-2 text-sm font-medium">Gösterilecek kategoriler (sırasıyla ilk 4)</legend>
               {categories.map((c) => (
                 <label key={c.id} className="flex items-center gap-2 text-sm">
                   <input type="checkbox" value={c.id} {...register("categoryIds")} className="size-4" /> {c.name}
@@ -121,6 +148,26 @@ export function BlockEditor({ id, type, initial, initialKey, categories, product
             </fieldset>
           </div>
         </AreaCard>
+        </>
+      )}
+      {type === "REVIEWS" && (
+        <>
+          <AreaCard title="Müşteri Yorumları">
+            <div className="grid gap-5">
+              <div className="grid gap-5 @xl:grid-cols-2">
+                <Text label="Başlık" name="title" register={register} max={80} placeholder="Müşterilerimizin Kalbinden" />
+                <Text label="Açıklama" name="description" register={register} max={300} placeholder="Anadolu'nun eşsiz lezzetlerini deneyimleyen müşterilerimizin gerçek yorumları." />
+              </div>
+              <ReviewCardsEditor control={control} mediaBaseUrl={mediaBaseUrl} />
+            </div>
+          </AreaCard>
+          <AreaCard title="Görseller" hint="Boş bırakılırsa eski sitedeki taş duvar ve haki çerçeve kullanılır.">
+            <div className="grid gap-5 @xl:grid-cols-2">
+              <ImageUploadField name="backgroundImage" label="Bölüm arka planı" control={control} mediaBaseUrl={mediaBaseUrl} />
+              <ImageUploadField name="frameImage" label="Kart çerçevesi" control={control} mediaBaseUrl={mediaBaseUrl} description="Yorum kutusunun altındaki çerçeve; arka planı şeffaf PNG/WEBP." />
+            </div>
+          </AreaCard>
+        </>
       )}
       {type === "TEXT" && (
         <AreaCard title="Metin" hint="Markdown: **kalın**, *italik*, # başlık, - liste, [bağlantı](/adres). HTML çalışmaz.">

@@ -21,6 +21,8 @@ function summary(d: Record<string, unknown>) {
       return (d.title as string) ?? String(d.body).slice(0, 80);
     case "FEATURES":
       return (d.items as { title: string }[]).map((i) => i.title).join(" · ");
+    case "REVIEWS":
+      return `${(d.title as string) ?? "Müşteri yorumları"} · ${(d.cards as unknown[] | undefined)?.length ?? 0} yorum`;
     default:
       return "";
   }

@@ -23,7 +23,7 @@ import {
   ValidateNested,
 } from 'class-validator';
 
-import { HEX_COLOR_MESSAGE, HEX_COLOR_REGEX, IsImageUrl, IsSafeLink, isImageUrl, SINGLE_LINE_REGEX, SLUG_MESSAGE, SLUG_REGEX } from '../common/validators.js';
+import { HEX_COLOR_MESSAGE, HEX_COLOR_REGEX, IsImageUrl, IsSafeLink, IsVideoUrl, isImageUrl, SINGLE_LINE_REGEX, SLUG_MESSAGE, SLUG_REGEX } from '../common/validators.js';
 
 import { MAX_HEADER_LABEL, MAX_HEADER_LINKS } from './header-links.js';
 import type { SiteImageSlot } from './site-images.js';
@@ -202,7 +202,7 @@ export class UpdateFooterDto {
 
 // ───────────── Ana sayfa bölümleri ─────────────
 
-export const BLOCK_TYPES = ['HERO', 'PRODUCT_LIST', 'CATEGORY_GRID', 'BANNER', 'TEXT', 'FEATURES'] as const;
+export const BLOCK_TYPES = ['HERO', 'PRODUCT_LIST', 'CATEGORY_GRID', 'BANNER', 'TEXT', 'FEATURES', 'REVIEWS'] as const;
 export type BlockType = (typeof BLOCK_TYPES)[number];
 export const FEATURE_ICONS = ['truck', 'shield', 'gift', 'leaf', 'phone', 'refresh', 'star', 'clock', 'award', 'heart', 'credit-card', 'map-pin'] as const;
 
@@ -296,9 +296,22 @@ export class ProductListBlockDto extends BlockBase {
   @OptionalLine(20) cardButtonLabel?: string | null;
 }
 
+/**
+ * Kategoriler bölümü (eski enfesGurme: solda kemerli kapı içinde video, sağda kategori kartları).
+ * Boş bırakılan yazı / görsel / video alanlarında mağaza kendi varsayılanını kullanır.
+ */
 export class CategoryGridBlockDto extends BlockBase {
   declare type: 'CATEGORY_GRID';
+  /** Başlığın üstündeki küçük yazı ("Keşfetmeye Devam Edin") */
+  @OptionalLine(60) eyebrow?: string | null;
   @OptionalLine(80) title?: string | null;
+  @OptionalText(300) description?: string | null;
+  /** Kartlardaki yazı ("İncele") */
+  @OptionalLine(20) buttonLabel?: string | null;
+  /** Kemer içindeki video: https .mp4/.webm */
+  @ValidateIf(nullable) @IsVideoUrl() videoUrl?: string | null;
+  @ValidateIf(nullable) @IsImageUrl() desktopBackground?: string | null;
+  @ValidateIf(nullable) @IsImageUrl() mobileBackground?: string | null;
   /** Boş = tüm aktif kategoriler (sırasıyla, en fazla 12) */
   @IsOptional() @IsArray() @ArrayMaxSize(12) @ArrayUnique() @IsUUID('all', { each: true }) categoryIds?: string[];
 }
@@ -333,7 +346,35 @@ export class FeaturesBlockDto extends BlockBase {
   @IsArray() @ArrayMinSize(1) @ArrayMaxSize(6) @ValidateNested({ each: true }) @Type(() => FeatureItemDto) items!: FeatureItemDto[];
 }
 
-export type BlockData = HeroBlockDto | ProductListBlockDto | CategoryGridBlockDto | BannerBlockDto | TextBlockDto | FeaturesBlockDto;
+export const MAX_REVIEW_CARDS = 12;
+
+/** Ana sayfadaki müşteri yorumu kartı (eski enfesGurme "reviews-section" kartları) */
+export class ReviewCardDto {
+  @RequiredLine(60) name!: string;
+  @IsInt({ message: 'Puan 1–5 arası tam sayı olmalı.' }) @Min(1) @Max(5) rating!: number;
+  @Transform(trim) @IsString() @MinLength(1, { message: 'Yorum boş bırakılamaz.' }) @MaxLength(300) @Matches(MULTI_LINE) comment!: string;
+  /** Kartın arka planındaki ürün fotoğrafı */
+  @IsImageUrl() productImage!: string;
+  /** Müşterinin fotoğrafı; yoksa baş harfler gösterilir */
+  @ValidateIf(nullable) @IsImageUrl() userImage?: string | null;
+}
+
+export class ReviewsBlockDto extends BlockBase {
+  declare type: 'REVIEWS';
+  @OptionalLine(80) title?: string | null;
+  @OptionalText(300) description?: string | null;
+  @IsArray()
+  @ArrayMinSize(1, { message: 'En az bir yorum ekleyin.' })
+  @ArrayMaxSize(MAX_REVIEW_CARDS, { message: `En fazla ${MAX_REVIEW_CARDS} yorum eklenebilir.` })
+  @ValidateNested({ each: true })
+  @Type(() => ReviewCardDto)
+  cards!: ReviewCardDto[];
+  @ValidateIf(nullable) @IsImageUrl() backgroundImage?: string | null;
+  /** Kartın altındaki çerçeve görseli (varsayılan: haki çerçeve) */
+  @ValidateIf(nullable) @IsImageUrl() frameImage?: string | null;
+}
+
+export type BlockData = HeroBlockDto | ProductListBlockDto | CategoryGridBlockDto | BannerBlockDto | TextBlockDto | FeaturesBlockDto | ReviewsBlockDto;
 
 export class SaveBlockDto {
   /** Bölüm anahtarı (kalıcı, ör. "ana-slider"); boşsa üretilir */
@@ -353,6 +394,7 @@ export class SaveBlockDto {
         { value: BannerBlockDto, name: 'BANNER' },
         { value: TextBlockDto, name: 'TEXT' },
         { value: FeaturesBlockDto, name: 'FEATURES' },
+        { value: ReviewsBlockDto, name: 'REVIEWS' },
       ],
     },
   })
