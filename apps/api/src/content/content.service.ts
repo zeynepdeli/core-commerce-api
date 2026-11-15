@@ -79,10 +79,27 @@ export function storedBlock(data: BlockData): Prisma.InputJsonValue {
 
 /** Görsel adreslerini bölüm verisinden topla (medya "kullanımda" denetimi için) */
 export function blockImageUrls(data: unknown): string[] {
-  const d = data as { slides?: { imageUrl?: string; mobileImageUrl?: string }[]; cards?: { imageUrl?: string }[]; imageUrl?: string; mobileImageUrl?: string };
-  return [...(d.slides ?? []).flatMap((s) => [s.imageUrl, s.mobileImageUrl]), ...(d.cards ?? []).map((c) => c.imageUrl), d.imageUrl, d.mobileImageUrl].filter(
-    (u): u is string => typeof u === 'string' && u.length > 0,
-  );
+  const d = data as {
+    slides?: { imageUrl?: string; mobileImageUrl?: string }[];
+    cards?: { imageUrl?: string; productImage?: string; userImage?: string }[];
+    imageUrl?: string;
+    mobileImageUrl?: string;
+    desktopBackground?: string;
+    mobileBackground?: string;
+    backgroundImage?: string;
+    frameImage?: string;
+  };
+  return [
+    ...(d.slides ?? []).flatMap((s) => [s.imageUrl, s.mobileImageUrl]),
+    // Elle girilen ürün kartları (imageUrl) ve müşteri yorumu kartları (productImage, userImage)
+    ...(d.cards ?? []).flatMap((c) => [c.imageUrl, c.productImage, c.userImage]),
+    d.imageUrl,
+    d.mobileImageUrl,
+    d.desktopBackground,
+    d.mobileBackground,
+    d.backgroundImage,
+    d.frameImage,
+  ].filter((u): u is string => typeof u === 'string' && u.length > 0);
 }
 
 /**
@@ -341,7 +358,8 @@ export class ContentService {
           if (d.type === 'CATEGORY_GRID') {
             const ids = d.categoryIds ?? [];
             const rows = await this.prisma.category.findMany({
-              where: { isActive: true, deletedAt: null, ...(ids.length ? { id: { in: ids } } : { parentId: null }) },
+              // Kategori seçilmediyse tüm aktif kategoriler (önceki sürümdeki parentId koşulu şemada yoktu: sorgu hata veriyordu)
+              where: { isActive: true, deletedAt: null, ...(ids.length ? { id: { in: ids } } : {}) },
               select: { id: true, name: true, slug: true, image: true },
               orderBy: [{ order: 'asc' }, { name: 'asc' }],
               take: 12,
