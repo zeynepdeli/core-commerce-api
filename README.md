@@ -24,12 +24,14 @@ docker compose -f infrastructure/compose.yaml up -d      # PostgreSQL (localhost
 
 cp apps/api/.env.example apps/api/.env                  # JWT_ACCESS_SECRET'ı doldurun: openssl rand -base64 64
 cp apps/admin/.env.example apps/admin/.env.local        # WEB_API_SECRET, API'dekiyle AYNI olmalı
-pnpm --filter api db:migrate                            # tabloları oluştur
+pnpm --filter api db:migrate                            # tabloları oluştur + Prisma istemcisini üret
 ADMIN_EMAIL=... ADMIN_PASSWORD=... pnpm --filter api create-admin   # ilk süper yönetici
 pnpm dev                                                # API :4000 + admin :3001 birlikte
 ```
 
 Şemayı değiştirince: `pnpm --filter api db:migrate:dev --name <degisiklik-adi>`.
+
+Güncelleme çektikten sonra (`git pull`): `pnpm install && pnpm --filter api db:migrate`. `pnpm dev` de başlarken Prisma istemcisini yeniden üretir; yeni tablo eklenen sürümlerde "Property '…' does not exist on type 'PrismaService'" hatası bu yüzden görülmez.
 
 ## Admin paneli
 
