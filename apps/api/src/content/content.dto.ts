@@ -9,6 +9,7 @@ import {
   IsEmail,
   IsIn,
   IsInt,
+  IsNumber,
   IsObject,
   IsOptional,
   IsString,
@@ -297,6 +298,18 @@ export class ProductListBlockDto extends BlockBase {
 }
 
 /**
+ * Kategoriler bölümünde videonun yeri: arka plan görseli bölüme %100 x %100 gerildiği için
+ * değerler bölümün yüzdesi. Kemer: üst köşeler yatayda %50, dikeyde "curve" (videonun yüksekliğinin %'si).
+ */
+export class VideoBoxDto {
+  @IsNumber({ maxDecimalPlaces: 1 }) @Min(0) @Max(90) left!: number;
+  @IsNumber({ maxDecimalPlaces: 1 }) @Min(0) @Max(90) top!: number;
+  @IsNumber({ maxDecimalPlaces: 1 }) @Min(5) @Max(100) width!: number;
+  @IsNumber({ maxDecimalPlaces: 1 }) @Min(5) @Max(100) height!: number;
+  @IsNumber({ maxDecimalPlaces: 1 }) @Min(0) @Max(50) curve!: number;
+}
+
+/**
  * Kategoriler bölümü (eski enfesGurme: solda kemerli kapı içinde video, sağda kategori kartları).
  * Boş bırakılan yazı / görsel / video alanlarında mağaza kendi varsayılanını kullanır.
  */
@@ -312,6 +325,8 @@ export class CategoryGridBlockDto extends BlockBase {
   @ValidateIf(nullable) @IsVideoUrl() videoUrl?: string | null;
   @ValidateIf(nullable) @IsImageUrl() desktopBackground?: string | null;
   @ValidateIf(nullable) @IsImageUrl() mobileBackground?: string | null;
+  /** Videonun masaüstü arka plandaki kapıya göre yeri (bölümün yüzdesi); yoksa varsayılan kapıya göre */
+  @IsOptional() @IsObject() @ValidateNested() @Type(() => VideoBoxDto) videoBox?: VideoBoxDto;
   /** Boş = tüm aktif kategoriler (sırasıyla, en fazla 12) */
   @IsOptional() @IsArray() @ArrayMaxSize(12) @ArrayUnique() @IsUUID('all', { each: true }) categoryIds?: string[];
 }
@@ -348,6 +363,17 @@ export class FeaturesBlockDto extends BlockBase {
 
 export const MAX_REVIEW_CARDS = 12;
 
+/** Elle girilen yorum zorunlu; ama sitedeki onaylı yorumlar gösteriliyorsa elle yorum olmadan da olur */
+function CardsUnlessApproved() {
+  return ValidateBy({
+    name: 'cardsUnlessApproved',
+    validator: {
+      validate: (value: unknown, args) => (args?.object as { includeApproved?: boolean }).includeApproved === true || (Array.isArray(value) && value.length > 0),
+      defaultMessage: () => 'En az bir yorum ekleyin ya da sitedeki onaylı müşteri yorumlarını gösterin.',
+    },
+  });
+}
+
 /** Ana sayfadaki müşteri yorumu kartı (eski enfesGurme "reviews-section" kartları) */
 export class ReviewCardDto {
   @RequiredLine(60) name!: string;
@@ -364,11 +390,14 @@ export class ReviewsBlockDto extends BlockBase {
   @OptionalLine(80) title?: string | null;
   @OptionalText(300) description?: string | null;
   @IsArray()
-  @ArrayMinSize(1, { message: 'En az bir yorum ekleyin.' })
+  @CardsUnlessApproved()
   @ArrayMaxSize(MAX_REVIEW_CARDS, { message: `En fazla ${MAX_REVIEW_CARDS} yorum eklenebilir.` })
   @ValidateNested({ each: true })
   @Type(() => ReviewCardDto)
   cards!: ReviewCardDto[];
+  /** Sitedeki onaylı ürün yorumlarından 4–5 yıldızlı olanları da göster (elle girilenlerden sonra) */
+  @IsOptional() @IsBoolean() includeApproved?: boolean;
+  @IsOptional() @IsInt() @Min(1) @Max(MAX_REVIEW_CARDS) approvedLimit?: number;
   @ValidateIf(nullable) @IsImageUrl() backgroundImage?: string | null;
   /** Kartın altındaki çerçeve görseli (varsayılan: haki çerçeve) */
   @ValidateIf(nullable) @IsImageUrl() frameImage?: string | null;

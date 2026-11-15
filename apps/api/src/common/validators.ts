@@ -78,13 +78,17 @@ export function IsImageUrl(validationOptions?: ValidationOptions) {
   );
 }
 
+/** Medya kütüphanesine yüklenmiş video (yerel depolama) */
+const LOCAL_VIDEO = /^\/media\/[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}\.(mp4|webm)$/;
+
 /**
- * Arka plan videosu (ör. ana sayfa kategoriler bölümündeki kemer içi video): yalnızca https ile,
- * doğrudan .mp4 / .webm dosyası (ör. Cloudinary). Kullanıcı adı/şifre içeremez. Medya kütüphanesi
- * şimdilik video kabul etmediği için yerel adres yok.
+ * Arka plan videosu (ör. ana sayfa kategoriler bölümündeki kemer içi video):
+ * medya kütüphanesindeki video (/media/<uuid>.mp4) ya da https ile doğrudan .mp4 / .webm dosyası
+ * (ör. Cloudinary). Kullanıcı adı/şifre içeremez.
  */
 export function isVideoUrl(value: unknown): boolean {
   if (typeof value !== 'string' || value.length > 500) return false;
+  if (LOCAL_VIDEO.test(value)) return true;
   if (
     !isURL(value, {
       protocols: ['https'],

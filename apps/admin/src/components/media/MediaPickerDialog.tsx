@@ -19,6 +19,8 @@ import {
 
 type MediaPickerDialogProps = {
   mediaBaseUrl: string;
+  /** Görsel (varsayılan) ya da video seçici */
+  type?: "image" | "video";
   current?: string;
   disabled?: boolean;
   onPick: (url: string) => void;
@@ -27,6 +29,7 @@ type MediaPickerDialogProps = {
 // "SEÇ": medya kütüphanesinden görsel seçtirir
 export function MediaPickerDialog({
   mediaBaseUrl,
+  type = "image",
   current,
   disabled,
   onPick,
@@ -41,7 +44,7 @@ export function MediaPickerDialog({
   function load(nextPage: number) {
     setError(null);
     startLoading(async () => {
-      const result = await listMediaForPickerAction(nextPage);
+      const result = await listMediaForPickerAction(nextPage, type);
       if (!result.success) return setError(result.error);
       setFiles((prev) => (nextPage === 1 || !prev ? result.files : [...prev, ...result.files]));
       setPage(nextPage);
@@ -70,10 +73,10 @@ export function MediaPickerDialog({
       <Dialog open={open} onOpenChange={setOpen}>
         <DialogContent className="max-h-[85vh] overflow-y-auto sm:max-w-3xl">
           <DialogTitle className="text-lg font-semibold">
-            Medyadan görsel seç
+            {type === "video" ? "Medyadan video seç" : "Medyadan görsel seç"}
           </DialogTitle>
           <DialogDescription>
-            Daha önce yüklenen görsellerden birine tıklayın.
+            Daha önce yüklenen {type === "video" ? "videolardan" : "görsellerden"} birine tıklayın.
           </DialogDescription>
 
           {loading && !files ? (
@@ -87,7 +90,7 @@ export function MediaPickerDialog({
           ) : files && files.length === 0 ? (
             <div className="flex flex-col items-center gap-2 p-10 text-muted-foreground">
               <ImageIcon className="size-6" />
-              Kütüphanede görsel yok. Yükle butonuyla ekleyebilirsiniz.
+              Kütüphanede {type === "video" ? "video" : "görsel"} yok. Yükle butonuyla ekleyebilirsiniz.
             </div>
           ) : (
             <ul className="grid grid-cols-2 gap-3 sm:grid-cols-4">
@@ -101,18 +104,22 @@ export function MediaPickerDialog({
                         onPick(file.url);
                         setOpen(false);
                       }}
-                      aria-label={`${file.name || "Görsel"} seç`}
+                      aria-label={`${file.name || (type === "video" ? "Video" : "Görsel")} seç`}
                       className={`group relative block aspect-square w-full overflow-hidden rounded-xl border bg-surface-muted transition hover:ring-2 hover:ring-(--brand-accent) ${
                         isCurrent ? "ring-2 ring-(--brand-primary)" : "border-border"
                       }`}
                     >
-                      {/* eslint-disable-next-line @next/next/no-img-element */}
-                      <img
-                        src={mediaSrc(file.url, mediaBaseUrl)}
-                        alt=""
-                        loading="lazy"
-                        className="size-full object-contain p-1"
-                      />
+                      {type === "video" ? (
+                        <video src={mediaSrc(file.url, mediaBaseUrl)} muted preload="metadata" playsInline className="size-full object-cover" />
+                      ) : (
+                        // eslint-disable-next-line @next/next/no-img-element
+                        <img
+                          src={mediaSrc(file.url, mediaBaseUrl)}
+                          alt=""
+                          loading="lazy"
+                          className="size-full object-contain p-1"
+                        />
+                      )}
                       {isCurrent && (
                         <span className="absolute right-1.5 top-1.5 rounded-full bg-(--brand-primary) p-1 text-white">
                           <Check className="size-3" />

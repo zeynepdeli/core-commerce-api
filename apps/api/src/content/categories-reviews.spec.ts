@@ -110,3 +110,77 @@ describe('müşteri yorumları bölümü', () => {
     ).toEqual([MEDIA, MEDIA2]);
   });
 });
+
+describe('video yeri ve onaylı yorumlar', () => {
+  it('video yeri yüzde olarak kabul edilir, sınır dışı reddedilir', async () => {
+    const videoBox = {
+      left: 12,
+      top: 28.5,
+      width: 27.6,
+      height: 67.4,
+      curve: 34,
+    };
+    expect(await errors({ type: 'CATEGORY_GRID', videoBox })).toEqual([]);
+    expect(
+      await errors({
+        type: 'CATEGORY_GRID',
+        videoBox: { ...videoBox, width: 2 },
+      }),
+    ).toEqual(['data']);
+    expect(
+      await errors({
+        type: 'CATEGORY_GRID',
+        videoBox: { ...videoBox, left: 95 },
+      }),
+    ).toEqual(['data']);
+    expect(
+      await errors({
+        type: 'CATEGORY_GRID',
+        videoBox: { ...videoBox, curve: 12.345 },
+      }),
+    ).toEqual(['data']);
+    expect(
+      await errors({
+        type: 'CATEGORY_GRID',
+        videoBox: { ...videoBox, extra: 1 },
+      }),
+    ).toEqual(['data']);
+  });
+
+  it('medya kütüphanesindeki video kabul edilir', () => {
+    expect(isVideoUrl('/media/0f8fad5b-d9cb-469f-a165-70867728950e.mp4')).toBe(
+      true,
+    );
+    expect(isVideoUrl('/media/0f8fad5b-d9cb-469f-a165-70867728950e.webp')).toBe(
+      false,
+    );
+    expect(isVideoUrl('/media/../../etc/passwd.mp4')).toBe(false);
+  });
+
+  it('onaylı yorumlar açıksa elle yorum zorunlu değil', async () => {
+    expect(
+      await errors({
+        type: 'REVIEWS',
+        cards: [],
+        includeApproved: true,
+        approvedLimit: 6,
+      }),
+    ).toEqual([]);
+    expect(await errors({ type: 'REVIEWS', cards: [] })).toEqual(['data']);
+    expect(
+      await errors({
+        type: 'REVIEWS',
+        cards: [],
+        includeApproved: true,
+        approvedLimit: 13,
+      }),
+    ).toEqual(['data']);
+  });
+
+  it('video da "kullanımda" sayılır', () => {
+    const video = '/media/0f8fad5b-d9cb-469f-a165-70867728950e.mp4';
+    expect(blockImageUrls({ type: 'CATEGORY_GRID', videoUrl: video })).toEqual([
+      video,
+    ]);
+  });
+});

@@ -13,6 +13,9 @@ type UploadResult =
 // Yerel (/media/<uuid>.uzantı) veya Cloudinary adresi
 const MEDIA_URL_REGEX =
   /^(\/media\/[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}\.(jpg|png|webp)|https:\/\/res\.cloudinary\.com\/[a-z0-9_-]+\/image\/upload\/[A-Za-z0-9_.\/-]+)$/i;
+// Video seçici için: yerel ya da Cloudinary video adresi
+const VIDEO_URL_REGEX =
+  /^(\/media\/[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}\.(mp4|webm)|https:\/\/res\.cloudinary\.com\/[a-z0-9_-]+\/video\/upload\/[A-Za-z0-9_.\/-]+)$/i;
 
 export async function uploadImageAction(
   formData: FormData,
@@ -94,13 +97,15 @@ export async function deleteMediaAction(
 
 export type PickerMedia = { id: string; url: string; name: string };
 
-// Görsel seçici için kütüphane listesi (yalnızca gösterim için gerekli alanlar)
-export async function listMediaForPickerAction(page = 1): Promise<
+// Seçici için kütüphane listesi (yalnızca gösterim için gerekli alanlar): görseller ya da videolar
+export async function listMediaForPickerAction(page = 1, type: "image" | "video" = "image"): Promise<
   { success: true; files: PickerMedia[]; pages: number } | { success: false; error: string }
 > {
   const safePage = Number.isInteger(page) && page >= 1 && page <= 10_000 ? page : 1;
   try {
-    const response = await adminFetch(`/admin/media?page=${safePage}`);
+    const safeType = type === "video" ? "video" : "image";
+    const urlPattern = safeType === "video" ? VIDEO_URL_REGEX : MEDIA_URL_REGEX;
+    const response = await adminFetch(`/admin/media?page=${safePage}&type=${safeType}`);
     if (!response.ok) {
       return {
         success: false,
@@ -115,7 +120,7 @@ export async function listMediaForPickerAction(page = 1): Promise<
           typeof m === "object" &&
           typeof (m as { id?: unknown }).id === "string" &&
           typeof (m as { url?: unknown }).url === "string" &&
-          MEDIA_URL_REGEX.test((m as { url: string }).url),
+          urlPattern.test((m as { url: string }).url),
       )
       .map((m) => ({
         id: m.id,

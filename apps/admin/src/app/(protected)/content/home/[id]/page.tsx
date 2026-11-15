@@ -6,6 +6,7 @@ import { AreaShell } from "@/components/areas/AreaShell";
 import { BlockEditor } from "@/components/content/BlockEditor";
 import { adminFetch } from "@/lib/api";
 import { BLOCK_LABEL, getBlock, getContentOptions } from "@/lib/content";
+import { envUrl } from "@/lib/env-url";
 import { getMediaBaseUrl } from "@/lib/media-base-url";
 import { getAdminCategories } from "@/lib/shop";
 
@@ -58,6 +59,7 @@ export default async function BlockPage({ params, searchParams }: { params: Prom
         productNames={productNames}
         icons={options.featureIcons}
         mediaBaseUrl={getMediaBaseUrl()}
+        storefrontUrl={envUrl("STOREFRONT_URL")}
       />
     </AreaShell>
   );
