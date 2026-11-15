@@ -38,6 +38,9 @@ const securityHeaders = [
 ];
 
 const nextConfig: NextConfig = {
+  // Geliştirmede Next, sunucu eylemlerini argümanlarıyla terminale yazar (ör. giriş e-postası
+  // ve ŞİFRE). Gizli veri terminale ve log dosyalarına düşmesin diye kapalı.
+  logging: { serverFunctions: false },
   // Docker için küçük, bağımsız çıktı (.next/standalone)
   output: "standalone",
   // Monorepo: bağımlılıklar kök node_modules'ta
