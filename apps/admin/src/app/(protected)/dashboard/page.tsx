@@ -127,8 +127,8 @@ export default async function DashboardPage() {
         />
         <Tile href="/shop/categories" icon={FolderTree} title="Kategoriler" description="Kategoriler ve sıralaması" />
         <Tile href="/content/about" icon={BookOpenText} title="Hakkımızda" description="Vizyon, misyon, hikaye, değerler" />
-        {/* Hakkımızda'nın kendi düzenleyicisi var (yukarıda); düz metin sayfası burada ayrıca gösterilmez */}
-        {pages.filter((p) => p.slug !== "hakkimizda").map((p) => (
+        {/* Hakkımızda ve İletişim'in kendi tasarımlı ekranları var; aynı adlı düz metin sayfaları burada ayrıca gösterilmez */}
+        {pages.filter((p) => !DEDICATED_PAGES.has(p.slug)).map((p) => (
           <Tile
             key={p.id}
             href={`/content/pages/${p.id}`}
@@ -234,6 +234,9 @@ const BADGE_TONE = {
 function Badge({ tone, children }: { tone: keyof typeof BADGE_TONE; children: React.ReactNode }) {
   return <span className={`rounded-full px-2 py-0.5 text-[11px] font-bold ${BADGE_TONE[tone]}`}>{children}</span>;
 }
+
+/** Mağazada kendi tasarımlı sayfası olan bilgi sayfaları (mağaza /sayfa/x adresini oraya yönlendirir) */
+const DEDICATED_PAGES = new Set(["hakkimizda", "iletisim"]);
 
 /** Sayfa adresine göre tanıdık bir simge */
 function pageIcon(slug: string): Icon {
