@@ -16,7 +16,7 @@ export default async function ThemeSectionPage({ params }: { params: Promise<{ b
   const [s, o] = await Promise.all([getSite(), getContentOptions()]);
   const str = (v: string | null) => v ?? "";
   return (
-    <AreaShell icon={section.icon} title={section.title} description={section.description} back={{ href: "/dashboard", label: "Dashboard" }}>
+    <AreaShell icon={section.icon} title={section.title} description={section.description} back={"parent" in section ? section.parent : { href: "/dashboard", label: "Dashboard" }}>
       <ThemeForm
         section={bolum}
         fonts={o.fonts}
@@ -56,6 +56,7 @@ export default async function ThemeSectionPage({ params }: { params: Promise<{ b
           quantityText: s.quantityText,
           contactPage: { ...s.contactPage, mapImage: str(s.contactPage.mapImage), mapLink: str(s.contactPage.mapLink) },
           faqPage: s.faqPage,
+          campaignPage: s.campaignPage,
           metaTitle: str(s.metaTitle),
           metaDescription: str(s.metaDescription),
         }}

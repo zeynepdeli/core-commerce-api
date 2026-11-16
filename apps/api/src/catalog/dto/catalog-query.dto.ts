@@ -41,6 +41,11 @@ export class PublicProductQueryDto {
   @IsIn(['true'])
   featured?: 'true';
 
+  /** Yalnızca indirimdeki ürünler (üstü çizili fiyatı satış fiyatından yüksek olanlar) */
+  @IsOptional()
+  @IsIn(['true'])
+  onSale?: 'true';
+
   @IsOptional()
   @Type(() => Number)
   @IsInt()

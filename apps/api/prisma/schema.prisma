@@ -847,8 +847,9 @@ model SiteTheme {
   quantityText     String @default("Miktar")
 
   // İletişim ve S.S.S. sayfası metinleri/görselleri (content/page-settings.ts doğrular)
-  contactPage Json @default("{}")
-  faqPage     Json @default("{}")
+  contactPage  Json @default("{}")
+  faqPage      Json @default("{}")
+  campaignPage Json @default("{}")
 
   // İletişim (alt bilgi, İletişim sayfası, e-postalar). Admin'de Footer sayfasından düzenlenir.
   contactEmail    String?
@@ -978,6 +979,29 @@ model Page {
   updatedAt DateTime @updatedAt
 
   @@index([isPublished, order])
+}
+
+/// Kampanyalar sayfasındaki kartlar. Tarih aralığı dışındaki ya da kapalı kampanya mağazada görünmez.
+model Campaign {
+  id          String    @id @default(uuid())
+  title       String
+  description String?
+  /// Görselin köşesindeki kısa rozet ("%20", "2 AL 1 ÖDE")
+  badge       String?
+  imageUrl    String?
+  /// İsteğe bağlı kupon kodu; yalnızca kupon geçerliyse mağazada gösterilir
+  couponCode  String?
+  linkUrl     String?
+  linkLabel   String?
+  startsAt    DateTime?
+  endsAt      DateTime?
+  order       Int       @default(0)
+  isActive    Boolean   @default(true)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([isActive, order])
 }
 
 model FaqItem {

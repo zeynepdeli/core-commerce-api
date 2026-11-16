@@ -1,5 +1,6 @@
 import { Transform, Type } from 'class-transformer';
 import {
+  IsISO8601,
   ArrayMaxSize,
   ArrayMinSize,
   ArrayUnique,
@@ -127,6 +128,13 @@ export class ContactPageDto {
   @ValidateIf(nullable) @IsSafeLink() mapLink?: string | null;
 }
 
+export class CampaignPageDto {
+  @IsOptional() @RequiredLine(80) title?: string;
+  @IsOptional() @RequiredLine(200) subtitle?: string;
+  @IsOptional() @RequiredLine(60) saleTitle?: string;
+  @IsOptional() @RequiredLine(200) emptyText?: string;
+}
+
 export class FaqPageDto {
   @IsOptional() @RequiredLine(80) title?: string;
   @IsOptional() @RequiredLine(200) subtitle?: string;
@@ -172,6 +180,7 @@ export class UpdateSiteDto {
 
   @IsOptional() @IsObject() @ValidateNested() @Type(() => ContactPageDto) contactPage?: ContactPageDto;
   @IsOptional() @IsObject() @ValidateNested() @Type(() => FaqPageDto) faqPage?: FaqPageDto;
+  @IsOptional() @IsObject() @ValidateNested() @Type(() => CampaignPageDto) campaignPage?: CampaignPageDto;
 
   // Ürün detay sayfası yazıları
   @IsOptional() @RequiredLine(24) productLabelText?: string;
@@ -528,6 +537,23 @@ export class SavePageDto {
 }
 
 // ───────────── S.S.S. ─────────────
+
+/** Kampanya kartı. Kupon kodu büyük harfe çevrilir; mağazada yalnızca kupon geçerliyse gösterilir. */
+export class SaveCampaignDto {
+  @RequiredLine(80) title!: string;
+  @ValidateIf(nullable) @Transform(trim) @IsString() @MaxLength(400) @Matches(MULTI_LINE) description?: string | null;
+  @OptionalLine(24) badge?: string | null;
+  @ValidateIf(nullable) @IsImageUrl() imageUrl?: string | null;
+  @ValidateIf(nullable)
+  @Transform(({ value }: { value: unknown }) => (typeof value === 'string' ? value.trim().toUpperCase() : value))
+  @Matches(/^[A-Z0-9_-]{3,32}$/, { message: 'Kupon kodu 3–32 karakter; harf, rakam, - ve _.' })
+  couponCode?: string | null;
+  @ValidateIf(nullable) @IsSafeLink() linkUrl?: string | null;
+  @OptionalLine(30) linkLabel?: string | null;
+  @ValidateIf(nullable) @IsISO8601({ strict: true }) startsAt?: string | null;
+  @ValidateIf(nullable) @IsISO8601({ strict: true }) endsAt?: string | null;
+  @IsOptional() @IsBoolean() isActive?: boolean;
+}
 
 export class SaveFaqDto {
   @RequiredLine(300) question!: string;

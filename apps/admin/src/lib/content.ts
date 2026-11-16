@@ -34,6 +34,7 @@ export type SiteSettings = {
   quantityText: string;
   contactPage: { title: string; infoSmallTitle: string; infoTitle: string; mapTitle: string; mapSubtitle: string; mapImage: string | null; mapLink: string | null };
   faqPage: { title: string; subtitle: string; contactTitle: string; buttonText: string; buttonLink: string };
+  campaignPage: { title: string; subtitle: string; saleTitle: string; emptyText: string };
   /** Yalnızca dolu alanlar gelir */
   siteImages: Partial<Record<SiteImageSlot, string>>;
   metaTitle: string | null;
@@ -82,6 +83,22 @@ export const getContentOptions = () => json<ContentOptions>("/admin/content/opti
 export const getBlocks = () => json<Block[]>("/admin/content/home", "Ana sayfa");
 export const getPages = () => json<PageRow[]>("/admin/content/pages", "Sayfalar");
 export const getFaq = () => json<Faq[]>("/admin/content/faq", "S.S.S.");
+
+export type Campaign = {
+  id: string;
+  title: string;
+  description: string | null;
+  badge: string | null;
+  imageUrl: string | null;
+  couponCode: string | null;
+  linkUrl: string | null;
+  linkLabel: string | null;
+  startsAt: string | null;
+  endsAt: string | null;
+  isActive: boolean;
+  order: number;
+};
+export const getCampaigns = () => json<Campaign[]>("/admin/content/campaigns", "Kampanyalar");
 
 export async function getBlock(id: string): Promise<Block | null> {
   const r = await adminFetch(`/admin/content/home/${encodeURIComponent(id)}`);

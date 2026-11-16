@@ -56,6 +56,16 @@ export class ProductsService {
 
   // ───────────── Ziyaretçi ─────────────
 
+  /** Ürünün kendisi ya da aktif bir varyantı indirimde: üstü çizili fiyat > satış fiyatı (sütun karşılaştırması) */
+  private onSaleWhere(): Prisma.ProductWhereInput {
+    return {
+      OR: [
+        { compareAtPrice: { gt: this.prisma.product.fields.price } },
+        { variants: { some: { isActive: true, compareAtPrice: { gt: this.prisma.productVariant.fields.price } } } },
+      ],
+    };
+  }
+
   async findPublic(query: PublicProductQueryDto) {
     const page = query.page ?? 1;
     const limit = query.limit ?? 24;
@@ -64,6 +74,7 @@ export class ProductsService {
         VISIBLE,
         query.category ? { category: { slug: query.category } } : {},
         query.featured ? { featured: true } : {},
+        query.onSale ? this.onSaleWhere() : {},
         searchWhere(query.q),
       ],
     };

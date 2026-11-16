@@ -8,9 +8,9 @@ import type { Prisma } from '../generated/prisma/client.js';
 import { PrismaService } from '../prisma/prisma.service.js';
 import { maskName } from '../reviews/reviews.service.js';
 
-import { type BlockData, type ProductListBlockDto, type SaveBlockDto, type SaveFaqDto, type SavePageDto, type UpdateAboutDto, type UpdateFooterDto, type UpdateSiteDto } from './content.dto.js';
+import { type BlockData, type ProductListBlockDto, type SaveBlockDto, type SaveCampaignDto, type SaveFaqDto, type SavePageDto, type UpdateAboutDto, type UpdateFooterDto, type UpdateSiteDto } from './content.dto.js';
 import { hasAboutContent } from './about.js';
-import { parseContactPage, parseFaqPage } from './page-settings.js';
+import { parseCampaignPage, parseContactPage, parseFaqPage } from './page-settings.js';
 import { normalizeFooterLink, parseFooterLinks } from './footer-links.js';
 import { parseHeaderLinks } from './header-links.js';
 import { mergeSiteImages, parseSiteImages } from './site-images.js';
@@ -142,12 +142,19 @@ export class ContentService {
   }
 
   async adminSite() {
-    const { id: _id, updatedAt: _u, headerLinks, siteImages, contactPage, faqPage, ...t } = await this.theme();
-    return { ...t, headerLinks: parseHeaderLinks(headerLinks), siteImages: parseSiteImages(siteImages), contactPage: parseContactPage(contactPage), faqPage: parseFaqPage(faqPage) };
+    const { id: _id, updatedAt: _u, headerLinks, siteImages, contactPage, faqPage, campaignPage, ...t } = await this.theme();
+    return {
+      ...t,
+      headerLinks: parseHeaderLinks(headerLinks),
+      siteImages: parseSiteImages(siteImages),
+      contactPage: parseContactPage(contactPage),
+      faqPage: parseFaqPage(faqPage),
+      campaignPage: parseCampaignPage(campaignPage),
+    };
   }
 
   async updateSite(dto: UpdateSiteDto) {
-    const { headerLinks, siteImages, contactPage, faqPage, ...rest } = dto;
+    const { headerLinks, siteImages, contactPage, faqPage, campaignPage, ...rest } = dto;
     const current = await this.theme();
     const data = {
       ...Object.fromEntries(Object.entries(rest).map(([k, v]) => [k, v === '' ? null : v])),
@@ -158,6 +165,7 @@ export class ContentService {
       // Gönderilen alanlar mevcut ayarın üstüne yazılır (boş görsel/bağlantı = varsayılan); okurken yeniden doğrulanır
       ...(contactPage ? { contactPage: { ...parseContactPage(current.contactPage), ...contactPage } as Prisma.InputJsonValue } : {}),
       ...(faqPage ? { faqPage: { ...parseFaqPage(current.faqPage), ...faqPage } as Prisma.InputJsonValue } : {}),
+      ...(campaignPage ? { campaignPage: { ...parseCampaignPage(current.campaignPage), ...campaignPage } as Prisma.InputJsonValue } : {}),
     } as Prisma.SiteThemeUpdateInput;
     await this.prisma.siteTheme.update({ where: { id: 1 }, data });
     this.invalidate();
@@ -278,6 +286,7 @@ export class ContentService {
         productPage: { labelText: t.productLabelText, addToCartText: t.addToCartText, buyNowText: t.buyNowText, quantityText: t.quantityText },
         contactPage: parseContactPage(t.contactPage),
         faqPage: parseFaqPage(t.faqPage),
+        campaignPage: parseCampaignPage(t.campaignPage),
         siteImages: parseSiteImages(t.siteImages),
         contact: { email: t.contactEmail, phone: t.contactPhone, whatsapp: t.contactWhatsapp, address: t.contactAddress, workingHours: t.workingHours },
         seo: { title: t.metaTitle ?? t.siteName, description: t.metaDescription, ogImageUrl: t.ogImageUrl },
@@ -575,6 +584,84 @@ export class ContentService {
     await this.prisma.$transaction(ids.map((id, order) => this.prisma.faqItem.update({ where: { id }, data: { order } })));
     this.invalidate();
     return this.adminFaq();
+  }
+
+  // ───────────── Kampanyalar ─────────────
+
+  adminCampaigns() {
+    return this.prisma.campaign.findMany({ orderBy: [{ order: 'asc' }, { createdAt: 'asc' }] });
+  }
+
+  async saveCampaign(id: string | null, dto: SaveCampaignDto) {
+    const startsAt = dto.startsAt ? new Date(dto.startsAt) : null;
+    const endsAt = dto.endsAt ? new Date(dto.endsAt) : null;
+    if (startsAt && endsAt && startsAt >= endsAt) throw new BadRequestException('Bitiş tarihi başlangıçtan sonra olmalı.');
+    const data = {
+      title: dto.title,
+      description: dto.description || null,
+      badge: dto.badge || null,
+      imageUrl: dto.imageUrl || null,
+      couponCode: dto.couponCode || null,
+      linkUrl: dto.linkUrl || null,
+      linkLabel: dto.linkLabel || null,
+      startsAt,
+      endsAt,
+      ...(dto.isActive === undefined ? {} : { isActive: dto.isActive }),
+    };
+    if (id) {
+      const { count } = await this.prisma.campaign.updateMany({ where: { id }, data });
+      if (!count) throw new NotFoundException('Kampanya bulunamadı.');
+    } else {
+      await this.prisma.campaign.create({ data: { ...data, order: await this.prisma.campaign.count() } });
+    }
+    this.invalidate();
+    return this.adminCampaigns();
+  }
+
+  async deleteCampaign(id: string) {
+    const { count } = await this.prisma.campaign.deleteMany({ where: { id } });
+    if (!count) throw new NotFoundException('Kampanya bulunamadı.');
+    this.invalidate();
+    return this.adminCampaigns();
+  }
+
+  async reorderCampaigns(ids: string[]) {
+    const existing = await this.prisma.campaign.findMany({ select: { id: true } });
+    if (ids.length !== existing.length || new Set(ids).size !== ids.length || !existing.every((e) => ids.includes(e.id))) {
+      throw new BadRequestException('Sıralama listesi güncel değil; sayfayı yenileyin.');
+    }
+    await this.prisma.$transaction(ids.map((id, order) => this.prisma.campaign.update({ where: { id }, data: { order } })));
+    this.invalidate();
+    return this.adminCampaigns();
+  }
+
+  /**
+   * Mağazadaki kampanyalar: yayında ve tarih aralığında olanlar. Kupon kodu yalnızca kupon
+   * şu anda geçerliyse (aktif, tarihi uygun, kullanım hakkı bitmemiş) gösterilir: ölü kod ilan edilmez.
+   */
+  async publicCampaigns(now = new Date()) {
+    const rows = await this.cached('campaigns', () =>
+      this.prisma.campaign.findMany({ where: { isActive: true }, orderBy: [{ order: 'asc' }, { createdAt: 'asc' }] }),
+    );
+    const live = rows.filter((c) => (!c.startsAt || c.startsAt <= now) && (!c.endsAt || c.endsAt > now));
+    const codes = [...new Set(live.map((c) => c.couponCode).filter((c): c is string => !!c))];
+    const coupons = codes.length
+      ? await this.prisma.coupon.findMany({ where: { code: { in: codes }, isActive: true }, select: { code: true, startsAt: true, endsAt: true, usageLimit: true, usedCount: true } })
+      : [];
+    const valid = new Set(
+      coupons.filter((c) => (!c.startsAt || c.startsAt <= now) && (!c.endsAt || c.endsAt > now) && (c.usageLimit === null || c.usedCount < c.usageLimit)).map((c) => c.code),
+    );
+    return live.map((c) => ({
+      id: c.id,
+      title: c.title,
+      description: c.description,
+      badge: c.badge,
+      imageUrl: c.imageUrl,
+      couponCode: c.couponCode && valid.has(c.couponCode) ? c.couponCode : null,
+      linkUrl: c.linkUrl,
+      linkLabel: c.linkLabel,
+      endsAt: c.endsAt,
+    }));
   }
 
   /** Kategorilere göre gruplanmış (mağaza FAQPage yapısal verisini buradan üretebilir) */
