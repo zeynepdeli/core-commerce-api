@@ -1,8 +1,12 @@
-import { IsBoolean, IsEmail, IsInt, IsNumber, IsOptional, IsString, Matches, Max, MaxLength, Min, ValidateIf } from 'class-validator';
+import { IsBoolean, IsEmail, IsIn, IsInt, IsNumber, IsOptional, IsString, Matches, Max, MaxLength, Min, ValidateIf } from 'class-validator';
 
 import { SINGLE_LINE_REGEX } from '../common/validators.js';
 
 const nullable = (_: unknown, v: unknown) => v != null;
+
+export const ORDER_CHANNELS = ['ONLINE_PAYMENT', 'WHATSAPP'] as const;
+/** WhatsApp numarası: ülke koduyla, yalnızca rakam (wa.me biçimi). Türkiye: 90 + 10 hane. */
+export const WHATSAPP_PHONE_REGEX = /^[1-9]\d{9,14}$/;
 
 const MONEY = { maxDecimalPlaces: 2, allowNaN: false, allowInfinity: false };
 const MSG = { message: 'Tutar en fazla 2 ondalık basamaklı bir sayı olmalıdır.' };
@@ -38,6 +42,22 @@ export class UpdateStoreSettingsDto {
   @Min(14, { message: 'Cayma süresi yasal olarak en az 14 gündür.' })
   @Max(365)
   returnWindowDays?: number;
+
+  // ───── Sipariş kanalı ─────
+  @IsOptional()
+  @IsIn(ORDER_CHANNELS, { message: 'Sipariş kanalı geçersiz.' })
+  orderChannel?: (typeof ORDER_CHANNELS)[number];
+
+  @ValidateIf(nullable)
+  @IsString()
+  @Matches(WHATSAPP_PHONE_REGEX, { message: 'WhatsApp numarası ülke koduyla ve yalnızca rakamla yazılmalı (ör. 905321234567).' })
+  whatsappOrderPhone?: string | null;
+
+  @IsOptional()
+  @IsInt()
+  @Min(1)
+  @Max(168)
+  whatsappHoldHours?: number;
 
   // ───── Pazarlama ─────
   @IsOptional()

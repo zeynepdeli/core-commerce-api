@@ -19,6 +19,9 @@ export default async function StoreInfoPage() {
           sellerKepAddress: s.sellerKepAddress ?? "",
           sellerAddress: s.sellerAddress ?? "",
           paymentTimeoutMinutes: String(s.paymentTimeoutMinutes),
+          orderChannel: s.orderChannel,
+          whatsappOrderPhone: s.whatsappOrderPhone ?? "",
+          whatsappHoldHours: String(s.whatsappHoldHours),
           returnWindowDays: String(s.returnWindowDays),
         }}
       />

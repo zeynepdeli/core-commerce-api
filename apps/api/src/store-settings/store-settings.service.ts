@@ -38,6 +38,8 @@ export class StoreSettingsService {
       freeShippingThreshold: orNull(s.freeShippingThreshold),
       minOrderAmount: orNull(s.minOrderAmount),
       currency: 'TRY',
+      // Mağaza ödeme sayfasını buna göre çizer (kartla ödeme ya da WhatsApp talebi)
+      orderChannel: s.orderChannel,
     };
   }
 
@@ -48,6 +50,8 @@ export class StoreSettingsService {
       ...(await this.view()),
       paymentTimeoutMinutes: s.paymentTimeoutMinutes,
       returnWindowDays: s.returnWindowDays,
+      whatsappOrderPhone: s.whatsappOrderPhone,
+      whatsappHoldHours: s.whatsappHoldHours,
       abandonedCartEnabled: s.abandonedCartEnabled,
       abandonedCartDelayHours: s.abandonedCartDelayHours,
       productFeedEnabled: s.productFeedEnabled,
@@ -73,7 +77,11 @@ export class StoreSettingsService {
   async update(dto: UpdateStoreSettingsDto) {
     const fee: Kurus | undefined = dto.shippingFee === undefined ? undefined : Math.round(dto.shippingFee * 100);
     if (dto.freeShippingThreshold === 0) throw new BadRequestException('Ücretsiz kargo eşiği 0 olamaz; her zaman ücretsiz için kargo ücretini 0 yapın.');
-    await this.row();
+    const current = await this.row();
+    // WhatsApp kanalı numarasız açılamaz (müşteri talebi gönderemez)
+    const channel = dto.orderChannel ?? current.orderChannel;
+    const phone = dto.whatsappOrderPhone === undefined ? current.whatsappOrderPhone : dto.whatsappOrderPhone;
+    if (channel === 'WHATSAPP' && !phone) throw new BadRequestException('WhatsApp ile sipariş için WhatsApp numarası girin.');
     await this.prisma.storeSettings.update({
       where: { id: ID },
       data: {
@@ -82,6 +90,9 @@ export class StoreSettingsService {
         minOrderAmount: dto.minOrderAmount === undefined ? undefined : dto.minOrderAmount === null ? null : dto.minOrderAmount.toFixed(2),
         paymentTimeoutMinutes: dto.paymentTimeoutMinutes,
         returnWindowDays: dto.returnWindowDays,
+        orderChannel: dto.orderChannel,
+        whatsappOrderPhone: dto.whatsappOrderPhone === undefined ? undefined : dto.whatsappOrderPhone || null,
+        whatsappHoldHours: dto.whatsappHoldHours,
         abandonedCartEnabled: dto.abandonedCartEnabled,
         abandonedCartDelayHours: dto.abandonedCartDelayHours,
         productFeedEnabled: dto.productFeedEnabled,
