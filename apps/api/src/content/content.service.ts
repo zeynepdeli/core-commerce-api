@@ -10,6 +10,7 @@ import { maskName } from '../reviews/reviews.service.js';
 
 import { type BlockData, type ProductListBlockDto, type SaveBlockDto, type SaveFaqDto, type SavePageDto, type UpdateAboutDto, type UpdateFooterDto, type UpdateSiteDto } from './content.dto.js';
 import { hasAboutContent } from './about.js';
+import { parseContactPage, parseFaqPage } from './page-settings.js';
 import { normalizeFooterLink, parseFooterLinks } from './footer-links.js';
 import { parseHeaderLinks } from './header-links.js';
 import { mergeSiteImages, parseSiteImages } from './site-images.js';
@@ -141,12 +142,12 @@ export class ContentService {
   }
 
   async adminSite() {
-    const { id: _id, updatedAt: _u, headerLinks, siteImages, ...t } = await this.theme();
-    return { ...t, headerLinks: parseHeaderLinks(headerLinks), siteImages: parseSiteImages(siteImages) };
+    const { id: _id, updatedAt: _u, headerLinks, siteImages, contactPage, faqPage, ...t } = await this.theme();
+    return { ...t, headerLinks: parseHeaderLinks(headerLinks), siteImages: parseSiteImages(siteImages), contactPage: parseContactPage(contactPage), faqPage: parseFaqPage(faqPage) };
   }
 
   async updateSite(dto: UpdateSiteDto) {
-    const { headerLinks, siteImages, ...rest } = dto;
+    const { headerLinks, siteImages, contactPage, faqPage, ...rest } = dto;
     const current = await this.theme();
     const data = {
       ...Object.fromEntries(Object.entries(rest).map(([k, v]) => [k, v === '' ? null : v])),
@@ -154,6 +155,9 @@ export class ContentService {
       ...(headerLinks ? { headerLinks: headerLinks.map(({ label, href }) => ({ label, href })) } : {}),
       // Gönderilen görseller mevcutların üstüne işlenir; izinli liste dışı ad yazılamaz
       ...(siteImages ? { siteImages: mergeSiteImages(current.siteImages, siteImages) } : {}),
+      // Gönderilen alanlar mevcut ayarın üstüne yazılır (boş görsel/bağlantı = varsayılan); okurken yeniden doğrulanır
+      ...(contactPage ? { contactPage: { ...parseContactPage(current.contactPage), ...contactPage } as Prisma.InputJsonValue } : {}),
+      ...(faqPage ? { faqPage: { ...parseFaqPage(current.faqPage), ...faqPage } as Prisma.InputJsonValue } : {}),
     } as Prisma.SiteThemeUpdateInput;
     await this.prisma.siteTheme.update({ where: { id: 1 }, data });
     this.invalidate();
@@ -272,6 +276,8 @@ export class ContentService {
           cartText: t.cartText,
         },
         productPage: { labelText: t.productLabelText, addToCartText: t.addToCartText, buyNowText: t.buyNowText, quantityText: t.quantityText },
+        contactPage: parseContactPage(t.contactPage),
+        faqPage: parseFaqPage(t.faqPage),
         siteImages: parseSiteImages(t.siteImages),
         contact: { email: t.contactEmail, phone: t.contactPhone, whatsapp: t.contactWhatsapp, address: t.contactAddress, workingHours: t.workingHours },
         seo: { title: t.metaTitle ?? t.siteName, description: t.metaDescription, ogImageUrl: t.ogImageUrl },

@@ -1,5 +1,5 @@
 import type { LucideIcon } from "lucide-react";
-import { Image as ImageIcon, PanelTop, Search, ShoppingBag, SwatchBook } from "lucide-react";
+import { CircleHelp, Image as ImageIcon, Mail, PanelTop, Search, ShoppingBag, SwatchBook } from "lucide-react";
 
 /** API'deki izinli liste ile aynı (apps/api/src/content/site-images.ts) */
 export const SITE_IMAGE_SLOTS = ["productBandBackground", "productPlate", "footerBackground", "iconTexture", "productPageBackground", "productDecorOne", "productDecorTwo"] as const;
@@ -57,6 +57,8 @@ export type ThemeValues = {
   addToCartText: string;
   buyNowText: string;
   quantityText: string;
+  contactPage: { title: string; infoSmallTitle: string; infoTitle: string; mapTitle: string; mapSubtitle: string; mapImage: string; mapLink: string };
+  faqPage: { title: string; subtitle: string; contactTitle: string; buttonText: string; buttonLink: string };
   metaTitle: string;
   metaDescription: string;
 };
@@ -106,6 +108,18 @@ export const THEME_SECTIONS = {
     description: "Ürün detay sayfasının arka planı, dekorları, etiket ve düğme yazıları",
     icon: ShoppingBag,
     fields: ["productLabelText", "addToCartText", "buyNowText", "quantityText", "siteImages"],
+  },
+  iletisim: {
+    title: "İletişim Sayfası",
+    description: "Sayfa başlığı, harita görseli ve yazısı, konum bağlantısı",
+    icon: Mail,
+    fields: ["contactPage"],
+  },
+  sss: {
+    title: "S.S.S. Sayfası",
+    description: "Başlık, açıklama ve alttaki “Hala sorunuz mu var?” kutusu",
+    icon: CircleHelp,
+    fields: ["faqPage"],
   },
   seo: {
     title: "SEO",

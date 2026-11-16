@@ -50,6 +50,8 @@ export function ThemeForm({
     const body: Record<string, unknown> = Object.fromEntries(THEME_SECTIONS[section].fields.map((k) => [k, v[k]]));
     // Logo/favicon boş bırakılırsa mevcut değer korunur
     for (const k of ["logoUrl", "faviconUrl"] as const) if (k in body && !v[k]) delete body[k];
+    // İletişim sayfası: boş görsel/bağlantı = varsayılan (API'ye null gider)
+    if ("contactPage" in body) body.contactPage = { ...v.contactPage, mapImage: v.contactPage.mapImage || null, mapLink: v.contactPage.mapLink.trim() || null };
     const r = await saveSiteAction(body);
     if (!r.success) return setError(r.error);
     setDone(true);
@@ -177,6 +179,51 @@ export function ThemeForm({
             <span className="ml-2 inline-block rounded-full px-3 py-1 text-xs font-semibold" style={{ background: secondaryColor, color: textColor }}>
               Yeni
             </span>
+          </div>
+        </AreaCard>
+      )}
+
+      {section === "iletisim" && (
+        <>
+          <AreaCard title="Yazılar" hint="Adres, telefon, e-posta ve sosyal medya Footer → İletişim ve Sosyal Medya'dan gelir.">
+            <div className="grid gap-5 @xl:grid-cols-2">
+              <FormField name="contactPage.title" label="Sayfa başlığı" placeholder="İletişim" register={register} required />
+              <FormField name="contactPage.infoTitle" label="Bilgi kartı başlığı" placeholder="Bize Ulaşın" register={register} required />
+              <FormField name="contactPage.infoSmallTitle" label="Bilgi kartı üst yazısı" placeholder="İletişim Bilgileri" register={register} required />
+              <FormField
+                name="contactPage.mapLink"
+                label="“Konumu Gör” bağlantısı"
+                placeholder="https://maps.app.goo.gl/…"
+                register={register}
+                description="Boş bırakılırsa adres Google Haritalar'da aranır."
+              />
+            </div>
+          </AreaCard>
+          <AreaCard title="Harita Paneli" hint="Sayfanın solundaki büyük panel: görsel ve üstündeki yazı.">
+            <div className="grid gap-5 @xl:grid-cols-2">
+              <FormField name="contactPage.mapTitle" label="Harita başlığı" placeholder="GAZİANTEP" register={register} required />
+              <FormField name="contactPage.mapSubtitle" label="Harita alt yazısı" placeholder="Merkez" register={register} required />
+              <ImageUploadField
+                name="contactPage.mapImage"
+                label="Harita görseli"
+                description="Şehir haritası ya da çizimi. Boşsa sitenin arka plan görseli kullanılır."
+                control={control}
+                mediaBaseUrl={mediaBaseUrl}
+                fallbackSrc={storefrontUrl ? `${storefrontUrl}/images/antep-kalesi.webp` : null}
+              />
+            </div>
+          </AreaCard>
+        </>
+      )}
+
+      {section === "sss" && (
+        <AreaCard title="Yazılar" hint="Sorular ve cevaplar S.S.S. ekranından yönetilir; burada sayfanın başlıkları var.">
+          <div className="grid gap-5 @xl:grid-cols-2">
+            <FormField name="faqPage.title" label="Başlık" placeholder="SIKÇA SORULAN SORULAR" register={register} required />
+            <FormField name="faqPage.subtitle" label="Açıklama" register={register} required />
+            <FormField name="faqPage.contactTitle" label="Alt kutu başlığı" placeholder="Hala Sorunuz Mu Var?" register={register} required />
+            <FormField name="faqPage.buttonText" label="Düğme yazısı" placeholder="Bize Yazın" register={register} required />
+            <FormField name="faqPage.buttonLink" label="Düğme bağlantısı" placeholder="/iletisim" register={register} required />
           </div>
         </AreaCard>
       )}

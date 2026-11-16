@@ -115,6 +115,26 @@ export class SiteImagesDto implements Partial<Record<SiteImageSlot, string | nul
   @ValidateIf(nullable) @IsImageUrl() productDecorTwo?: string | null;
 }
 
+/** İletişim sayfası (Footer'daki adres/telefon/e-posta dışında kalan sayfa ayarları) */
+export class ContactPageDto {
+  @IsOptional() @RequiredLine(60) title?: string;
+  @IsOptional() @RequiredLine(60) infoSmallTitle?: string;
+  @IsOptional() @RequiredLine(60) infoTitle?: string;
+  @IsOptional() @RequiredLine(40) mapTitle?: string;
+  @IsOptional() @RequiredLine(40) mapSubtitle?: string;
+  @ValidateIf(nullable) @IsImageUrl() mapImage?: string | null;
+  /** "Konumu Gör" bağlantısı (ör. Google Haritalar); boşsa adresten oluşturulur */
+  @ValidateIf(nullable) @IsSafeLink() mapLink?: string | null;
+}
+
+export class FaqPageDto {
+  @IsOptional() @RequiredLine(80) title?: string;
+  @IsOptional() @RequiredLine(200) subtitle?: string;
+  @IsOptional() @RequiredLine(60) contactTitle?: string;
+  @IsOptional() @RequiredLine(30) buttonText?: string;
+  @IsOptional() @IsSafeLink() buttonLink?: string;
+}
+
 export class UpdateSiteDto {
   @IsOptional() @RequiredLine(80) siteName?: string;
 
@@ -149,6 +169,9 @@ export class UpdateSiteDto {
   @IsOptional() @RequiredLine(16) loginText?: string;
   @IsOptional() @RequiredLine(16) accountText?: string;
   @IsOptional() @RequiredLine(16) cartText?: string;
+
+  @IsOptional() @IsObject() @ValidateNested() @Type(() => ContactPageDto) contactPage?: ContactPageDto;
+  @IsOptional() @IsObject() @ValidateNested() @Type(() => FaqPageDto) faqPage?: FaqPageDto;
 
   // Ürün detay sayfası yazıları
   @IsOptional() @RequiredLine(24) productLabelText?: string;
