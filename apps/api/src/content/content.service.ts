@@ -93,6 +93,7 @@ export function blockImageUrls(data: unknown): string[] {
     mobileBackground?: string;
     backgroundImage?: string;
     frameImage?: string;
+    cardTexture?: string;
     videoUrl?: string;
   };
   return [
@@ -105,6 +106,7 @@ export function blockImageUrls(data: unknown): string[] {
     d.mobileBackground,
     d.backgroundImage,
     d.frameImage,
+    d.cardTexture,
     // Kategoriler bölümündeki kapı videosu (medya kütüphanesinden ise silinemesin)
     d.videoUrl,
   ].filter((u): u is string => typeof u === 'string' && u.length > 0);

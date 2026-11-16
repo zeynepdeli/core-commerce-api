@@ -246,7 +246,9 @@ export class UpdateAboutDto {
 
 export const BLOCK_TYPES = ['HERO', 'PRODUCT_LIST', 'CATEGORY_GRID', 'BANNER', 'TEXT', 'FEATURES', 'REVIEWS'] as const;
 export type BlockType = (typeof BLOCK_TYPES)[number];
-export const FEATURE_ICONS = ['truck', 'shield', 'gift', 'leaf', 'phone', 'refresh', 'star', 'clock', 'award', 'heart', 'credit-card', 'map-pin'] as const;
+export const FEATURE_ICONS = ['truck', 'shield', 'gift', 'leaf', 'phone', 'refresh', 'star', 'clock', 'award', 'heart', 'credit-card', 'map-pin', 'package'] as const;
+/** Avantaj kartı sayısı (eski enfesGurme'de bilgisayarda 4'lü sıra) */
+export const MAX_FEATURE_ITEMS = 8;
 
 class BlockBase {
   @IsIn(BLOCK_TYPES) type!: BlockType;
@@ -396,10 +398,15 @@ export class FeatureItemDto {
   @OptionalLine(120) text?: string | null;
 }
 
+/** Avantajlar ("Antep'in Bereketi"): solda başlık + açıklama, sağda numaralı simge kartları */
 export class FeaturesBlockDto extends BlockBase {
   declare type: 'FEATURES';
   @OptionalLine(80) title?: string | null;
-  @IsArray() @ArrayMinSize(1) @ArrayMaxSize(6) @ValidateNested({ each: true }) @Type(() => FeatureItemDto) items!: FeatureItemDto[];
+  @OptionalText(300) description?: string | null;
+  /** Bölüm arka planı ve kart dokusu; boşsa mağazanın varsayılanı */
+  @ValidateIf(nullable) @IsImageUrl() backgroundImage?: string | null;
+  @ValidateIf(nullable) @IsImageUrl() cardTexture?: string | null;
+  @IsArray() @ArrayMinSize(1) @ArrayMaxSize(MAX_FEATURE_ITEMS) @ValidateNested({ each: true }) @Type(() => FeatureItemDto) items!: FeatureItemDto[];
 }
 
 export const MAX_REVIEW_CARDS = 12;

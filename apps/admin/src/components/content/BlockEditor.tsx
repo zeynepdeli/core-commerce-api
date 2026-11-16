@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { useFieldArray, useForm, useWatch, type Control, type UseFormRegister } from "react-hook-form";
-import { Loader2, Plus, Search, Trash2, X } from "lucide-react";
+import { ArrowDown, ArrowUp, Loader2, Plus, Search, Trash2, X } from "lucide-react";
 
 import { saveBlockAction, searchProductsAction } from "@/app/actions/content";
 import { AreaCard } from "@/components/areas/AreaShell";
@@ -30,7 +30,7 @@ type Props = {
 
 const input = "min-h-11 w-full rounded-xl border border-border bg-surface px-3 text-sm";
 const area = "w-full rounded-xl border border-border bg-surface p-3 text-sm";
-const ICON_LABEL: Record<string, string> = { truck: "Kamyon (kargo)", shield: "Kalkan (güven)", gift: "Hediye", leaf: "Yaprak (doğal)", phone: "Telefon", refresh: "Yenile (iade)", star: "Yıldız", clock: "Saat", award: "Ödül", heart: "Kalp", "credit-card": "Kart", "map-pin": "Konum" };
+const ICON_LABEL: Record<string, string> = { truck: "Kamyon (kargo)", shield: "Kalkan (güven)", gift: "Hediye", leaf: "Yaprak (doğal)", phone: "Telefon", refresh: "Yenile (iade)", star: "Yıldız", clock: "Saat", award: "Ödül", heart: "Kalp", "credit-card": "Kart", "map-pin": "Konum", package: "Paket" };
 
 function Text({ label, name, register, max, area: isArea, placeholder, hint }: { label: string; name: string; register: UseFormRegister<Data>; max: number; area?: boolean; placeholder?: string; hint?: string }) {
   return (
@@ -234,7 +234,7 @@ export function BlockEditor({ id, type, initial, initialKey, categories, product
           </div>
         </AreaCard>
       )}
-      {type === "FEATURES" && <FeatureFields control={control} register={register} icons={icons} />}
+      {type === "FEATURES" && <FeatureFields control={control} register={register} icons={icons} mediaBaseUrl={mediaBaseUrl} storefrontUrl={storefrontUrl} />}
 
       <AreaCard title="Yayın" hint="Kampanya bölümleri belirli tarihler arasında otomatik görünsün (Türkiye saati). Boş = her zaman.">
         <div className="grid gap-5 @xl:grid-cols-3">
@@ -347,40 +347,76 @@ function HeroFields({ control, register, mediaBaseUrl }: { control: Control<Data
   );
 }
 
-function FeatureFields({ control, register, icons }: { control: Control<Data>; register: UseFormRegister<Data>; icons: string[] }) {
-  const { fields, append, remove } = useFieldArray({ control, name: "items" });
+/** Avantaj kartı sayısı: API ile aynı (apps/api/src/content/content.dto.ts → MAX_FEATURE_ITEMS) */
+const MAX_FEATURE_ITEMS = 8;
+
+/** Avantajlar ("Antep'in Bereketi", eski enfesGurme): solda başlık + açıklama, sağda numaralı simge kartları */
+function FeatureFields({
+  control,
+  register,
+  icons,
+  mediaBaseUrl,
+  storefrontUrl,
+}: {
+  control: Control<Data>;
+  register: UseFormRegister<Data>;
+  icons: string[];
+  mediaBaseUrl: string;
+  storefrontUrl: string;
+}) {
+  const { fields, append, remove, move } = useFieldArray({ control, name: "items" });
+  const site = (path: string) => (storefrontUrl ? `${storefrontUrl}${path}` : null);
   return (
-    <AreaCard title="Avantajlar" hint="Ör. Hızlı kargo, Güvenli ödeme, Doğal ürün. En fazla 6.">
-      <div className="grid gap-4">
-        <Text label="Başlık (isteğe bağlı)" name="title" register={register} max={80} />
-        {fields.map((f, i) => (
-          <div key={f.id} className="grid items-end gap-3 rounded-2xl border border-border p-3 sm:grid-cols-[180px_1fr_1fr_auto]">
-            <label className="flex flex-col gap-2 text-sm font-medium">
-              Simge
-              <select {...register(`items.${i}.icon`)} className={input}>
-                {icons.map((ic) => (
-                  <option key={ic} value={ic}>
-                    {ICON_LABEL[ic] ?? ic}
-                  </option>
-                ))}
-              </select>
-            </label>
-            <Text label="Başlık" name={`items.${i}.title`} register={register} max={40} />
-            <Text label="Açıklama" name={`items.${i}.text`} register={register} max={120} />
-            <Button type="button" variant="ghost" size="icon" aria-label="Kaldır" onClick={() => remove(i)} disabled={fields.length === 1} className="text-destructive">
-              <Trash2 className="size-4" />
-            </Button>
+    <>
+      <AreaCard title="Bölüm" hint="Solda büyük başlık ve açıklama. Arka plan ve kart dokusu boşsa varsayılan görsel kullanılır.">
+        <div className="grid gap-5">
+          <Text label="Başlık" name="title" register={register} max={80} placeholder="ANTEP'İN BEREKETİ" />
+          <Text label="Açıklama" name="description" register={register} max={300} area />
+          <div className="grid gap-5 @xl:grid-cols-2">
+            <ImageUploadField name="backgroundImage" label="Arka plan" control={control} mediaBaseUrl={mediaBaseUrl} fallbackSrc={site("/images/duvar-zemin.webp")} />
+            <ImageUploadField name="cardTexture" label="Kart dokusu" control={control} mediaBaseUrl={mediaBaseUrl} fallbackSrc={site("/images/kart-doku.webp")} />
           </div>
-        ))}
-        {fields.length < 6 && (
-          <div>
-            <Button type="button" variant="outline" onClick={() => append({ icon: icons[0], title: "" })} className="gap-2">
-              <Plus className="size-4" /> Ekle
-            </Button>
-          </div>
-        )}
-      </div>
-    </AreaCard>
+        </div>
+      </AreaCard>
+      <AreaCard title="Kartlar" hint={`Numara (01, 02…) sıraya göre otomatik verilir. Bilgisayarda 4'lü sıra; en fazla ${MAX_FEATURE_ITEMS}.`}>
+        <div className="grid gap-3">
+          {fields.map((f, i) => (
+            <div key={f.id} className="grid items-end gap-3 rounded-2xl border border-border p-3 sm:grid-cols-[auto_180px_1fr_auto]">
+              <span className="flex min-h-11 items-center font-mono text-sm font-semibold text-muted-foreground">{String(i + 1).padStart(2, "0")}</span>
+              <label className="flex flex-col gap-2 text-sm font-medium">
+                Simge
+                <select {...register(`items.${i}.icon`)} className={input}>
+                  {icons.map((ic) => (
+                    <option key={ic} value={ic}>
+                      {ICON_LABEL[ic] ?? ic}
+                    </option>
+                  ))}
+                </select>
+              </label>
+              <Text label="Başlık" name={`items.${i}.title`} register={register} max={40} />
+              <div className="flex gap-1">
+                <Button type="button" variant="ghost" size="icon" aria-label={`${i + 1}. kartı yukarı taşı`} onClick={() => move(i, i - 1)} disabled={i === 0}>
+                  <ArrowUp className="size-4" />
+                </Button>
+                <Button type="button" variant="ghost" size="icon" aria-label={`${i + 1}. kartı aşağı taşı`} onClick={() => move(i, i + 1)} disabled={i === fields.length - 1}>
+                  <ArrowDown className="size-4" />
+                </Button>
+                <Button type="button" variant="ghost" size="icon" aria-label={`${i + 1}. kartı kaldır`} onClick={() => remove(i)} disabled={fields.length === 1} className="text-destructive">
+                  <Trash2 className="size-4" />
+                </Button>
+              </div>
+            </div>
+          ))}
+          {fields.length < MAX_FEATURE_ITEMS && (
+            <div>
+              <Button type="button" variant="outline" onClick={() => append({ icon: icons[0], title: "" })} className="gap-2">
+                <Plus className="size-4" /> Kart ekle
+              </Button>
+            </div>
+          )}
+        </div>
+      </AreaCard>
+    </>
   );
 }
 
