@@ -832,6 +832,10 @@ model SiteTheme {
   buyNowText       String @default("Hemen Al")
   quantityText     String @default("Miktar")
 
+  // İletişim ve S.S.S. sayfası metinleri/görselleri (content/page-settings.ts doğrular)
+  contactPage Json @default("{}")
+  faqPage     Json @default("{}")
+
   // İletişim (alt bilgi, İletişim sayfası, e-postalar). Admin'de Footer sayfasından düzenlenir.
   contactEmail    String?
   contactPhone    String?

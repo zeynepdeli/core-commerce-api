@@ -32,6 +32,8 @@ export type SiteSettings = {
   addToCartText: string;
   buyNowText: string;
   quantityText: string;
+  contactPage: { title: string; infoSmallTitle: string; infoTitle: string; mapTitle: string; mapSubtitle: string; mapImage: string | null; mapLink: string | null };
+  faqPage: { title: string; subtitle: string; contactTitle: string; buttonText: string; buttonLink: string };
   /** Yalnızca dolu alanlar gelir */
   siteImages: Partial<Record<SiteImageSlot, string>>;
   metaTitle: string | null;
