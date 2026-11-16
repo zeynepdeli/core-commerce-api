@@ -7,6 +7,9 @@ export type StoreSettings = {
   freeShippingThreshold: string | null;
   minOrderAmount: string | null;
   paymentTimeoutMinutes: number;
+  orderChannel: "ONLINE_PAYMENT" | "WHATSAPP";
+  whatsappOrderPhone: string | null;
+  whatsappHoldHours: number;
   returnWindowDays: number;
   abandonedCartEnabled: boolean;
   abandonedCartDelayHours: number;

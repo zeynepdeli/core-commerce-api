@@ -13,6 +13,7 @@ import { PrismaService } from '../prisma/prisma.service.js';
 import { StoreSettingsService } from '../store-settings/store-settings.service.js';
 
 import type { BillingDto, CheckoutAddressDto, CheckoutDto, CheckoutPreviewDto } from './checkout.dto.js';
+import { whatsappOrderUrl } from './whatsapp-message.js';
 
 type Buyer = { userId: string | null; email: string; name: string };
 type Address = { fullName: string; phone: string; city: string; district: string; addressLine: string; zipCode: string | null };
@@ -70,7 +71,8 @@ export class CheckoutService {
     const existing = await this.prisma.order.findUnique({ where: { idempotencyKey: dto.idempotencyKey }, include: DETAIL_INCLUDE });
     if (existing) {
       if (existing.email !== email) throw new ConflictException('Bu istek zaten kullanıldı.');
-      return { order: this.orders.customerView(existing), accessToken: null };
+      const view = this.orders.customerView(existing);
+      return { order: view, accessToken: null, whatsappUrl: await this.whatsappUrlFor(view) };
     }
 
     const cart = await this.cart.findForCheckout(owner);
@@ -91,10 +93,15 @@ export class CheckoutService {
 
     const guestAccess = buyer?.userId ? null : newSecureToken();
     const now = new Date();
+    // WhatsApp kanalı: ödeme sitede alınmaz; talep yönetici onaylayana kadar (ayarlanan saat) stoğu tutar
+    const whatsapp = seller.orderChannel === 'WHATSAPP';
+    if (whatsapp && !seller.whatsappOrderPhone) throw new ConflictException('Sipariş şu anda alınamıyor. Lütfen daha sonra tekrar deneyin.');
+    const holdMs = whatsapp ? seller.whatsappHoldHours * 3_600_000 : seller.paymentTimeoutMinutes * 60_000;
 
     // Bu sepetten daha önce oluşturulmuş ÖDENMEMİŞ sipariş varsa önce iptal edilir:
     // stoğu ve kupon hakkı yeni siparişe serbest kalır (stok boşuna kilitli kalmaz)
-    const previous = await this.prisma.order.findMany({ where: { sourceCartId: cart.id, status: 'PENDING' }, select: { id: true } });
+    // WhatsApp talepleri hariç: onlar ödeme sayfasında yarım kalmış değil, yönetici onayı bekleyen siparişlerdir
+    const previous = whatsapp ? [] : await this.prisma.order.findMany({ where: { sourceCartId: cart.id, status: 'PENDING' }, select: { id: true } });
     for (const { id } of previous) {
       await this.orders.cancel(id, 'Aynı sepetten yeni sipariş oluşturuldu.', null, ['PENDING']).catch(() => undefined);
     }
@@ -181,7 +188,7 @@ export class CheckoutService {
             customerNote: dto.note?.trim() || null,
             idempotencyKey: dto.idempotencyKey,
             guestAccessTokenHash: guestAccess?.hash ?? null,
-            paymentDueAt: new Date(now.getTime() + seller.paymentTimeoutMinutes * 60_000),
+            paymentDueAt: new Date(now.getTime() + holdMs),
             sourceCartId: cart.id,
             items: {
               create: lines.map((l) => ({
@@ -196,7 +203,7 @@ export class CheckoutService {
                 price: fromKurus(l.unitPrice),
               })),
             },
-            events: { create: { status: 'PENDING', note: 'Sipariş oluşturuldu, ödeme bekleniyor.' } },
+            events: { create: { status: 'PENDING', note: whatsapp ? 'Sipariş talebi oluşturuldu; WhatsApp üzerinden onay ve ödeme bekleniyor.' : 'Sipariş oluşturuldu, ödeme bekleniyor.' } },
             agreements: {
               create: documents
                 .filter((d) => d.type !== 'KVKK_NOTICE')
@@ -218,6 +225,8 @@ export class CheckoutService {
         if (dto.marketingEmail !== undefined) consents.push({ userId: buyer?.userId ?? null, email, channel: 'EMAIL', granted: dto.marketingEmail, source: 'checkout', ipAddress: meta.ipAddress });
         if (dto.marketingSms !== undefined) consents.push({ userId: buyer?.userId ?? null, email, phone: shipping.phone, channel: 'SMS', granted: dto.marketingSms, source: 'checkout', ipAddress: meta.ipAddress });
         if (consents.length) await tx.consentRecord.createMany({ data: consents });
+        // WhatsApp talebi: sipariş oluştu, sepet hemen boşalır (online ödemede ödeme alınınca boşalır)
+        if (whatsapp) await this.orders.clearSourceCart(tx, cart.id);
 
         return order.id;
       },
@@ -225,11 +234,19 @@ export class CheckoutService {
     );
 
     const created = await this.prisma.order.findUniqueOrThrow({ where: { id: orderId }, include: DETAIL_INCLUDE });
+    const view = this.orders.customerView(created);
     // Misafir erişim anahtarı yalnızca bu yanıtta bir kez döner
-    return { order: this.orders.customerView(created), accessToken: guestAccess?.token ?? null };
+    return { order: view, accessToken: guestAccess?.token ?? null, whatsappUrl: whatsapp ? whatsappOrderUrl(seller.whatsappOrderPhone as string, view) : null };
   }
 
   // ───────────── Yardımcılar ─────────────
+
+  /** WhatsApp kanalında, ödenmemiş sipariş için talep bağlantısı (aynı istek tekrar gelirse) */
+  private async whatsappUrlFor(order: Parameters<typeof whatsappOrderUrl>[1] & { status: string }) {
+    const seller = await this.settings.seller();
+    if (seller.orderChannel !== 'WHATSAPP' || !seller.whatsappOrderPhone || order.status !== 'PENDING') return null;
+    return whatsappOrderUrl(seller.whatsappOrderPhone, order);
+  }
 
   private async ownAddress(userId: string, id: string): Promise<Address> {
     const a = await this.prisma.address.findFirst({ where: { id, userId } });

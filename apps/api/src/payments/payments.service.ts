@@ -55,6 +55,9 @@ export class PaymentsService {
 
   /** Ödeme sayfasını başlatır; müşteri dönen adrese yönlendirilir */
   async init(orderNumber: string, owner: PaymentOwner, ip: string | undefined) {
+    // Mağaza WhatsApp ile sipariş alıyorsa kartla ödeme başlatılamaz
+    const channel = await this.prisma.storeSettings.findUnique({ where: { id: 1 }, select: { orderChannel: true } });
+    if (channel?.orderChannel === 'WHATSAPP') throw new ConflictException('Bu mağazada online ödeme kapalı; siparişler WhatsApp ile alınıyor.');
     const where = 'userId' in owner ? { orderNumber, userId: owner.userId } : { orderNumber, guestAccessTokenHash: hashToken(owner.guestAccessToken) };
     const order = await this.prisma.order.findFirst({
       where,

@@ -482,6 +482,14 @@ model StoreSettings {
   // Cayma süresi (gün, teslimden itibaren). Yasal alt sınır 14.
   returnWindowDays      Int      @default(14)
 
+  // Sipariş kanalı. WHATSAPP: sipariş "talep" olarak oluşur, müşteri WhatsApp'a yönlendirilir,
+  // yönetici ödemeyi alınca siparişi "Ödeme alındı" yapar; süre dolarsa talep iptal olur.
+  orderChannel       OrderChannel @default(ONLINE_PAYMENT)
+  // Talebin gönderileceği WhatsApp numarası (ülke koduyla, yalnızca rakam: 905321234567)
+  whatsappOrderPhone String?
+  // WhatsApp talebinde stok kaç saat ayrılır
+  whatsappHoldHours  Int          @default(48)
+
   // Pazarlama
   // Sepette ürün bırakan, e-posta ticari ileti izni (İYS) OLAN üyelere hatırlatma
   abandonedCartEnabled    Boolean @default(false)
@@ -505,6 +513,12 @@ model StoreSettings {
   sellerKepAddress String?
 
   updatedAt DateTime @updatedAt
+}
+
+/// Siparişin nasıl tamamlandığı: online ödeme (iyzico) ya da WhatsApp üzerinden talep (ödeme elle onaylanır)
+enum OrderChannel {
+  ONLINE_PAYMENT
+  WHATSAPP
 }
 
 enum CouponType {

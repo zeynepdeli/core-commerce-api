@@ -62,18 +62,33 @@ export const couponDefaults: CouponFormValues = {
 
 const optionalLine = (max: number) => z.string().trim().max(max).regex(/^[^\u0000-\u001f\u007f]*$/, "Tek satır olmalı.");
 
-export const storeInfoSchema = z.object({
-  sellerName: optionalLine(200),
-  sellerEmail: z.union([z.email("Geçerli bir e-posta girin."), z.literal("")]),
-  sellerPhone: z.string().trim().max(30).regex(/^[0-9 +()-]*$/, "Yalnızca rakam ve + ( ) -"),
-  sellerTaxOffice: optionalLine(100),
-  sellerTaxNumber: z.string().trim().regex(/^(\d{10,11})?$/, "10 veya 11 haneli olmalı."),
-  sellerMersisNo: z.string().trim().regex(/^(\d{16})?$/, "16 haneli olmalı."),
-  sellerKepAddress: z.union([z.email("KEP adresi e-posta biçiminde olmalı (ör. unvan@hs01.kep.tr)."), z.literal("")]),
-  sellerAddress: z.string().trim().max(500),
-  paymentTimeoutMinutes: z.string().trim().regex(/^\d{2,4}$/, "10–1440 arası dakika").refine((v) => Number(v) >= 10 && Number(v) <= 1440, "10–1440 arası dakika"),
-  returnWindowDays: z.string().trim().regex(/^\d{2,3}$/, "14–365 arası gün").refine((v) => Number(v) >= 14 && Number(v) <= 365, "Yasal olarak en az 14 gün"),
-});
+export const ORDER_CHANNELS = ["ONLINE_PAYMENT", "WHATSAPP"] as const;
+
+export const storeInfoSchema = z
+  .object({
+    orderChannel: z.enum(ORDER_CHANNELS),
+    // wa.me biçimi: ülke koduyla, yalnızca rakam. Boşluk, +, parantez ve tire yazılırsa temizlenir.
+    whatsappOrderPhone: z
+      .string()
+      .trim()
+      .transform((v) => v.replace(/[\s()+-]/g, ""))
+      .pipe(z.string().regex(/^([1-9]\d{9,14})?$/, "Ülke koduyla yazın (ör. 905321234567).")),
+    whatsappHoldHours: z.string().trim().regex(/^\d{1,3}$/, "1–168 arası saat").refine((v) => Number(v) >= 1 && Number(v) <= 168, "1–168 arası saat"),
+    sellerName: optionalLine(200),
+    sellerEmail: z.union([z.email("Geçerli bir e-posta girin."), z.literal("")]),
+    sellerPhone: z.string().trim().max(30).regex(/^[0-9 +()-]*$/, "Yalnızca rakam ve + ( ) -"),
+    sellerTaxOffice: optionalLine(100),
+    sellerTaxNumber: z.string().trim().regex(/^(\d{10,11})?$/, "10 veya 11 haneli olmalı."),
+    sellerMersisNo: z.string().trim().regex(/^(\d{16})?$/, "16 haneli olmalı."),
+    sellerKepAddress: z.union([z.email("KEP adresi e-posta biçiminde olmalı (ör. unvan@hs01.kep.tr)."), z.literal("")]),
+    sellerAddress: z.string().trim().max(500),
+    paymentTimeoutMinutes: z.string().trim().regex(/^\d{2,4}$/, "10–1440 arası dakika").refine((v) => Number(v) >= 10 && Number(v) <= 1440, "10–1440 arası dakika"),
+    returnWindowDays: z.string().trim().regex(/^\d{2,3}$/, "14–365 arası gün").refine((v) => Number(v) >= 14 && Number(v) <= 365, "Yasal olarak en az 14 gün"),
+  })
+  .refine((v) => v.orderChannel !== "WHATSAPP" || v.whatsappOrderPhone !== "", {
+    path: ["whatsappOrderPhone"],
+    message: "WhatsApp ile sipariş için numara gerekli.",
+  });
 
 export const legalSchema = z.object({
   title: optionalLine(150).min(2),
