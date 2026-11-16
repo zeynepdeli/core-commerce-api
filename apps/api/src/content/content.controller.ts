@@ -6,7 +6,7 @@ import { RolesGuard } from '../auth/guards/roles.guard.js';
 import { ParseSlugPipe } from '../common/parse-slug.pipe.js';
 import { ReorderIdsDto } from '../common/reorder.js';
 
-import { ActiveDto, BLOCK_TYPES, FEATURE_ICONS, FONTS, FOOTER_ICONS, MAX_FOOTER_LINKS, SaveBlockDto, SaveFaqDto, SavePageDto, UpdateAboutDto, UpdateFooterDto, UpdateSiteDto } from './content.dto.js';
+import { ActiveDto, BLOCK_TYPES, FEATURE_ICONS, FONTS, FOOTER_ICONS, MAX_FOOTER_LINKS, SaveBlockDto, SaveFaqDto, SaveCampaignDto, SavePageDto, UpdateAboutDto, UpdateFooterDto, UpdateSiteDto } from './content.dto.js';
 import { MAX_HEADER_LINKS } from './header-links.js';
 import { ContentService } from './content.service.js';
 
@@ -38,6 +38,11 @@ export class ShopContentController {
   @Get('about')
   about() {
     return this.content.publicAbout();
+  }
+
+  @Get('campaigns')
+  campaigns() {
+    return this.content.publicCampaigns();
   }
 }
 
@@ -153,6 +158,31 @@ export class AdminContentController {
   }
 
   // S.S.S.
+  @Get('campaigns')
+  campaigns() {
+    return this.content.adminCampaigns();
+  }
+
+  @Put('campaigns/reorder')
+  reorderCampaigns(@Body() dto: ReorderIdsDto) {
+    return this.content.reorderCampaigns(dto.ids);
+  }
+
+  @Post('campaigns')
+  createCampaign(@Body() dto: SaveCampaignDto) {
+    return this.content.saveCampaign(null, dto);
+  }
+
+  @Put('campaigns/:id')
+  updateCampaign(@Param('id', ParseUUIDPipe) id: string, @Body() dto: SaveCampaignDto) {
+    return this.content.saveCampaign(id, dto);
+  }
+
+  @Delete('campaigns/:id')
+  deleteCampaign(@Param('id', ParseUUIDPipe) id: string) {
+    return this.content.deleteCampaign(id);
+  }
+
   @Get('faq')
   faq() {
     return this.content.adminFaq();

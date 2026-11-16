@@ -56,6 +56,7 @@ export default async function ThemeSectionPage({ params }: { params: Promise<{ b
           quantityText: s.quantityText,
           contactPage: { ...s.contactPage, mapImage: str(s.contactPage.mapImage), mapLink: str(s.contactPage.mapLink) },
           faqPage: s.faqPage,
+          campaignPage: s.campaignPage,
           metaTitle: str(s.metaTitle),
           metaDescription: str(s.metaDescription),
         }}

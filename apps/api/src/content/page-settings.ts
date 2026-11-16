@@ -62,3 +62,21 @@ export function parseFaqPage(value: unknown) {
         : d.buttonLink,
   };
 }
+
+export const CAMPAIGN_PAGE_DEFAULTS = {
+  title: 'KAMPANYALAR',
+  subtitle: 'Antep mutfağının en sevilen lezzetlerinde size özel fırsatlar.',
+  saleTitle: 'İndirimdeki Ürünler',
+  emptyText: 'Şu anda aktif bir kampanya yok. Yeni fırsatlar için bizi takip edin.',
+};
+
+export function parseCampaignPage(value: unknown) {
+  const r = record(value);
+  const d = CAMPAIGN_PAGE_DEFAULTS;
+  return {
+    title: text(r.title, 80, d.title),
+    subtitle: text(r.subtitle, 200, d.subtitle),
+    saleTitle: text(r.saleTitle, 60, d.saleTitle),
+    emptyText: text(r.emptyText, 200, d.emptyText),
+  };
+}

@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { ArrowUpDown, BarChart3, BookOpenText, ChevronRight, CircleHelp, Clock, FilePlus2, FileText, FolderTree, GalleryHorizontal, Grid3x3, Image as ImageIcon, Images, Info, LayoutDashboard, LayoutTemplate, Megaphone, MessageSquareText, Package, PackageCheck, PanelBottom, Phone, Plus, RotateCcw, Scale, Search, ShieldCheck, ShoppingBag, ShoppingBasket, Sparkles, Store, TicketPercent, Truck, Type, UserCog, Users } from "lucide-react";
+import { ArrowUpDown, BadgePercent, BarChart3, BookOpenText, ChevronRight, CircleHelp, Clock, FilePlus2, FileText, FolderTree, GalleryHorizontal, Grid3x3, Image as ImageIcon, Images, Info, LayoutDashboard, LayoutTemplate, Megaphone, MessageSquareText, Package, PackageCheck, PanelBottom, Phone, Plus, RotateCcw, Scale, Search, ShieldCheck, ShoppingBag, ShoppingBasket, Sparkles, Store, TicketPercent, Truck, Type, UserCog, Users } from "lucide-react";
 
 import { AreaHeader } from "@/components/areas/AreaShell";
 import { Delta } from "@/components/reports/Delta";
@@ -142,6 +142,8 @@ export default async function DashboardPage() {
         <Tile href="/content/faq" icon={CircleHelp} title="S.S.S." description="Sıkça sorulan sorular" />
         <Tile href="/content/theme/sss" icon={THEME_SECTIONS.sss.icon} title={THEME_SECTIONS.sss.title} description="S.S.S. sayfasının başlık ve yazıları" />
         <Tile href="/content/theme/iletisim" icon={THEME_SECTIONS.iletisim.icon} title={THEME_SECTIONS.iletisim.title} description={THEME_SECTIONS.iletisim.description} />
+        <Tile href="/content/campaigns" icon={BadgePercent} title="Kampanyalar" description="Kampanya kartları, kupon kodları, bitiş tarihleri" />
+        <Tile href="/content/theme/kampanyalar" icon={THEME_SECTIONS.kampanyalar.icon} title={THEME_SECTIONS.kampanyalar.title} description="Kampanyalar sayfasının başlık ve yazıları" />
         <Tile href="/content/footer" icon={PanelBottom} title="Footer" description="Sosyal medya, iletişim, kampanya kutusu" />
         <Tile href="/content/theme/renkler" icon={THEME_SECTIONS.renkler.icon} title={THEME_SECTIONS.renkler.title} description="Sitenin tamamındaki renkler ve yazı tipleri" />
         <Tile href="/content/theme/arka-plan" icon={THEME_SECTIONS["arka-plan"].icon} title={THEME_SECTIONS["arka-plan"].title} description={THEME_SECTIONS["arka-plan"].description} />

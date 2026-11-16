@@ -94,7 +94,7 @@ export function AreaCard({
   children,
 }: {
   title: string;
-  hint?: string;
+  hint?: React.ReactNode;
   action?: React.ReactNode;
   children: React.ReactNode;
 }) {

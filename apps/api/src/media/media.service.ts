@@ -54,13 +54,14 @@ export class MediaService {
    */
   async usedAmong(urls: string[]): Promise<Set<string>> {
     if (urls.length === 0) return new Set();
-    const [productImages, categories, themes, blocks, abouts] = await Promise.all([
+    const [productImages, categories, themes, blocks, abouts, campaigns] = await Promise.all([
       this.prisma.productImage.findMany({ where: { url: { in: urls } }, select: { url: true }, distinct: ['url'] }),
       this.prisma.category.findMany({ where: { image: { in: urls }, deletedAt: null }, select: { image: true } }),
       this.prisma.siteTheme.findMany({ select: { backgroundImageUrl: true, cardTextureUrl: true, logoUrl: true, faviconUrl: true, ogImageUrl: true, deliveryIconUrl: true, siteImages: true, contactPage: true } }),
       // İçerik bölümleri az sayıda (en fazla 30): JSON içindeki görseller uygulamada toplanır
       this.prisma.contentBlock.findMany({ select: { data: true } }),
       this.prisma.aboutPage.findMany({ select: Object.fromEntries(ABOUT_IMAGE_FIELDS.map((f) => [f, true])) as Record<AboutImageField, true> }),
+      this.prisma.campaign.findMany({ select: { imageUrl: true } }),
     ]);
     const wanted = new Set(urls);
     const used = [
@@ -69,6 +70,7 @@ export class MediaService {
       ...themes.flatMap((t) => [t.backgroundImageUrl, t.cardTextureUrl, t.logoUrl, t.faviconUrl, t.ogImageUrl, t.deliveryIconUrl, ...Object.values(parseSiteImages(t.siteImages)), parseContactPage(t.contactPage).mapImage]),
       ...blocks.flatMap((b) => blockImageUrls(b.data)),
       ...abouts.flatMap((a) => ABOUT_IMAGE_FIELDS.map((f) => a[f])),
+      ...campaigns.map((c) => c.imageUrl),
     ].filter((url): url is string => !!url && wanted.has(url));
     return new Set(used);
   }

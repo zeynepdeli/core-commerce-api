@@ -90,6 +90,27 @@ export async function reorderPagesAction(list: string[]): Promise<ActionResult> 
   return sendToApi("/admin/content/pages/reorder", "PUT", { ids: v.data }, "Sıralanamadı.", "/content/pages");
 }
 
+// ───── Kampanyalar ─────
+
+export async function saveCampaignAction(campaignId: string | null, values: unknown): Promise<ActionResult> {
+  const v = payload.safeParse(values);
+  if (!v.success || (campaignId !== null && !id.safeParse(campaignId).success)) return invalid();
+  return campaignId
+    ? sendToApi(`/admin/content/campaigns/${campaignId}`, "PUT", v.data, "Kaydedilemedi.", "/content/campaigns")
+    : sendToApi("/admin/content/campaigns", "POST", v.data, "Eklenemedi.", "/content/campaigns");
+}
+
+export async function deleteCampaignAction(campaignId: string): Promise<ActionResult> {
+  if (!id.safeParse(campaignId).success) return invalid();
+  return sendToApi(`/admin/content/campaigns/${campaignId}`, "DELETE", undefined, "Silinemedi.", "/content/campaigns");
+}
+
+export async function reorderCampaignsAction(list: string[]): Promise<ActionResult> {
+  const v = ids.safeParse(list);
+  if (!v.success) return invalid();
+  return sendToApi("/admin/content/campaigns/reorder", "PUT", { ids: v.data }, "Sıralanamadı.", "/content/campaigns");
+}
+
 // ───── S.S.S. ─────
 
 export async function saveFaqAction(faqId: string | null, values: unknown): Promise<ActionResult> {

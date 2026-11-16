@@ -228,6 +228,17 @@ export function ThemeForm({
         </AreaCard>
       )}
 
+      {section === "kampanyalar" && (
+        <AreaCard title="Yazılar" hint="Kampanya kartları Kampanyalar ekranından yönetilir; indirimdeki ürünler, üstü çizili fiyatı olan ürünlerden otomatik listelenir.">
+          <div className="grid gap-5 @xl:grid-cols-2">
+            <FormField name="campaignPage.title" label="Başlık" placeholder="KAMPANYALAR" register={register} required />
+            <FormField name="campaignPage.subtitle" label="Açıklama" register={register} required />
+            <FormField name="campaignPage.saleTitle" label="İndirimli ürünler başlığı" placeholder="İndirimdeki Ürünler" register={register} required />
+            <FormField name="campaignPage.emptyText" label="Kampanya yokken görünen yazı" register={register} required />
+          </div>
+        </AreaCard>
+      )}
+
       {section === "urun-sayfasi" && (
         <>
           <AreaCard title="Yazılar" hint="Ürün adının üstündeki etiket, miktar seçicinin başlığı ve iki düğme (en fazla 24 karakter).">
