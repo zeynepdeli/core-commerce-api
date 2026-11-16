@@ -9,7 +9,7 @@ import { AreaCard } from "@/components/areas/AreaShell";
 import { FormField } from "@/components/forms/FormField";
 import { ImageUploadField } from "@/components/forms/ImageUploadField";
 import { Button } from "@/components/ui/button";
-import { SITE_IMAGE_FIELDS, THEME_SECTIONS, type ThemeSection, type ThemeValues } from "@/lib/theme-sections";
+import { PRODUCT_PAGE_IMAGE_FIELDS, SITE_IMAGE_FIELDS, THEME_SECTIONS, type ThemeSection, type ThemeValues } from "@/lib/theme-sections";
 
 const COLORS: { name: "primaryColor" | "secondaryColor" | "backgroundColor" | "textColor"; label: string }[] = [
   { name: "primaryColor", label: "Ana renk (butonlar, başlıklar)" },
@@ -179,6 +179,34 @@ export function ThemeForm({
             </span>
           </div>
         </AreaCard>
+      )}
+
+      {section === "urun-sayfasi" && (
+        <>
+          <AreaCard title="Yazılar" hint="Ürün adının üstündeki etiket, miktar seçicinin başlığı ve iki düğme (en fazla 24 karakter).">
+            <div className="grid gap-5 @xl:grid-cols-2">
+              <FormField name="productLabelText" label="Etiket" placeholder="Özel Lezzet" register={register} required />
+              <FormField name="quantityText" label="Miktar başlığı" placeholder="Miktar" register={register} required />
+              <FormField name="addToCartText" label="Sepete ekle düğmesi" placeholder="Sepete Ekle" register={register} required />
+              <FormField name="buyNowText" label="Hemen al düğmesi" placeholder="Hemen Al" register={register} required />
+            </div>
+          </AreaCard>
+          <AreaCard title="Görseller" hint="Boş bırakılan alanda mağazanın varsayılan görseli kullanılır; kaldırınca varsayılana döner. Kart dokusu Site Görselleri'ndeki kart dokusudur.">
+            <div className="grid gap-5 @xl:grid-cols-3">
+              {PRODUCT_PAGE_IMAGE_FIELDS.map((f) => (
+                <ImageUploadField
+                  key={f.name}
+                  name={f.name}
+                  label={f.label}
+                  description={f.hint}
+                  control={control}
+                  mediaBaseUrl={mediaBaseUrl}
+                  fallbackSrc={storefrontUrl ? `${storefrontUrl}${f.fallback}` : null}
+                />
+              ))}
+            </div>
+          </AreaCard>
+        </>
       )}
 
       {section === "arka-plan" && (

@@ -110,6 +110,9 @@ export class SiteImagesDto implements Partial<Record<SiteImageSlot, string | nul
   @ValidateIf(nullable) @IsImageUrl() productBandBackground?: string | null;
   @ValidateIf(nullable) @IsImageUrl() productPlate?: string | null;
   @ValidateIf(nullable) @IsImageUrl() iconTexture?: string | null;
+  @ValidateIf(nullable) @IsImageUrl() productPageBackground?: string | null;
+  @ValidateIf(nullable) @IsImageUrl() productDecorOne?: string | null;
+  @ValidateIf(nullable) @IsImageUrl() productDecorTwo?: string | null;
 }
 
 export class UpdateSiteDto {
@@ -146,6 +149,12 @@ export class UpdateSiteDto {
   @IsOptional() @RequiredLine(16) loginText?: string;
   @IsOptional() @RequiredLine(16) accountText?: string;
   @IsOptional() @RequiredLine(16) cartText?: string;
+
+  // Ürün detay sayfası yazıları
+  @IsOptional() @RequiredLine(24) productLabelText?: string;
+  @IsOptional() @RequiredLine(24) addToCartText?: string;
+  @IsOptional() @RequiredLine(24) buyNowText?: string;
+  @IsOptional() @RequiredLine(24) quantityText?: string;
 
   /** Header menüsü (sıra = menüdeki sıra). Boş liste: mağaza kategorileri gösterir. */
   @IsOptional()

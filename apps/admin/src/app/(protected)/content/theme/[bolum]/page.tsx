@@ -50,6 +50,10 @@ export default async function ThemeSectionPage({ params }: { params: Promise<{ b
           loginText: s.loginText,
           accountText: s.accountText,
           cartText: s.cartText,
+          productLabelText: s.productLabelText,
+          addToCartText: s.addToCartText,
+          buyNowText: s.buyNowText,
+          quantityText: s.quantityText,
           metaTitle: str(s.metaTitle),
           metaDescription: str(s.metaDescription),
         }}

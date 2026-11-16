@@ -13,6 +13,10 @@ export const SITE_IMAGE_SLOTS = [
   'productBandBackground',
   'productPlate',
   'iconTexture',
+  // Ürün detay sayfası: arka plan ve iki silik dekor çizimi
+  'productPageBackground',
+  'productDecorOne',
+  'productDecorTwo',
 ] as const;
 export type SiteImageSlot = (typeof SITE_IMAGE_SLOTS)[number];
 export type SiteImages = Partial<Record<SiteImageSlot, string>>;
