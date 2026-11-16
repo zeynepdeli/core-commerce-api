@@ -271,6 +271,7 @@ export class ContentService {
           accountText: t.accountText,
           cartText: t.cartText,
         },
+        productPage: { labelText: t.productLabelText, addToCartText: t.addToCartText, buyNowText: t.buyNowText, quantityText: t.quantityText },
         siteImages: parseSiteImages(t.siteImages),
         contact: { email: t.contactEmail, phone: t.contactPhone, whatsapp: t.contactWhatsapp, address: t.contactAddress, workingHours: t.workingHours },
         seo: { title: t.metaTitle ?? t.siteName, description: t.metaDescription, ogImageUrl: t.ogImageUrl },

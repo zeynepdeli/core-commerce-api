@@ -840,6 +840,11 @@ model SiteTheme {
   loginText         String @default("Giriş Yap")
   accountText       String @default("Hesabım")
   cartText          String @default("Sepetim")
+  // Ürün detay sayfası yazıları (eski enfesGurme "ürün detay ayarları")
+  productLabelText String @default("Özel Lezzet")
+  addToCartText    String @default("Sepete Ekle")
+  buyNowText       String @default("Hemen Al")
+  quantityText     String @default("Miktar")
 
   // İletişim (alt bilgi, İletişim sayfası, e-postalar). Admin'de Footer sayfasından düzenlenir.
   contactEmail    String?

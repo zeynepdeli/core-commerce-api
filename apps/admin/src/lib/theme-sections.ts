@@ -1,8 +1,8 @@
 import type { LucideIcon } from "lucide-react";
-import { Image as ImageIcon, PanelTop, Search, SwatchBook } from "lucide-react";
+import { Image as ImageIcon, PanelTop, Search, ShoppingBag, SwatchBook } from "lucide-react";
 
 /** API'deki izinli liste ile aynı (apps/api/src/content/site-images.ts) */
-export const SITE_IMAGE_SLOTS = ["productBandBackground", "productPlate", "footerBackground", "iconTexture"] as const;
+export const SITE_IMAGE_SLOTS = ["productBandBackground", "productPlate", "footerBackground", "iconTexture", "productPageBackground", "productDecorOne", "productDecorTwo"] as const;
 export type SiteImageSlot = (typeof SITE_IMAGE_SLOTS)[number];
 
 /**
@@ -17,6 +17,13 @@ export const SITE_IMAGE_FIELDS = [
   { name: "siteImages.footerBackground", label: "Footer zemini", hint: "Sayfanın en altındaki görsel.", fallback: "/images/footer-merdiven.webp" },
   { name: "siteImages.iconTexture", label: "Bakır ikon dokusu", hint: "Header'daki yuvarlak ikonların dokusu.", fallback: "/images/bakir-doku.webp" },
 ] as const satisfies readonly { name: "backgroundImageUrl" | "cardTextureUrl" | `siteImages.${SiteImageSlot}`; label: string; hint: string; fallback: string }[];
+
+/** Ürün detay sayfasının görselleri (Ürün Sayfası ekranı). Boşken mağazanın varsayılanı. */
+export const PRODUCT_PAGE_IMAGE_FIELDS = [
+  { name: "siteImages.productPageBackground", label: "Sayfa arka planı", hint: "Ürün sayfasının arkasındaki görsel (hafif soluk görünür).", fallback: "/images/hero-zemin.webp" },
+  { name: "siteImages.productDecorOne", label: "Dekor çizimi 1", hint: "Solda üstteki silik çizim. Arka planı şeffaf PNG/WEBP olmalı.", fallback: "/images/kadin-cizim.webp" },
+  { name: "siteImages.productDecorTwo", label: "Dekor çizimi 2", hint: "Solda alttaki, hafif eğik silik çizim.", fallback: "/images/kadin-cizim.webp" },
+] as const satisfies readonly { name: `siteImages.${SiteImageSlot}`; label: string; hint: string; fallback: string }[];
 
 /** Görünüm ayarlarının alanları (API: PUT /admin/content/site) */
 export type ThemeValues = {
@@ -46,6 +53,10 @@ export type ThemeValues = {
   loginText: string;
   accountText: string;
   cartText: string;
+  productLabelText: string;
+  addToCartText: string;
+  buyNowText: string;
+  quantityText: string;
   metaTitle: string;
   metaDescription: string;
 };
@@ -89,6 +100,12 @@ export const THEME_SECTIONS = {
     description: "Arka plan, dokular, ürün tabağı, footer zemini",
     icon: ImageIcon,
     fields: ["backgroundImageUrl", "backgroundImageFit", "cardTextureUrl", "siteImages"],
+  },
+  "urun-sayfasi": {
+    title: "Ürün Sayfası",
+    description: "Ürün detay sayfasının arka planı, dekorları, etiket ve düğme yazıları",
+    icon: ShoppingBag,
+    fields: ["productLabelText", "addToCartText", "buyNowText", "quantityText", "siteImages"],
   },
   seo: {
     title: "SEO",

@@ -28,6 +28,10 @@ export type SiteSettings = {
   loginText: string;
   accountText: string;
   cartText: string;
+  productLabelText: string;
+  addToCartText: string;
+  buyNowText: string;
+  quantityText: string;
   /** Yalnızca dolu alanlar gelir */
   siteImages: Partial<Record<SiteImageSlot, string>>;
   metaTitle: string | null;

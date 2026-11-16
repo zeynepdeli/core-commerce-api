@@ -138,6 +138,7 @@ export default async function DashboardPage() {
             badge={!p.isPublished && <Badge tone="muted">Taslak</Badge>}
           />
         ))}
+        <Tile href="/content/theme/urun-sayfasi" icon={THEME_SECTIONS["urun-sayfasi"].icon} title={THEME_SECTIONS["urun-sayfasi"].title} description="Ürün detayının arka planı, dekorları ve düğme yazıları" />
         <Tile href="/content/faq" icon={CircleHelp} title="S.S.S." description="Sıkça sorulan sorular" />
         <Tile href="/content/footer" icon={PanelBottom} title="Footer" description="Sosyal medya, iletişim, kampanya kutusu" />
         <Tile href="/content/theme/renkler" icon={THEME_SECTIONS.renkler.icon} title={THEME_SECTIONS.renkler.title} description="Sitenin tamamındaki renkler ve yazı tipleri" />
