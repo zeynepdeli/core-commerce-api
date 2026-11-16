@@ -23,7 +23,8 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
       lang="tr"
       className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}
     >
-      <body className="min-h-full flex flex-col">{children}</body>
+      {/* Tarayıcı eklentileri (ör. ColorZilla) body'ye öznitelik ekler; uyarı yalnızca bu öğe için susturulur */}
+      <body className="min-h-full flex flex-col" suppressHydrationWarning>{children}</body>
     </html>
   );
 }
